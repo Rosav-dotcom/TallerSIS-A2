@@ -3,7 +3,7 @@
 Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué componentes usa, sus subtareas de Jira, sus PA y el backend que necesita.
 
 - **Sprint 4 (pantallas nuevas):** carpeta `sprint4/`.
-- **Pantallas existentes (migración del Sprint 3):** se agregan en cada fase de la migración (0005 a 0012).
+- **Pantallas existentes (migración del Sprint 3):** se agregan en cada fase de la migración (0005 a 0013).
 
 ## Pantallas existentes ya migradas
 
@@ -12,6 +12,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | [`menus.md`](menus.md) | 0005 · Menús del cajero y del administrador, interruptores y rutas por rol |
 | [`acceso.md`](acceso.md) | 0006 · Login, Pantalla de bloqueo y Verificar factura |
 | [`turno.md`](turno.md) | 0007 · Inicio, apertura de turno, Cierre de caja y Arqueo |
+| [`facturas.md`](facturas.md) | 0008 · Facturas del cajero: lista, anulación, modificación y respuestas |
 
 ## Antes de empezar una pantalla del Sprint 4
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarRespuestasAnulacion } from '../api/respuestasAnulacion.js'
+import { Alerta } from './ui'
 
 // TDSI-896/897: respuestas de anulacion del cajero como botones, para ponerlos arriba del
 // campo del motivo en el modal "Solicitar anulación". Un clic ya elige el motivo:
@@ -29,14 +30,14 @@ function RespuestasAnulacionBotones({ cajeroId, onElegir, disabled = false }) {
     }
   }, [cajeroId])
 
-  if (cargando) return <p className="ayuda-mixto">Cargando tus respuestas de anulación...</p>
-  if (error) return <p className="error">No se pudieron cargar tus respuestas de anulación: {error}</p>
+  if (cargando) return <p className="fac-nota">Cargando tus respuestas de anulación...</p>
+  if (error) return <Alerta tono="error" titulo={`No se pudieron cargar tus respuestas de anulación: ${error}`} />
   if (respuestas.length === 0) return null
 
   return (
-    <div className="respuestas-botones" role="group" aria-label="Mis respuestas de anulación">
+    <div className="fac-respuestas" role="group" aria-label="Mis respuestas de anulación">
       {respuestas.map((r) => (
-        <button key={r.id} type="button" className="respuesta-rapida" disabled={disabled} onClick={() => onElegir(r.texto)}>
+        <button key={r.id} type="button" className="fac-respuesta" disabled={disabled} onClick={() => onElegir(r.texto)}>
           {r.texto}
         </button>
       ))}

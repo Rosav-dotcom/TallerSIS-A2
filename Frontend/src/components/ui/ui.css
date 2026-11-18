@@ -608,6 +608,9 @@
   background: var(--surface);
   box-shadow: var(--sombra);
 }
+.ui-modal--ancho {
+  max-width: 760px;
+}
 .ui-modal-cabecera {
   display: flex;
   align-items: flex-start;

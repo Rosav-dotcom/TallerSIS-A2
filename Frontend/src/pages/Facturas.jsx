@@ -11,6 +11,9 @@ import useResumenFactura from '../hooks/useResumenFactura.js'
 import ResumenFactura from '../components/ResumenFactura.jsx'
 import ComparacionModificacion from '../components/ComparacionModificacion.jsx'
 import CampoPassword from '../components/CampoPassword.jsx'
+import { Alerta, Boton, CampoTexto, Chip, EstadoCargando, EstadoVacio, Modal, Tabla, Tarjeta } from '../components/ui'
+import './turno.css'
+import './facturas.css'
 
 const PLAZO_ANULACION_MS = 2 * 60 * 60 * 1000 // 2 horas
 
@@ -19,6 +22,9 @@ const ESTADOS = {
   AnulacionSolicitada: { texto: 'Anulación solicitada', clase: 'badge-estado--solicitada' },
   Anulado: { texto: 'Anulada', clase: '' },
 }
+
+// Tono del chip de estado (solo presentación).
+const TONO_ESTADO = { Registrado: 'exito', AnulacionSolicitada: 'advertencia', Anulado: 'neutro' }
 
 // TDSI-48: panel "Mis respuestas de anulación" (va aparte de los imports de arriba para no
 // chocar al unir ramas que tambien los modifican).
@@ -313,66 +319,88 @@ function Facturas() {
   }
 
   return (
-    <section>
-      <h1>Facturas</h1>
-      <p className="resumen-turno-actual">Ventas emitidas por {cajero ? cajero.nombre : 'sin sesión iniciada'}.</p>
-      {cajero && (
-        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <MisRespuestasAnulacion cajeroId={cajero.nombre} />
-          <button type="button" className="btn btn-secundario" onClick={abrirAnuladasTurno}>
-            Anuladas en el turno
-          </button>
+    <section className="fac-pagina">
+      <div className="fac-cabecera">
+        <div className="turno-encabezado">
+          <h1>Facturas</h1>
+          <p className="resumen-turno-actual">Ventas emitidas por {cajero ? cajero.nombre : 'sin sesión iniciada'}.</p>
         </div>
-      )}
-
-      <div className="filtro-fechas">
-        <label className="campo">
-          Desde
-          <input type="date" value={filtroDesde} max={filtroHasta || undefined} onChange={(e) => setFiltroDesde(e.target.value)} />
-        </label>
-        <label className="campo">
-          Hasta
-          <input type="date" value={filtroHasta} min={filtroDesde || undefined} onChange={(e) => setFiltroHasta(e.target.value)} />
-        </label>
-        {/* TDSI-170: buscador con lupa junto al filtro de fechas */}
-        <label className="campo">
-          Buscar
-          <BuscadorFacturas valor={busqueda} onChange={setBusqueda} />
-        </label>
-        {(filtroDesde || filtroHasta || busqueda) && (
-          <button type="button" className="btn btn-secundario" onClick={limpiarFiltro}>
-            Limpiar
-          </button>
+        {cajero && (
+          <div className="fac-cabecera-acciones">
+            <MisRespuestasAnulacion cajeroId={cajero.nombre} />
+            <Boton variante="contorno" onClick={abrirAnuladasTurno}>
+              Anuladas en el turno
+            </Boton>
+          </div>
         )}
       </div>
 
-      {mensaje && <p className={mensaje.ok ? 'mensaje-exito' : 'error'}>{mensaje.texto}</p>}
+      <div className="fac-filtros">
+        <CampoTexto
+          etiqueta="Desde"
+          type="date"
+          value={filtroDesde}
+          max={filtroHasta || undefined}
+          onChange={(e) => setFiltroDesde(e.target.value)}
+        />
+        <CampoTexto
+          etiqueta="Hasta"
+          type="date"
+          value={filtroHasta}
+          min={filtroDesde || undefined}
+          onChange={(e) => setFiltroHasta(e.target.value)}
+        />
+        {/* TDSI-170: buscador con lupa junto al filtro de fechas */}
+        <label className="ui-campo fac-buscar">
+          <span className="ui-campo-etiqueta">Buscar</span>
+          <BuscadorFacturas valor={busqueda} onChange={setBusqueda} />
+        </label>
+        {(filtroDesde || filtroHasta || busqueda) && (
+          <Boton variante="fantasma" onClick={limpiarFiltro}>
+            Limpiar
+          </Boton>
+        )}
+      </div>
 
-      {cargando && <p>Cargando...</p>}
-      {errorCarga && <p className="error">Error: {errorCarga}</p>}
+      {mensaje && (
+        <div className="fac-aviso">
+          <Alerta tono={mensaje.ok ? 'exito' : 'error'} titulo={mensaje.texto} />
+        </div>
+      )}
+
+      {cargando && <EstadoCargando texto="Cargando..." />}
+      {errorCarga && (
+        <div className="fac-aviso">
+          <Alerta tono="error" titulo={`Error: ${errorCarga}`} />
+        </div>
+      )}
 
       {!cargando && !errorCarga && facturas.length === 0 && (
-        <p className={termino ? 'facturas-sin-resultados' : undefined}>
-          {termino
-            ? 'No se encontraron facturas' // TDSI-871
-            : filtroDesde || filtroHasta
-              ? 'No hay facturas en ese rango de fechas.'
-              : 'Todavía no emitiste ninguna factura.'}
-        </p>
+        <Tarjeta>
+          <EstadoVacio
+            titulo={
+              termino
+                ? 'No se encontraron facturas' // TDSI-871
+                : filtroDesde || filtroHasta
+                  ? 'No hay facturas en ese rango de fechas.'
+                  : 'Todavía no emitiste ninguna factura.'
+            }
+          />
+        </Tarjeta>
       )}
 
       {facturas.length > 0 && (
-        <table className="tabla-facturas">
+        <Tabla etiqueta="Facturas emitidas">
           <thead>
             <tr>
               <th>Número</th>
               <th>Fecha</th>
               <th>Cliente</th>
               <th>Método(s)</th>
-              <th>Total (Bs.)</th>
+              <th className="ui-num">Total (Bs.)</th>
               <th>Atendido por</th>
               <th>Estado</th>
-              <th></th>
+              <th>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -385,68 +413,78 @@ function Facturas() {
                   <td>{new Date(factura.fecha).toLocaleString()}</td>
                   <td>{factura.razon_social || 'Consumidor final'}</td>
                   <td>{factura.metodos.join(' + ')}</td>
-                  <td>{factura.total.toFixed(2)}</td>
+                  <td className="ui-num">{factura.total.toFixed(2)}</td>
                   <td>
                     {factura.cajero_nombre}
-                    {factura.caja_id && <span className="solicitud-detalle"> Caja N° {factura.caja_id}</span>}
+                    {factura.caja_id && <span className="fac-detalle"> Caja N° {factura.caja_id}</span>}
                   </td>
                   <td>
-                    <span className={`badge-estado ${estado.clase}`}>{estado.texto}</span>
+                    <Chip tono={TONO_ESTADO[factura.estado] || 'neutro'}>{estado.texto}</Chip>
                   </td>
-                  <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <a href={urlFacturaPdf(factura.id_transaccion)} target="_blank" rel="noopener noreferrer" className="btn btn-azul">
-                      Ver
-                    </a>
-                    {puedeAnular && (
-                      <button type="button" className="btn btn-secundario" onClick={() => abrirVentanaCredenciales(factura)}>
-                        Anular factura
-                      </button>
-                    )}
-                    {puedeAnular && (
-                      <button type="button" className="btn btn-azul" onClick={() => abrirModificar(factura)}>
-                        Modificar factura
-                      </button>
-                    )}
-                    {factura.estado === 'AnulacionSolicitada' && (
-                      <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Esperando a un supervisor...</span>
-                    )}
-                    {factura.estado === 'Registrado' && !dentroDelPlazo(factura.fecha) && (
-                      <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Fuera de plazo (2h)</span>
-                    )}
+                  <td>
+                    <div className="fac-acciones">
+                      <a
+                        href={urlFacturaPdf(factura.id_transaccion)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ui-boton ui-boton--fantasma"
+                      >
+                        Ver
+                      </a>
+                      {puedeAnular && (
+                        <Boton
+                          variante="fantasma"
+                          className="fac-accion--peligro"
+                          onClick={() => abrirVentanaCredenciales(factura)}
+                        >
+                          Anular factura
+                        </Boton>
+                      )}
+                      {puedeAnular && (
+                        <Boton variante="fantasma" onClick={() => abrirModificar(factura)}>
+                          Modificar factura
+                        </Boton>
+                      )}
+                      {factura.estado === 'AnulacionSolicitada' && (
+                        <span className="fac-nota">Esperando a un supervisor...</span>
+                      )}
+                      {factura.estado === 'Registrado' && !dentroDelPlazo(factura.fecha) && (
+                        <span className="fac-nota">Fuera de plazo (2h)</span>
+                      )}
+                    </div>
                   </td>
                 </tr>
               )
             })}
           </tbody>
-        </table>
+        </Tabla>
       )}
 
       {/* Ventana emergente 1: usuario + PIN del supervisor de caja */}
-      {facturaParaAnular && !pidiendoConfirmacion && (
-        <div className="modal-overlay">
-          <form className="modal-caja modal-caja-ancho" onSubmit={aceptarCredenciales}>
-            <h2>Autorización de supervisor</h2>
-            <p className="factura-numero-destacado">Factura N° {cargandoResumen ? '…' : (numeroFactura ?? '—')}</p>
+      <Modal ancho abierto={Boolean(facturaParaAnular && !pidiendoConfirmacion)} titulo="Autorización de supervisor" onCerrar={cerrarTodo}>
+        <form className="fac-form" onSubmit={aceptarCredenciales}>
+          <p className="fac-numero">Factura N° {cargandoResumen ? '…' : (numeroFactura ?? '—')}</p>
 
-            {/* TDSI-196 / 907 / 910: resumen de la factura antes de los campos de PIN */}
-            <ResumenFactura
-              resumen={resumen}
-              cargando={cargandoResumen}
-              error={errorResumen}
-              onReintentar={reintentarResumen}
-              factura={facturaParaAnular}
-            />
+          {/* TDSI-196 / 907 / 910: resumen de la factura antes de los campos de PIN */}
+          <ResumenFactura
+            resumen={resumen}
+            cargando={cargandoResumen}
+            error={errorResumen}
+            onReintentar={reintentarResumen}
+            factura={facturaParaAnular}
+          />
 
-            <p>Para anular esta factura se necesita el usuario y el PIN de un supervisor de caja.</p>
+          <p className="fac-nota">Para anular esta factura se necesita el usuario y el PIN de un supervisor de caja.</p>
 
-            <RespuestasAnulacionBotones
-              cajeroId={cajero?.nombre}
-              onElegir={(texto) => setMotivoAnulacion(texto)}
-              disabled={anulando}
-            />
+          <RespuestasAnulacionBotones
+            cajeroId={cajero?.nombre}
+            onElegir={(texto) => setMotivoAnulacion(texto)}
+            disabled={anulando}
+          />
 
-            <label className="campo">
-              Motivo de la anulación
+          <label className="ui-campo">
+            <span className="ui-campo-etiqueta">Motivo de la anulación</span>
+            <span className="ui-control ui-control--area">
               <textarea
                 rows={2}
                 maxLength={LARGO_MAXIMO_ANULACION}
@@ -454,80 +492,85 @@ function Facturas() {
                 onChange={(e) => setMotivoAnulacion(e.target.value)}
                 placeholder="Elegí una respuesta de arriba o escribí el motivo (mínimo 10 caracteres)"
               />
-              <span className="respuestas-contador">
-                {motivoAnulacion.trim().length}/{LARGO_MAXIMO_ANULACION}
-              </span>
-            </label>
+            </span>
+            <span className="fac-contador">
+              {motivoAnulacion.trim().length}/{LARGO_MAXIMO_ANULACION}
+            </span>
+          </label>
 
-            <label className="campo">
-              Usuario del supervisor
-              <input
-                type="text"
-                autoComplete="off"
-                value={credenciales.supervisor_id}
-                onChange={(e) => actualizarCredencial('supervisor_id', e.target.value)}
-                autoFocus
-              />
-            </label>
+          <CampoTexto
+            etiqueta="Usuario del supervisor"
+            type="text"
+            autoComplete="off"
+            value={credenciales.supervisor_id}
+            onChange={(e) => actualizarCredencial('supervisor_id', e.target.value)}
+            autoFocus
+          />
 
-            <label className="campo">
-              PIN
+          <label className="ui-campo">
+            <span className="ui-campo-etiqueta">PIN</span>
+            <span className="ui-control">
               <CampoPassword
                 inputMode="numeric"
                 autoComplete="new-password"
                 value={credenciales.pin}
                 onChange={(e) => actualizarCredencial('pin', e.target.value)}
               />
-            </label>
+            </span>
+          </label>
 
-            {errorCredenciales && <p className="error">{errorCredenciales}</p>}
+          {errorCredenciales && <Alerta tono="error" titulo={errorCredenciales} />}
 
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={cerrarTodo}>
-                Cancelar
-              </button>
-              <button type="submit" className="btn" disabled={cargandoResumen}>
-                Aceptar
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+          <div className="ui-modal-acciones">
+            <Boton variante="contorno" onClick={cerrarTodo}>
+              Cancelar
+            </Boton>
+            <Boton type="submit" disabled={cargandoResumen}>
+              Aceptar
+            </Boton>
+          </div>
+          <span className="fac-nota">Esta autorización quedará registrada en la auditoría.</span>
+        </form>
+      </Modal>
 
       {/* Ventana emergente 2: pregunta de seguridad final antes de anular de verdad */}
-      {facturaParaAnular && pidiendoConfirmacion && (
-        <div className="modal-overlay">
-          <div className="modal-caja">
-            <h2>¿Está seguro?</h2>
-            <p>
-              ¿Desea anular la factura número <strong>{numeroFactura ?? facturaParaAnular.id_transaccion}</strong>? Esta acción no se
-              puede deshacer.
-            </p>
-            <p>Motivo: «{motivoAnulacion.trim()}»</p>
-
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={cerrarTodo} disabled={anulando}>
-                No
-              </button>
-              <button type="button" className="btn" onClick={confirmarAnulacion} disabled={anulando}>
-                {anulando ? 'Anulando...' : 'Sí, anular'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        abierto={Boolean(facturaParaAnular && pidiendoConfirmacion)}
+        titulo="¿Está seguro?"
+        onCerrar={anulando ? undefined : cerrarTodo}
+        acciones={
+          <>
+            <Boton variante="contorno" onClick={cerrarTodo} disabled={anulando}>
+              No
+            </Boton>
+            <Boton variante="peligro" onClick={confirmarAnulacion} disabled={anulando}>
+              {anulando ? 'Anulando...' : 'Sí, anular'}
+            </Boton>
+          </>
+        }
+      >
+        <p>
+          ¿Desea anular la factura número <strong>{numeroFactura ?? facturaParaAnular?.id_transaccion}</strong>? Esta
+          acción no se puede deshacer.
+        </p>
+        <p>Motivo: «{motivoAnulacion.trim()}»</p>
+      </Modal>
 
       {/* TDSI-37: modificar los datos de facturacion de una venta, con PIN de supervisor */}
-      {facturaParaModificar && formModificar && (
-        <div className="modal-overlay">
-          <form className="modal-caja modal-caja-ancho" onSubmit={enviarModificacion}>
-            <h2>Modificar factura</h2>
-            <p className="factura-numero-destacado">Factura N° {cargandoResumen ? '…' : (numeroFactura ?? '—')}</p>
+      <Modal
+        ancho
+        abierto={Boolean(facturaParaModificar && formModificar)}
+        titulo="Modificar factura"
+        onCerrar={modificando ? undefined : cerrarModificar}
+      >
+        {facturaParaModificar && formModificar && (
+          <form className="fac-form" onSubmit={enviarModificacion}>
+            <p className="fac-numero">Factura N° {cargandoResumen ? '…' : (numeroFactura ?? '—')}</p>
 
             {tiempoRestante ? (
-              <p className="ayuda-mixto">{tiempoRestante} para poder modificar esta factura.</p>
+              <Alerta tono="info" titulo={`${tiempoRestante} para poder modificar esta factura.`} />
             ) : (
-              <p className="error">Ya pasaron las 2 horas desde la emisión: no se puede modificar.</p>
+              <Alerta tono="error" titulo="Ya pasaron las 2 horas desde la emisión: no se puede modificar." />
             )}
 
             <ResumenFactura
@@ -538,47 +581,41 @@ function Facturas() {
               factura={facturaParaModificar}
             />
 
-            <div className="tipo-venta-opciones">
+            <div className="fac-tipos" role="group" aria-label="Tipo de documento">
               {TIPOS_DOCUMENTO_MOD.map((tipo) => (
-                <button
+                <Boton
                   key={tipo.id}
-                  type="button"
-                  className={`tipo-venta-opcion${formModificar.tipoDocumento === tipo.id ? ' activa' : ''}`}
+                  variante={formModificar.tipoDocumento === tipo.id ? 'primario' : 'contorno'}
+                  aria-pressed={formModificar.tipoDocumento === tipo.id}
                   onClick={() => actualizarFormModificar('tipoDocumento', tipo.id)}
                 >
                   {tipo.etiqueta}
-                </button>
+                </Boton>
               ))}
             </div>
 
-            <label className="campo">
-              Número de {formModificar.tipoDocumento}
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={MAX_LARGO_DOCUMENTO_MOD[formModificar.tipoDocumento]}
-                value={formModificar.numeroDocumento}
-                onChange={(e) => actualizarFormModificar('numeroDocumento', e.target.value.replace(/\D/g, ''))}
-              />
-            </label>
+            <CampoTexto
+              etiqueta={`Número de ${formModificar.tipoDocumento}`}
+              type="text"
+              inputMode="numeric"
+              maxLength={MAX_LARGO_DOCUMENTO_MOD[formModificar.tipoDocumento]}
+              value={formModificar.numeroDocumento}
+              onChange={(e) => actualizarFormModificar('numeroDocumento', e.target.value.replace(/\D/g, ''))}
+            />
 
-            <label className="campo">
-              Razón social
-              <input
-                type="text"
-                value={formModificar.razonSocial}
-                onChange={(e) => actualizarFormModificar('razonSocial', e.target.value)}
-              />
-            </label>
+            <CampoTexto
+              etiqueta="Razón social"
+              type="text"
+              value={formModificar.razonSocial}
+              onChange={(e) => actualizarFormModificar('razonSocial', e.target.value)}
+            />
 
-            <label className="campo">
-              Teléfono (opcional)
-              <input
-                type="tel"
-                value={formModificar.telefono}
-                onChange={(e) => actualizarFormModificar('telefono', e.target.value)}
-              />
-            </label>
+            <CampoTexto
+              etiqueta="Teléfono (opcional)"
+              type="tel"
+              value={formModificar.telefono}
+              onChange={(e) => actualizarFormModificar('telefono', e.target.value)}
+            />
 
             {/* TDSI-908 / 914: dato actual y dato nuevo lado a lado, antes del PIN */}
             {/* TDSI-904: "actual" sale de lo guardado en la BD (resumen.datos_actuales); la fila
@@ -593,94 +630,87 @@ function Facturas() {
               nuevo={formModificar}
             />
 
-            <label className="campo">
-              Usuario del supervisor
-              <input
-                type="text"
-                autoComplete="off"
-                value={credencialesModificar.supervisor_id}
-                onChange={(e) => actualizarCredencialModificar('supervisor_id', e.target.value)}
-              />
+            <CampoTexto
+              etiqueta="Usuario del supervisor"
+              type="text"
+              autoComplete="off"
+              value={credencialesModificar.supervisor_id}
+              onChange={(e) => actualizarCredencialModificar('supervisor_id', e.target.value)}
+            />
+
+            <label className="ui-campo">
+              <span className="ui-campo-etiqueta">PIN</span>
+              <span className="ui-control">
+                <CampoPassword
+                  inputMode="numeric"
+                  autoComplete="new-password"
+                  value={credencialesModificar.pin}
+                  onChange={(e) => actualizarCredencialModificar('pin', e.target.value)}
+                />
+              </span>
             </label>
 
-            <label className="campo">
-              PIN
-              <CampoPassword
-                inputMode="numeric"
-                autoComplete="new-password"
-                value={credencialesModificar.pin}
-                onChange={(e) => actualizarCredencialModificar('pin', e.target.value)}
-              />
-            </label>
+            {errorModificar && <Alerta tono="error" titulo={errorModificar} />}
 
-            {errorModificar && <p className="error">{errorModificar}</p>}
-
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={cerrarModificar} disabled={modificando}>
+            <div className="ui-modal-acciones">
+              <Boton variante="contorno" onClick={cerrarModificar} disabled={modificando}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn" disabled={modificando || !tiempoRestante}>
+              </Boton>
+              <Boton type="submit" disabled={modificando || !tiempoRestante}>
                 {modificando ? 'Guardando...' : 'Guardar cambios'}
-              </button>
+              </Boton>
             </div>
           </form>
-        </div>
-      )}
+        )}
+      </Modal>
+
       {/* TDSI-49: facturas anuladas del turno abierto de la caja de este cajero. */}
-      {mostrandoAnuladasTurno && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Facturas anuladas del turno">
-          <div className="rt-modal-facturas">
-            <button type="button" className="rt-modal-cerrar" onClick={cerrarAnuladasTurno} aria-label="Cerrar">
-              ✕
-            </button>
-            <h3 style={{ marginTop: 0 }}>Anuladas en el turno</h3>
+      <Modal ancho abierto={mostrandoAnuladasTurno} titulo="Anuladas en el turno" onCerrar={cerrarAnuladasTurno}>
+        {cargandoAnuladasTurno && <EstadoCargando texto="Cargando..." />}
 
-            {cargandoAnuladasTurno && <p>Cargando...</p>}
+        {!cargandoAnuladasTurno && errorAnuladasTurno && <Alerta tono="error" titulo={errorAnuladasTurno} />}
 
-            {!cargandoAnuladasTurno && errorAnuladasTurno && (
-              <div className="error" style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>
-                {errorAnuladasTurno}
-              </div>
-            )}
-
-            {!cargandoAnuladasTurno && !errorAnuladasTurno && anuladasTurno && (
-              anuladasTurno.anuladas.length === 0 ? (
-                <p>Todavía no anulaste ninguna factura en este turno.</p>
-              ) : (
-                <table className="tabla-facturas">
-                  <thead>
-                    <tr>
-                      <th>N° Factura</th>
-                      <th>Hora</th>
-                      <th>Total (Bs.)</th>
-                      <th>Motivo</th>
-                      <th>Supervisor</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {anuladasTurno.anuladas.map((a) => (
-                      <tr key={a.numero_factura}>
-                        <td>{a.numero_factura}</td>
-                        <td>{new Date(a.hora).toLocaleTimeString()}</td>
-                        <td>{a.total.toFixed(2)}</td>
-                        <td>{a.motivo || '—'}</td>
-                        <td>{a.supervisor || '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colSpan={2}><strong>Total anulado</strong></td>
-                      <td><strong>{anuladasTurno.montoAnulado.toFixed(2)}</strong></td>
-                      <td colSpan={2}></td>
-                    </tr>
-                  </tfoot>
-                </table>
-              )
-            )}
-          </div>
-        </div>
-      )}
+        {!cargandoAnuladasTurno &&
+          !errorAnuladasTurno &&
+          anuladasTurno &&
+          (anuladasTurno.anuladas.length === 0 ? (
+            <p className="fac-nota">Todavía no anulaste ninguna factura en este turno.</p>
+          ) : (
+            <Tabla etiqueta="Anuladas en el turno">
+              <thead>
+                <tr>
+                  <th>N° Factura</th>
+                  <th>Hora</th>
+                  <th className="ui-num">Total (Bs.)</th>
+                  <th>Motivo</th>
+                  <th>Supervisor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {anuladasTurno.anuladas.map((a) => (
+                  <tr key={a.numero_factura}>
+                    <td>{a.numero_factura}</td>
+                    <td>{new Date(a.hora).toLocaleTimeString()}</td>
+                    <td className="ui-num">{a.total.toFixed(2)}</td>
+                    <td>{a.motivo || '—'}</td>
+                    <td>{a.supervisor || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={2}>
+                    <strong>Total anulado</strong>
+                  </td>
+                  <td className="ui-num">
+                    <strong>{anuladasTurno.montoAnulado.toFixed(2)}</strong>
+                  </td>
+                  <td colSpan={2}></td>
+                </tr>
+              </tfoot>
+            </Tabla>
+          ))}
+      </Modal>
     </section>
   )
 }

@@ -1,0 +1,187 @@
+/* Facturas del cajero (Figma p.36–38 y p.44). Solo variables de index.css. */
+
+/* La tabla de facturas necesita más ancho que el contenedor del cajero (960 px). */
+main.container:has(.fac-pagina) {
+  max-width: 1280px;
+}
+.fac-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-5);
+}
+.fac-cabecera .turno-encabezado {
+  margin-bottom: 0;
+}
+.fac-cabecera-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+}
+.fac-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-5);
+}
+.fac-filtros .ui-campo {
+  min-width: 170px;
+}
+.fac-filtros .fac-buscar {
+  flex: 1;
+  min-width: 280px;
+}
+.fac-aviso {
+  margin-bottom: var(--espacio-4);
+}
+
+/* Acciones de cada fila: botones de texto */
+.fac-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+.fac-acciones .ui-boton {
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.fac-pagina .ui-tabla td {
+  padding-top: var(--espacio-2);
+  padding-bottom: var(--espacio-2);
+}
+.fac-accion--peligro {
+  color: var(--error);
+}
+.fac-nota {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.fac-detalle {
+  display: block;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Formularios dentro de los modales */
+.fac-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.fac-numero {
+  margin: 0;
+  font: var(--texto-subtitulo);
+  color: var(--text);
+}
+.fac-contador {
+  align-self: flex-end;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.fac-tipos {
+  display: flex;
+  gap: var(--espacio-2);
+}
+
+/* Respuestas de anulación como botones de un clic */
+.fac-respuestas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.fac-respuesta {
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  cursor: pointer;
+}
+.fac-respuesta:hover:not(:disabled) {
+  border-color: var(--navy);
+}
+.fac-respuesta:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
+/* Resumen de la factura (TDSI-59) */
+.fac-resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+}
+.fac-resumen-grilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--espacio-3) var(--espacio-4);
+  margin: 0;
+}
+.fac-resumen-grilla dt {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.fac-resumen-grilla dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.fac-resumen-motivo {
+  grid-column: 1 / -1;
+}
+.fac-esqueleto {
+  height: 40px;
+  border-radius: var(--radio-control);
+  background: color-mix(in srgb, var(--border) 60%, var(--surface));
+}
+.fac-esqueleto--tabla {
+  height: 120px;
+}
+
+/* Panel "Mis respuestas de anulación" */
+.fac-panel-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.fac-panel-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+}
+.fac-panel-item > form,
+.fac-panel-item > .fac-panel-confirmar {
+  flex: 1;
+}
+.fac-panel-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.fac-panel-confirmar p {
+  margin: 0 0 var(--espacio-2);
+}

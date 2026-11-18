@@ -1,3 +1,5 @@
+import { Alerta, Boton, Tabla } from './ui'
+
 const dinero = (valor) => `Bs ${(Number(valor) || 0).toFixed(2)}`
 
 // TDSI-59: cuanto queda de las 2 horas para anular o modificar la factura
@@ -17,11 +19,13 @@ export default function ResumenFactura({ resumen, cargando, error, onReintentar,
   // TDSI-910: indicador de carga (skeleton) mientras se consulta el resumen
   if (cargando) {
     return (
-      <div className="resumen-factura" aria-busy="true" aria-live="polite" aria-label="Cargando resumen de la factura">
-        <div className="resumen-factura-grilla">
-          {[1, 2, 3, 4, 5, 6].map((i) => <div className="resumen-factura-skeleton" key={i} />)}
+      <div className="fac-resumen" aria-busy="true" aria-live="polite" aria-label="Cargando resumen de la factura">
+        <div className="fac-resumen-grilla">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div className="fac-esqueleto" key={i} />
+          ))}
         </div>
-        <div className="resumen-factura-skeleton resumen-factura-skeleton-tabla" />
+        <div className="fac-esqueleto fac-esqueleto--tabla" />
       </div>
     )
   }
@@ -46,24 +50,26 @@ export default function ResumenFactura({ resumen, cargando, error, onReintentar,
   const motivoSolicitud = resumen?.motivo ?? motivo
 
   return (
-    <div className="resumen-factura">
+    <div className="fac-resumen">
       {error && (
-        <div className="resumen-factura-error" role="alert">
-          <span>{error}</span>
+        <div role="alert" className="fac-form">
+          <Alerta tono="error" titulo={error} />
           {onReintentar && (
-            <button type="button" className="btn btn-secundario" onClick={onReintentar}>Reintentar</button>
+            <Boton variante="contorno" onClick={onReintentar}>
+              Reintentar
+            </Boton>
           )}
         </div>
       )}
 
-      <dl className="resumen-factura-grilla">
+      <dl className="fac-resumen-grilla">
         {campos.map(([etiqueta, valor]) => (
-          <div className="resumen-factura-dato" key={etiqueta}>
+          <div key={etiqueta}>
             <dt>{etiqueta}</dt>
             <dd>{texto(valor)}</dd>
           </div>
         ))}
-        <div className="resumen-factura-dato resumen-factura-motivo">
+        <div className="fac-resumen-motivo">
           <dt>Motivo de la solicitud</dt>
           <dd>{motivoSolicitud ? motivoSolicitud : 'Sin motivo registrado'}</dd>
         </div>
@@ -71,39 +77,39 @@ export default function ResumenFactura({ resumen, cargando, error, onReintentar,
 
       {/* TDSI-907: ítems con cantidad, precio unitario y subtotal */}
       {!error && (
-        <div className="resumen-factura-tabla-contenedor">
-          <table className="resumen-factura-tabla">
-            <thead>
+        <Tabla etiqueta="Ítems de la factura">
+          <thead>
+            <tr>
+              <th>Ítem</th>
+              <th className="ui-num">Cant.</th>
+              <th className="ui-num">Precio</th>
+              <th className="ui-num">Subtotal</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.length === 0 ? (
               <tr>
-                <th>Ítem</th>
-                <th className="resumen-factura-derecha">Cant.</th>
-                <th className="resumen-factura-derecha">Precio</th>
-                <th className="resumen-factura-derecha">Subtotal</th>
+                <td colSpan={4} className="fac-nota">
+                  Sin ítems registrados
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {items.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="resumen-factura-vacio">Sin ítems registrados</td>
-                </tr>
-              ) : (
-                items.map((item, i) => {
-                  const cantidad = Number(item.cantidad) || 0
-                  const precio = Number(item.precio_unitario ?? item.precio) || 0
-                  const subtotal = item.subtotal ?? item.total ?? cantidad * precio
-                  return (
-                    <tr key={item.id ?? i}>
-                      <td>{texto(item.descripcion ?? item.producto ?? item.nombre)}</td>
-                      <td className="resumen-factura-derecha">{cantidad}</td>
-                      <td className="resumen-factura-derecha">{dinero(precio)}</td>
-                      <td className="resumen-factura-derecha">{dinero(subtotal)}</td>
-                    </tr>
-                  )
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+            ) : (
+              items.map((item, i) => {
+                const cantidad = Number(item.cantidad) || 0
+                const precio = Number(item.precio_unitario ?? item.precio) || 0
+                const subtotal = item.subtotal ?? item.total ?? cantidad * precio
+                return (
+                  <tr key={item.id ?? i}>
+                    <td>{texto(item.descripcion ?? item.producto ?? item.nombre)}</td>
+                    <td className="ui-num">{cantidad}</td>
+                    <td className="ui-num">{dinero(precio)}</td>
+                    <td className="ui-num">{dinero(subtotal)}</td>
+                  </tr>
+                )
+              })
+            )}
+          </tbody>
+        </Tabla>
       )}
     </div>
   )

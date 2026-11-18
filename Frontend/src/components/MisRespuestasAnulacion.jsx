@@ -8,21 +8,24 @@ import {
   MAXIMO_RESPUESTAS_ANULACION,
   LARGO_MAXIMO_ANULACION,
 } from '../api/respuestasAnulacion.js'
+import { Alerta, Boton, Modal } from './ui'
 
 // Las clases respuestas-* son las del panel de TDSI-44 (mismo enfoque y mismo aspecto).
 
 function CampoRespuesta({ id, valor, onCambiar, autoFocus }) {
   return (
     <>
-      <textarea
-        id={id}
-        rows={2}
-        maxLength={LARGO_MAXIMO_ANULACION}
-        value={valor}
-        autoFocus={autoFocus}
-        onChange={(e) => onCambiar(e.target.value)}
-      />
-      <span className="respuestas-contador">
+      <span className="ui-control ui-control--area">
+        <textarea
+          id={id}
+          rows={2}
+          maxLength={LARGO_MAXIMO_ANULACION}
+          value={valor}
+          autoFocus={autoFocus}
+          onChange={(e) => onCambiar(e.target.value)}
+        />
+      </span>
+      <span className="fac-contador">
         {valor.trim().length}/{LARGO_MAXIMO_ANULACION}
       </span>
     </>
@@ -132,129 +135,123 @@ function PanelRespuestasAnulacion({ cajeroId, onCerrar }) {
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-caja respuestas-panel" role="dialog" aria-modal="true" aria-labelledby="titulo-respuestas-anulacion">
-        <div className="respuestas-encabezado">
-          <h2 id="titulo-respuestas-anulacion">Mis respuestas de anulación</h2>
-          <button type="button" className="respuestas-cerrar" onClick={onCerrar} aria-label="Cerrar">
-            ×
-          </button>
+    <Modal abierto titulo="Mis respuestas de anulación" onCerrar={onCerrar}>
+      <p className="fac-nota">
+        Motivos para elegir con un clic al anular una factura. Si editas o eliminas uno, las facturas ya anuladas
+        conservan el motivo que tenían.
+      </p>
+
+      {cargando && <p className="fac-nota">Cargando...</p>}
+
+      {!cargando && errorCarga && (
+        <div className="fac-form">
+          <Alerta tono="error" titulo={`No se pudieron cargar tus respuestas: ${errorCarga}`} />
+          <Boton variante="contorno" onClick={() => setIntento((n) => n + 1)}>
+            Reintentar
+          </Boton>
         </div>
-        <p className="respuestas-ayuda">
-          Motivos para elegir con un clic al anular una factura. Si editas o eliminas uno, las facturas ya anuladas
-          conservan el motivo que tenían.
-        </p>
+      )}
 
-        {cargando && <p>Cargando...</p>}
-
-        {!cargando && errorCarga && (
-          <p className="error">
-            No se pudieron cargar tus respuestas: {errorCarga}{' '}
-            <button type="button" className="billete-rapido" onClick={() => setIntento((n) => n + 1)}>
-              Reintentar
-            </button>
-          </p>
-        )}
-
-        {!cargando && !errorCarga && (
-          <>
-            {respuestas.length === 0 ? (
-              <p className="respuestas-vacio">Todavía no tienes respuestas de anulación.</p>
-            ) : (
-              <ul className="respuestas-lista">
-                {respuestas.map((r) => (
-                  <li key={r.id} className="respuestas-item">
-                    {editando?.id === r.id ? (
-                      <form onSubmit={guardarEdicion} className="respuestas-form">
-                        <label htmlFor={`editar-anulacion-${r.id}`} className="respuestas-etiqueta">
-                          Editar respuesta
-                        </label>
-                        <CampoRespuesta
-                          id={`editar-anulacion-${r.id}`}
-                          valor={editando.texto}
-                          onCambiar={(texto) => setEditando({ id: r.id, texto })}
-                          autoFocus
-                        />
-                        <div className="respuestas-acciones">
-                          <button type="submit" className="btn" disabled={enviando}>
-                            Guardar
-                          </button>
-                          <button type="button" className="btn btn-secundario" onClick={() => setEditando(null)} disabled={enviando}>
-                            Cancelar
-                          </button>
-                        </div>
-                      </form>
-                    ) : porEliminar === r.id ? (
-                      <div className="respuestas-confirmar">
-                        <p>¿Eliminar «{r.texto}»?</p>
-                        <div className="respuestas-acciones">
-                          <button type="button" className="btn btn-peligro" onClick={() => confirmarEliminar(r.id)} disabled={enviando}>
-                            Sí, eliminar
-                          </button>
-                          <button type="button" className="btn btn-secundario" onClick={() => setPorEliminar(null)} disabled={enviando} autoFocus>
-                            No
-                          </button>
-                        </div>
+      {!cargando && !errorCarga && (
+        <>
+          {respuestas.length === 0 ? (
+            <p className="fac-nota">Todavía no tienes respuestas de anulación.</p>
+          ) : (
+            <ul className="fac-panel-lista">
+              {respuestas.map((r) => (
+                <li key={r.id} className="fac-panel-item">
+                  {editando?.id === r.id ? (
+                    <form onSubmit={guardarEdicion} className="fac-form">
+                      <label htmlFor={`editar-anulacion-${r.id}`} className="ui-campo-etiqueta">
+                        Editar respuesta
+                      </label>
+                      <CampoRespuesta
+                        id={`editar-anulacion-${r.id}`}
+                        valor={editando.texto}
+                        onCambiar={(texto) => setEditando({ id: r.id, texto })}
+                        autoFocus
+                      />
+                      <div className="fac-panel-acciones">
+                        <Boton type="submit" disabled={enviando}>
+                          Guardar
+                        </Boton>
+                        <Boton variante="contorno" onClick={() => setEditando(null)} disabled={enviando}>
+                          Cancelar
+                        </Boton>
                       </div>
-                    ) : (
-                      <>
-                        <span className="respuestas-texto">{r.texto}</span>
-                        <div className="respuestas-acciones">
-                          <button
-                            type="button"
-                            className="btn btn-secundario"
-                            onClick={() => {
-                              setPorEliminar(null)
-                              setError(null)
-                              setEditando({ id: r.id, texto: r.texto })
-                            }}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secundario"
-                            onClick={() => {
-                              setEditando(null)
-                              setPorEliminar(r.id)
-                            }}
-                          >
-                            Eliminar
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
+                    </form>
+                  ) : porEliminar === r.id ? (
+                    <div className="fac-panel-confirmar">
+                      <p>¿Eliminar «{r.texto}»?</p>
+                      <div className="fac-panel-acciones">
+                        <Boton variante="peligro" onClick={() => confirmarEliminar(r.id)} disabled={enviando}>
+                          Sí, eliminar
+                        </Boton>
+                        <Boton variante="contorno" onClick={() => setPorEliminar(null)} disabled={enviando} autoFocus>
+                          No
+                        </Boton>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span>{r.texto}</span>
+                      <div className="fac-panel-acciones">
+                        <Boton
+                          variante="fantasma"
+                          onClick={() => {
+                            setPorEliminar(null)
+                            setError(null)
+                            setEditando({ id: r.id, texto: r.texto })
+                          }}
+                        >
+                          Editar
+                        </Boton>
+                        <Boton
+                          variante="fantasma"
+                          className="fac-accion--peligro"
+                          onClick={() => {
+                            setEditando(null)
+                            setPorEliminar(r.id)
+                          }}
+                        >
+                          Eliminar
+                        </Boton>
+                      </div>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
 
-            <p className="respuestas-cuenta">
-              {respuestas.length} de {MAXIMO_RESPUESTAS_ANULACION} respuestas
-            </p>
+          <p className="fac-nota">
+            {respuestas.length} de {MAXIMO_RESPUESTAS_ANULACION} respuestas
+          </p>
 
-            {llegoAlMaximo ? (
-              <p className="ayuda-mixto">Llegaste al máximo de {MAXIMO_RESPUESTAS_ANULACION}. Elimina una para agregar otra.</p>
-            ) : (
-              <form onSubmit={guardarNueva} className="respuestas-form">
-                <label htmlFor="nueva-respuesta-anulacion" className="respuestas-etiqueta">
-                  Nueva respuesta
-                </label>
-                <CampoRespuesta id="nueva-respuesta-anulacion" valor={nuevoTexto} onCambiar={setNuevoTexto} />
-                <div className="respuestas-acciones">
-                  <button type="submit" className="btn" disabled={enviando}>
-                    Agregar
-                  </button>
-                </div>
-              </form>
-            )}
-          </>
-        )}
+          {llegoAlMaximo ? (
+            <Alerta
+              tono="info"
+              titulo={`Llegaste al máximo de ${MAXIMO_RESPUESTAS_ANULACION}. Elimina una para agregar otra.`}
+            />
+          ) : (
+            <form onSubmit={guardarNueva} className="fac-form">
+              <label htmlFor="nueva-respuesta-anulacion" className="ui-campo-etiqueta">
+                Nueva respuesta
+              </label>
+              <CampoRespuesta id="nueva-respuesta-anulacion" valor={nuevoTexto} onCambiar={setNuevoTexto} />
+              <div className="fac-panel-acciones">
+                <Boton type="submit" disabled={enviando}>
+                  Agregar
+                </Boton>
+              </div>
+            </form>
+          )}
+        </>
+      )}
 
-        {error && <p className="error">{error}</p>}
-        {mensaje && <p className="mensaje-exito">{mensaje}</p>}
-      </div>
-    </div>
+      {error && <Alerta tono="error" titulo={error} />}
+      {mensaje && <Alerta tono="exito" titulo={mensaje} />}
+    </Modal>
   )
 }
 
@@ -264,9 +261,9 @@ function MisRespuestasAnulacion({ cajeroId }) {
   const [abierto, setAbierto] = useState(false)
   return (
     <>
-      <button type="button" className="btn btn-secundario" onClick={() => setAbierto(true)}>
+      <Boton variante="contorno" onClick={() => setAbierto(true)}>
         Mis respuestas de anulación
-      </button>
+      </Boton>
       {abierto && <PanelRespuestasAnulacion cajeroId={cajeroId} onCerrar={() => setAbierto(false)} />}
     </>
   )

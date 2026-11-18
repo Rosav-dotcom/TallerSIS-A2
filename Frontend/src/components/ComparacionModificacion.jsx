@@ -1,3 +1,5 @@
+import { Chip, Tabla } from './ui'
+
 const texto = (valor) => (valor === null || valor === undefined || String(valor).trim() === '' ? '—' : valor)
 
 
@@ -11,9 +13,9 @@ export default function ComparacionModificacion({ actual, nuevo }) {
   const normalizar = (v) => String(v ?? '').trim()
 
   return (
-    <div className="comparacion-modificacion">
-      <h3>Cambios solicitados</h3>
-      <table>
+    <div className="fac-form">
+      <h3 className="turno-arqueo-titulo">Cambios solicitados</h3>
+      <Tabla etiqueta="Cambios solicitados">
         <thead>
           <tr>
             <th>Dato</th>
@@ -25,18 +27,17 @@ export default function ComparacionModificacion({ actual, nuevo }) {
           {filas.map(([etiqueta, valorActual, valorNuevo]) => {
             const cambio = normalizar(valorActual) !== normalizar(valorNuevo)
             return (
-              <tr key={etiqueta} className={cambio ? 'comparacion-cambio' : undefined}>
+              <tr key={etiqueta}>
                 <th scope="row">{etiqueta}</th>
                 <td>{texto(valorActual)}</td>
                 <td>
-                  {texto(valorNuevo)}
-                  {cambio && <span className="comparacion-etiqueta">Modificado</span>}
+                  {texto(valorNuevo)} {cambio && <Chip tono="info">Modificado</Chip>}
                 </td>
               </tr>
             )
           })}
         </tbody>
-      </table>
+      </Tabla>
     </div>
   )
 }
