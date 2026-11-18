@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import '../../App.css'
 import { COLOR, SERIE_GRAFICO } from '../../styles/colores.js'
+import { Alerta, Boton, CampoTexto, Selector, Tabla, Tarjeta } from '../ui'
 
 const BASE_URL = import.meta.env.VITE_GESTION_PAGOS_API_BASE_URL || 'http://localhost:4005'
 const CAJEROS_URL = `${BASE_URL}/api/pagos/revision/cajeros`
@@ -84,7 +84,7 @@ const CIRCUNFERENCIA = 2 * Math.PI * RADIO
 function Donut({ segmentos, activo, setActivo, centroTitulo, centroValor }) {
   let acumulado = 0
   return (
-    <svg className="mp-donut" viewBox="0 0 200 200" role="group" aria-label="Participación por método de pago">
+    <svg className="tab-dona" viewBox="0 0 200 200" role="group" aria-label="Participación por método de pago">
       <circle cx="100" cy="100" r={RADIO} fill="none" stroke={COLOR.bone} strokeWidth="26" />
       {segmentos.map((s, i) => {
         const largo = (s.porcentaje / 100) * CIRCUNFERENCIA
@@ -114,8 +114,8 @@ function Donut({ segmentos, activo, setActivo, centroTitulo, centroValor }) {
           />
         )
       })}
-      <text x="100" y="94" textAnchor="middle" className="mp-donut-titulo">{centroTitulo}</text>
-      <text x="100" y="116" textAnchor="middle" className="mp-donut-valor">{centroValor}</text>
+      <text x="100" y="94" textAnchor="middle" className="tab-dona-titulo">{centroTitulo}</text>
+      <text x="100" y="116" textAnchor="middle" className="tab-dona-valor">{centroValor}</text>
     </svg>
   )
 }
@@ -207,84 +207,105 @@ export default function PanelMetodosPago() {
   const sinDatos = !cargando && !error && !rangoInvalido && filas.length === 0
 
   return (
-    <section className="metodos-pago">
-      <header className="mp-header">
-        <div className="mp-icono" aria-hidden="true">◔</div>
+    <section className="tab-panel">
+      <div className="tab-cabecera">
         <div>
-          <p className="mp-eyebrow">SUPERVISIÓN / CAJA</p>
           <h2>Métodos de pago utilizados</h2>
-          <p className="mp-descripcion">Distribución de las operaciones por efectivo, QR, tarjeta y otros medios.</p>
+          <p>Distribución de las operaciones por efectivo, QR, tarjeta y otros medios.</p>
         </div>
-      </header>
+      </div>
 
-      <section className="mp-panel" aria-labelledby="mp-filtros-titulo">
-        <h2 id="mp-filtros-titulo">Filtros</h2>
-        <div className="mp-filtros">
-          <label className="mp-campo">
-            Desde
-            <input type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} required />
-          </label>
-          <label className="mp-campo">
-            Hasta
-            <input type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} required />
-          </label>
-          <label className="mp-campo">
-            Cajero
-            <select value={cajeroId} onChange={(e) => setCajeroId(e.target.value)}>
-              <option value="">Todos los cajeros</option>
-              {cajeros.map((c) => (
-                <option key={c.cajero_id} value={c.cajero_id}>{c.cajero}</option>
-              ))}
-            </select>
-          </label>
-          <label className="mp-campo">
-            Caja
-            <input type="text" placeholder="Ej: CAJA-01" value={cajaId} onChange={(e) => setCajaId(e.target.value)} />
-          </label>
-          <div className="mp-campo">
-            Participación según
-            <div className="mp-segmentado" role="group" aria-label="Criterio de participación">
-              <button type="button" className={criterio === 'monto' ? 'mp-seg-activo' : ''} onClick={() => setCriterio('monto')} aria-pressed={criterio === 'monto'}>Monto</button>
-              <button type="button" className={criterio === 'cantidad' ? 'mp-seg-activo' : ''} onClick={() => setCriterio('cantidad')} aria-pressed={criterio === 'cantidad'}>Cantidad</button>
+      <div>
+        <div className="tab-filtros">
+          <CampoTexto
+            etiqueta="Desde"
+            type="date"
+            value={desde}
+            max={hasta || undefined}
+            onChange={(e) => setDesde(e.target.value)}
+            required
+          />
+          <CampoTexto
+            etiqueta="Hasta"
+            type="date"
+            value={hasta}
+            min={desde || undefined}
+            onChange={(e) => setHasta(e.target.value)}
+            required
+          />
+          <Selector etiqueta="Cajero" value={cajeroId} onChange={(e) => setCajeroId(e.target.value)}>
+            <option value="">Todos los cajeros</option>
+            {cajeros.map((c) => (
+              <option key={c.cajero_id} value={c.cajero_id}>
+                {c.cajero}
+              </option>
+            ))}
+          </Selector>
+          <CampoTexto
+            etiqueta="Caja"
+            type="text"
+            placeholder="Ej: CAJA-01"
+            value={cajaId}
+            onChange={(e) => setCajaId(e.target.value)}
+          />
+          <div className="ui-campo">
+            <span className="ui-campo-etiqueta">Participación según</span>
+            <div className="tab-segmento" role="group" aria-label="Criterio de participación">
+              <button
+                type="button"
+                className={criterio === 'monto' ? 'tab-segmento--activa' : ''}
+                onClick={() => setCriterio('monto')}
+                aria-pressed={criterio === 'monto'}
+              >
+                Monto
+              </button>
+              <button
+                type="button"
+                className={criterio === 'cantidad' ? 'tab-segmento--activa' : ''}
+                onClick={() => setCriterio('cantidad')}
+                aria-pressed={criterio === 'cantidad'}
+              >
+                Cantidad
+              </button>
             </div>
           </div>
         </div>
-        {rangoInvalido && <p className="mp-error-linea" role="alert">La fecha "Desde" no puede ser posterior a "Hasta".</p>}
-        {errorCajeros && <p className="mp-error-linea" role="alert">No se pudo cargar la lista de cajeros: {errorCajeros}</p>}
-      </section>
+        {(rangoInvalido || errorCajeros) && (
+          <div className="tab-filtros-avisos">
+            {rangoInvalido && <Alerta tono="error" titulo='La fecha "Desde" no puede ser posterior a "Hasta".' />}
+            {errorCajeros && <Alerta tono="error" titulo={`No se pudo cargar la lista de cajeros: ${errorCajeros}`} />}
+          </div>
+        )}
+      </div>
 
       {error && (
-        <div className="mp-alerta" role="alert">
-          <span aria-hidden="true">!</span>
-          <div>
-            <strong>No se pudo cargar la información</strong>
-            <p>{error}</p>
-          </div>
-          <button className="btn btn-secundario btn-pequeno" type="button" onClick={cargar}>Reintentar</button>
+        <div className="tab-filtros">
+          <Alerta tono="error" titulo="No se pudo cargar la información">
+            {error}
+          </Alerta>
+          <Boton variante="contorno" onClick={cargar}>
+            Reintentar
+          </Boton>
         </div>
       )}
 
       {cargando && (
-        <div className="mp-grid" aria-live="polite" aria-label="Cargando métodos de pago">
-          <div className="mp-skeleton mp-skeleton-alto" />
-          <div className="mp-skeleton mp-skeleton-alto" />
+        <div className="tab-dos" aria-live="polite" aria-label="Cargando métodos de pago">
+          <div className="tab-cargando" />
+          <div className="tab-cargando" />
         </div>
       )}
 
       {sinDatos && (
-        <div className="mp-vacio">
-          <strong>Sin datos de métodos de pago</strong>
-          <p>
-            No hay operaciones entre {formatearDia(desde)} y {formatearDia(hasta)}
-            {cajeroId ? ' para el cajero seleccionado' : ''}. Prueba con otro rango de fechas.
-          </p>
-        </div>
+        <Alerta tono="info" titulo="Sin datos de métodos de pago">
+          No hay operaciones entre {formatearDia(desde)} y {formatearDia(hasta)}
+          {cajeroId ? ' para el cajero seleccionado' : ''}. Prueba con otro rango de fechas.
+        </Alerta>
       )}
 
       {hayDatos && (
-        <div className="mp-grid">
-          <section className="mp-panel" aria-labelledby="mp-grafico-titulo">
-            <h2 id="mp-grafico-titulo">Participación por método</h2>
+        <div className="tab-dos">
+          <Tarjeta titulo="Participación por método">
             <Donut
               segmentos={filas}
               activo={activo}
@@ -293,66 +314,69 @@ export default function PanelMetodosPago() {
               centroValor={
                 filaActiva
                   ? formatearPorcentaje(filaActiva.porcentaje)
-                  : criterio === 'monto' ? formatearMoneda(totalMonto) : `${totalCantidad} ops.`
+                  : criterio === 'monto'
+                    ? formatearMoneda(totalMonto)
+                    : `${totalCantidad} ops.`
               }
             />
-            <ul className="mp-leyenda">
+            <ul className="tab-leyenda">
               {filas.map((f, i) => (
                 <li
                   key={f.metodo}
-                  className={activo === i ? 'mp-leyenda-activa' : ''}
+                  className={activo === i ? 'tab-leyenda--activa' : ''}
                   onMouseEnter={() => setActivo(i)}
                   onMouseLeave={() => setActivo(null)}
                 >
-                  <span className="mp-punto" style={{ background: COLORES[i % COLORES.length] }} aria-hidden="true" />
-                  <span className="mp-leyenda-nombre">{f.metodo}</span>
+                  <span className="tab-punto" style={{ background: COLORES[i % COLORES.length] }} aria-hidden="true" />
+                  <span>{f.metodo}</span>
                   <strong>{formatearPorcentaje(f.porcentaje)}</strong>
                 </li>
               ))}
             </ul>
-          </section>
+          </Tarjeta>
 
-          <section className="mp-panel" aria-labelledby="mp-tabla-titulo">
-            <h2 id="mp-tabla-titulo">Detalle por método</h2>
-            <div className="mp-tabla-contenedor">
-              <table className="mp-tabla">
-                <thead>
-                  <tr>
-                    <th>Método</th>
-                    <th className="mp-derecha">Operaciones</th>
-                    <th className="mp-derecha">Monto</th>
-                    <th className="mp-derecha">% {criterio === 'monto' ? 'monto' : 'cantidad'}</th>
+          <Tarjeta titulo="Detalle por método">
+            <Tabla etiqueta="Detalle por método">
+              <thead>
+                <tr>
+                  <th>Método</th>
+                  <th className="ui-num">Operaciones</th>
+                  <th className="ui-num">Monto</th>
+                  <th className="ui-num">% {criterio === 'monto' ? 'monto' : 'cantidad'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filas.map((f, i) => (
+                  <tr
+                    key={f.metodo}
+                    className={activo === i ? 'tab-fila--activa' : ''}
+                    onMouseEnter={() => setActivo(i)}
+                    onMouseLeave={() => setActivo(null)}
+                  >
+                    <td>
+                      <span
+                        className="tab-punto"
+                        style={{ background: COLORES[i % COLORES.length] }}
+                        aria-hidden="true"
+                      />
+                      {f.metodo}
+                    </td>
+                    <td className="ui-num">{f.cantidad}</td>
+                    <td className="ui-num">{formatearMoneda(f.monto)}</td>
+                    <td className="ui-num">{formatearPorcentaje(f.porcentaje)}</td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filas.map((f, i) => (
-                    <tr
-                      key={f.metodo}
-                      className={activo === i ? 'mp-fila-activa' : ''}
-                      onMouseEnter={() => setActivo(i)}
-                      onMouseLeave={() => setActivo(null)}
-                    >
-                      <td>
-                        <span className="mp-punto" style={{ background: COLORES[i % COLORES.length] }} aria-hidden="true" />
-                        <span className="mp-metodo">{f.metodo}</span>
-                      </td>
-                      <td className="mp-derecha">{f.cantidad}</td>
-                      <td className="mp-derecha">{formatearMoneda(f.monto)}</td>
-                      <td className="mp-derecha mp-porcentaje">{formatearPorcentaje(f.porcentaje)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td>Total</td>
-                    <td className="mp-derecha">{totalCantidad}</td>
-                    <td className="mp-derecha">{formatearMoneda(totalMonto)}</td>
-                    <td className="mp-derecha">{formatearPorcentaje(filas.reduce((s, f) => s + f.porcentaje, 0))}</td>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
-          </section>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th>Total</th>
+                  <td className="ui-num">{totalCantidad}</td>
+                  <td className="ui-num">{formatearMoneda(totalMonto)}</td>
+                  <td className="ui-num">{formatearPorcentaje(filas.reduce((s, f) => s + f.porcentaje, 0))}</td>
+                </tr>
+              </tfoot>
+            </Tabla>
+          </Tarjeta>
         </div>
       )}
     </section>

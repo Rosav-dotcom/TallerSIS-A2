@@ -7,6 +7,9 @@ import PanelMetodosPago from '../components/tablero/PanelMetodosPago.jsx'
 import PanelRecaudado from '../components/tablero/PanelRecaudado.jsx'
 import PanelComparacion from '../components/tablero/PanelComparacion.jsx'
 import PanelReportes from '../components/tablero/PanelReportes.jsx'
+import { Pestanas } from '../components/ui'
+import './turno.css'
+import './tablero.css'
 
 const PESTANAS = [
   { id: 'general', etiqueta: 'General' },
@@ -25,25 +28,19 @@ function TableroIngresos() {
   const [pestana, setPestana] = useState('general')
 
   return (
-    <section>
-      <h1>Tablero de ingresos</h1>
-
-      <div className="tablero-pestanas" role="tablist" aria-label="Secciones del tablero">
-        {PESTANAS.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            role="tab"
-            aria-selected={pestana === p.id}
-            className={`tablero-pestana${pestana === p.id ? ' tablero-pestana--activa' : ''}`}
-            onClick={() => setPestana(p.id)}
-          >
-            {p.etiqueta}
-          </button>
-        ))}
+    <section className="tab-pagina">
+      <div className="turno-encabezado">
+        <h1>Tablero de ingresos</h1>
       </div>
 
-      <div className="tablero-pestana-contenido">
+      <Pestanas
+        etiqueta="Secciones del tablero"
+        opciones={PESTANAS.map((p) => ({ valor: p.id, texto: p.etiqueta }))}
+        activa={pestana}
+        onCambiar={setPestana}
+      />
+
+      <div className="tab-contenido">
         {pestana === 'general' && <PanelGeneral />}
         {pestana === 'cajas' && <PanelCajas />}
         {pestana === 'cajeros' && (

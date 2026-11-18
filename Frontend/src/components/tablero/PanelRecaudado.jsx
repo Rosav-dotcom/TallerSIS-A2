@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { obtenerRecaudadoPorCaja } from '../../api/caja.js'
+import { Alerta, Boton, CampoTexto } from '../ui'
 
 const METODOS = ['Efectivo', 'Tarjeta', 'QR']
 
@@ -42,55 +43,58 @@ function PanelRecaudado() {
   const hayMovimientos = cajas.some((c) => c.operaciones > 0)
 
   return (
-    <section>
-      <h2>Total recaudado por caja</h2>
-      <p className="resumen-turno-actual">
-        Lo que recaudó cada caja activa en el día elegido: ingresos, egresos, neto y desglose por método de pago.
-      </p>
+    <section className="tab-panel">
+      <div className="tab-cabecera">
+        <div>
+          <h2>Total recaudado por caja</h2>
+          <p>
+            Lo que recaudó cada caja activa en el día elegido: ingresos, egresos, neto y desglose por método de pago.
+          </p>
+        </div>
+      </div>
 
-      <div className="filtro-fechas">
-        <label className="campo">
-          Fecha
-          <input type="date" value={fecha} max={hoyLocal()} onChange={(e) => setFecha(e.target.value)} />
-        </label>
+      <div className="tab-filtros">
+        <CampoTexto
+          etiqueta="Fecha"
+          type="date"
+          value={fecha}
+          max={hoyLocal()}
+          onChange={(e) => setFecha(e.target.value)}
+        />
         {fecha !== hoyLocal() && (
-          <button type="button" className="btn btn-secundario" onClick={() => setFecha(hoyLocal())}>
+          <Boton variante="contorno" onClick={() => setFecha(hoyLocal())}>
             Hoy
-          </button>
+          </Boton>
         )}
       </div>
 
-      {cargando && <p>Cargando...</p>}
+      {cargando && <p className="tab-nota">Cargando...</p>}
 
       {!cargando && error && (
-        <div className="orden-mensaje orden-mensaje-error cajas-mensaje">
-          <span>No se pudo obtener lo recaudado: {error}</span>
-          <button type="button" className="btn btn-secundario" onClick={() => setRecargar((n) => n + 1)}>
+        <div className="tab-filtros">
+          <Alerta tono="error" titulo={`No se pudo obtener lo recaudado: ${error}`} />
+          <Boton variante="contorno" onClick={() => setRecargar((n) => n + 1)}>
             Reintentar
-          </button>
+          </Boton>
         </div>
       )}
 
-      {!cargando && !error && cajas.length === 0 && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">No hay cajas activas registradas.</p>
-      )}
+      {!cargando && !error && cajas.length === 0 && <Alerta tono="info" titulo="No hay cajas activas registradas." />}
 
       {!cargando && !error && cajas.length > 0 && !hayMovimientos && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">
-          Sin movimientos: ninguna caja tuvo ingresos ni egresos en esta fecha.
-        </p>
+        <Alerta tono="info" titulo="Sin movimientos: ninguna caja tuvo ingresos ni egresos en esta fecha." />
       )}
 
       {!cargando && !error && hayMovimientos && (
-        <div className="cajas-grid">
+        <div className="tab-rejilla">
           {cajas.map((c) => (
-            <article key={c.caja_id} className={`caja-card${c.operaciones > 0 ? ' caja-card--abierta' : ''}`}>
-              <div className="caja-card-encabezado">
-                <span className="caja-card-codigo">{c.caja_id}</span>
-                <span className="caja-card-nombre">{c.caja_nombre || 'Sin nombre'}</span>
+            <article key={c.caja_id} className={`tab-ficha${c.operaciones > 0 ? '' : ' tab-ficha--inactiva'}`}>
+              <div className="tab-ficha-cabecera">
+                <span className="tab-ficha-codigo">{c.caja_id}</span>
+                <span className="tab-detalle">{c.caja_nombre || 'Sin nombre'}</span>
               </div>
 
-              <dl className="recaudado-totales">
+              <dl className="tab-datos">
                 <div>
                   <dt>Ingresos</dt>
                   <dd>Bs. {c.totalIngresos.toFixed(2)}</dd>
@@ -99,25 +103,27 @@ function PanelRecaudado() {
                   <dt>Egresos</dt>
                   <dd>Bs. {c.totalEgresos.toFixed(2)}</dd>
                 </div>
-                <div className="recaudado-neto">
+                <div className="tab-datos-total">
                   <dt>Neto</dt>
                   <dd>Bs. {c.totalRecaudado.toFixed(2)}</dd>
                 </div>
               </dl>
 
               {c.operaciones === 0 ? (
-                <p className="caja-card-detalle">Sin movimientos</p>
+                <p className="tab-nota">Sin movimientos</p>
               ) : (
-                <ul className="recaudado-metodos">
+                <ul className="tab-datos">
                   {METODOS.map((m) => {
                     const metodo = c.porMetodo[m]
                     return (
                       <li key={m}>
-                        <span>{m}</span>
-                        <span className="recaudado-metodo-operaciones">
-                          {metodo.operaciones === 1 ? '1 operación' : `${metodo.operaciones} operaciones`}
+                        <span>
+                          {m}
+                          <span className="tab-detalle">
+                            {metodo.operaciones === 1 ? '1 operación' : `${metodo.operaciones} operaciones`}
+                          </span>
                         </span>
-                        <span className="recaudado-metodo-neto">Bs. {metodo.neto.toFixed(2)}</span>
+                        <span className="tab-num">Bs. {metodo.neto.toFixed(2)}</span>
                       </li>
                     )
                   })}

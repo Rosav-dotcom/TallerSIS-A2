@@ -6,6 +6,7 @@ import GraficoBarras from '../GraficoBarras.jsx'
 import GraficoArea from '../GraficoArea.jsx'
 import GraficoPastel from '../GraficoPastel.jsx'
 import { COLOR } from '../../styles/colores.js'
+import { Alerta, CampoTexto, Chip, Tarjeta, TarjetaKpi } from '../ui'
 
 // Colores de marca para gráficos (DESIGN_SYSTEM.md): navy y gold son los de mayor
 // contraste entre sí; la identidad nunca depende solo del color (siempre hay etiqueta).
@@ -18,40 +19,6 @@ const COLOR_TARJETA = COLOR.olive
 const COLOR_QR = COLOR.gold
 
 const formatoBs = (valor) => `Bs. ${valor.toFixed(2)}`
-
-// Íconos simples (línea, mismo estilo que el resto de la app) para las tarjetas del resumen.
-const ICONOS = {
-  trofeo: (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0V4Z" />
-      <path d="M7 5H4a1 1 0 0 0-1 1v1a4 4 0 0 0 4 4M17 5h3a1 1 0 0 1 1 1v1a4 4 0 0 1-4 4" />
-    </svg>
-  ),
-  efectivo: (
-    <svg width="22" height="14" viewBox="0 0 32 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="1" y="1" width="30" height="18" rx="2" />
-      <circle cx="16" cy="10" r="4" />
-    </svg>
-  ),
-  tarjeta: (
-    <svg width="22" height="16" viewBox="0 0 32 22" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <rect x="1" y="1" width="30" height="20" rx="3" />
-      <rect x="1" y="6" width="30" height="4" fill="currentColor" stroke="none" />
-    </svg>
-  ),
-  recibo: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M6 2h12v20l-3-2-3 2-3-2-3 2V2Z" />
-      <path d="M9 8h6M9 12h6" />
-    </svg>
-  ),
-  anulado: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-      <circle cx="12" cy="12" r="9" />
-      <path d="M9 9l6 6M15 9l-6 6" />
-    </svg>
-  ),
-}
 
 function etiquetaCaja(caja_id) {
   return caja_id === 'SIN_CAJA' ? 'Sin caja asignada' : caja_id
@@ -69,20 +36,6 @@ function mezclarConTodasLasCajas(cajasActivas, totales) {
       cantidadVentas: existente?.cantidadVentas ?? existente?.cantidad ?? 0,
     }
   })
-}
-
-function StatCard({ icono, color, etiqueta, valor }) {
-  return (
-    <div className="tablero-stat">
-      <div className="tablero-stat-icono" style={{ backgroundColor: color }}>
-        {icono}
-      </div>
-      <div>
-        <span className="tablero-stat-etiqueta">{etiqueta}</span>
-        <span className="tablero-stat-valor">{valor}</span>
-      </div>
-    </div>
-  )
 }
 
 // TDSI-379: panel "General" del tablero consolidado de ingresos (dashboard administrador).
@@ -181,28 +134,28 @@ function PanelGeneral() {
     : []
 
   return (
-    <section>
-      {errorHistorico && <p className="error">Error al cargar el total histórico: {errorHistorico}</p>}
+    <section className="tab-panel">
+      {errorHistorico && <Alerta tono="error" titulo={`Error al cargar el total histórico: ${errorHistorico}`} />}
 
       {totalHistorico && (
-        <div className="tablero-resumen" style={{ marginBottom: '2rem' }}>
-          <StatCard icono={ICONOS.trofeo} color={COLOR.navy} etiqueta="Total histórico ganado" valor={formatoBs(totalHistorico.totalGeneral)} />
-          <StatCard icono={ICONOS.efectivo} color={COLOR_FISICO} etiqueta="Efectivo" valor={formatoBs(totalHistorico.totalEfectivo)} />
-          <StatCard icono={ICONOS.tarjeta} color={COLOR_VIRTUAL} etiqueta="Digital (Tarjeta + QR)" valor={formatoBs(totalHistorico.totalDigital)} />
-          <StatCard icono={ICONOS.recibo} color={COLOR_CAJERO} etiqueta="Ventas totales" valor={totalHistorico.cantidadVentas} />
-          <StatCard icono={ICONOS.anulado} color={COLOR.error} etiqueta="Facturas anuladas" valor={totalHistorico.cantidadAnuladas} />
+        <div className="tab-kpis">
+          <TarjetaKpi titulo="Total histórico ganado" valor={formatoBs(totalHistorico.totalGeneral)} />
+          <TarjetaKpi titulo="Efectivo" valor={formatoBs(totalHistorico.totalEfectivo)} />
+          <TarjetaKpi titulo="Digital (Tarjeta + QR)" valor={formatoBs(totalHistorico.totalDigital)} />
+          <TarjetaKpi titulo="Ventas totales" valor={totalHistorico.cantidadVentas} />
+          <div className="tab-kpi--error">
+            <TarjetaKpi titulo="Facturas anuladas" valor={totalHistorico.cantidadAnuladas} />
+          </div>
         </div>
       )}
 
-      <div className="tablero-dos-columnas" style={{ marginBottom: '2rem' }}>
-        <div className="tablero-grafico" style={{ marginBottom: 0 }}>
-          <h2>Ventas de los últimos 14 días</h2>
-          {errorSerie && <p className="error">{errorSerie}</p>}
+      <div className="tab-dos">
+        <Tarjeta titulo="Ventas de los últimos 14 días">
+          {errorSerie && <Alerta tono="error" titulo={errorSerie} />}
           {serieItems.length > 0 && <GraficoArea items={serieItems} color={COLOR.navy} formatoValor={formatoBs} />}
-        </div>
+        </Tarjeta>
 
-        <div className="tablero-grafico" style={{ marginBottom: 0 }}>
-          <h2>Métodos de pago (histórico)</h2>
+        <Tarjeta titulo="Métodos de pago (histórico)">
           {totalHistorico && (
             <GraficoPastel
               items={[
@@ -213,57 +166,51 @@ function PanelGeneral() {
               formatoValor={formatoBs}
             />
           )}
-        </div>
+        </Tarjeta>
       </div>
 
-      <h2 style={{ marginTop: 0 }}>Detalle por día</h2>
+      <div className="tab-cabecera">
+        <h2>Detalle por día</h2>
+      </div>
 
-      <div className="tablero-filtros">
+      <div className="tab-filtros">
         {/* TDSI-381: filtro por fecha */}
-        <label className="campo">
-          Fecha
-          <input
-            type="date"
-            value={fecha || hoy || ''}
-            max={hoy || undefined}
-            onChange={(e) => setFecha(e.target.value)}
-          />
-        </label>
+        <CampoTexto
+          etiqueta="Fecha"
+          type="date"
+          value={fecha || hoy || ''}
+          max={hoy || undefined}
+          onChange={(e) => setFecha(e.target.value)}
+        />
 
         {/* Solo existe una sucursal por ahora (ver tableroService.js), asi que se muestra
             como dato informativo en vez de un selector que no tendria nada mas que elegir. */}
-        {datos && <span className="tablero-sucursal">Sucursal: {datos.sucursal}</span>}
+        {datos && <span className="tab-dato">Sucursal: {datos.sucursal}</span>}
 
-        {esHoy && !error && <span className="tablero-en-vivo">En vivo</span>}
+        {esHoy && !error && (
+          <span className="tab-dato">
+            <Chip tono="exito">En vivo</Chip>
+          </span>
+        )}
       </div>
 
-      {cargando && <p>Cargando...</p>}
-      {error && <p className="error">Error: {error}</p>}
+      {cargando && <p className="tab-nota">Cargando...</p>}
+      {error && <Alerta tono="error" titulo={`Error: ${error}`} />}
 
       {/* TDSI-382 */}
-      {datos && sinDatos && <p>No hay ingresos registrados para el {datos.fecha}.</p>}
+      {datos && sinDatos && <p className="tab-nota">No hay ingresos registrados para el {datos.fecha}.</p>}
 
       {datos && !sinDatos && (
-        <div className="tablero-dos-columnas">
-          <div>
-            <div className="tablero-resumen">
-              <div className="tablero-stat">
-                <span className="tablero-stat-etiqueta">Total del día</span>
-                <span className="tablero-stat-valor">{formatoBs(datos.total_general)}</span>
-              </div>
-              <div className="tablero-stat">
-                <span className="tablero-stat-etiqueta">Físico ({datos.fisico.cantidad})</span>
-                <span className="tablero-stat-valor">{formatoBs(datos.fisico.total)}</span>
-              </div>
-              <div className="tablero-stat">
-                <span className="tablero-stat-etiqueta">Virtual ({datos.virtual.cantidad})</span>
-                <span className="tablero-stat-valor">{formatoBs(datos.virtual.total)}</span>
-              </div>
-            </div>
+        <>
+          <div className="tab-kpis">
+            <TarjetaKpi titulo="Total del día" valor={formatoBs(datos.total_general)} />
+            <TarjetaKpi titulo={`Físico (${datos.fisico.cantidad})`} valor={formatoBs(datos.fisico.total)} />
+            <TarjetaKpi titulo={`Virtual (${datos.virtual.cantidad})`} valor={formatoBs(datos.virtual.total)} />
+          </div>
 
+          <div className="tab-dos">
             {/* TDSI-380 */}
-            <div className="tablero-grafico">
-              <h2>Ingresos físicos vs virtuales</h2>
+            <Tarjeta titulo="Ingresos físicos vs virtuales">
               <GraficoBarras
                 items={[
                   { etiqueta: 'Físico', valor: datos.fisico.total, color: COLOR_FISICO },
@@ -271,66 +218,66 @@ function PanelGeneral() {
                 ]}
                 formatoValor={formatoBs}
               />
-            </div>
-          </div>
+            </Tarjeta>
 
-          {porCajaCompleto.length > 0 && (
-            <div className="tablero-grafico">
-              <h2>Total por caja</h2>
-              <GraficoBarras
-                items={porCajaCompleto.map((c) => ({
-                  etiqueta: etiquetaCaja(c.caja_id),
-                  valor: c.total,
-                  color: COLOR_CAJA,
-                }))}
-                formatoValor={formatoBs}
-              />
-            </div>
-          )}
-        </div>
+            {porCajaCompleto.length > 0 && (
+              <Tarjeta titulo="Total por caja">
+                <GraficoBarras
+                  items={porCajaCompleto.map((c) => ({
+                    etiqueta: etiquetaCaja(c.caja_id),
+                    valor: c.total,
+                    color: COLOR_CAJA,
+                  }))}
+                  formatoValor={formatoBs}
+                />
+              </Tarjeta>
+            )}
+          </div>
+        </>
       )}
 
-      <h2>Rankings</h2>
-      {errorRankings && <p className="error">Error al cargar los rankings: {errorRankings}</p>}
+      <div className="tab-cabecera">
+        <h2>Rankings</h2>
+      </div>
+      {errorRankings && <Alerta tono="error" titulo={`Error al cargar los rankings: ${errorRankings}`} />}
 
       {rankings && (
         <>
-          <div className="tablero-dos-columnas">
+          <div className="tab-dos">
             {rankingCajasCompleto.length > 0 && (
-              <div className="tablero-grafico" style={{ marginBottom: 0 }}>
-                <h2>Caja que más genera</h2>
+              <Tarjeta titulo="Caja que más genera">
                 <GraficoBarras
                   items={rankingCajasCompleto.map((c) => ({ etiqueta: c.caja_id, valor: c.total, color: COLOR_CAJA }))}
                   formatoValor={formatoBs}
                 />
-              </div>
+              </Tarjeta>
             )}
 
             {rankings.cajeros.length > 0 && (
-              <div className="tablero-grafico" style={{ marginBottom: 0 }}>
-                <h2>Cajero que más ha generado</h2>
+              <Tarjeta titulo="Cajero que más ha generado">
                 <GraficoBarras
                   items={rankings.cajeros.map((c) => ({ etiqueta: c.cajero, valor: c.total, color: COLOR_CAJERO }))}
                   formatoValor={formatoBs}
                 />
-              </div>
+              </Tarjeta>
             )}
           </div>
 
           {rankings.clientes.length > 0 && (
-            <div className="tablero-grafico">
-              <h2>Clientes que más han venido</h2>
-              <ol className="ranking-clientes">
+            <Tarjeta titulo="Clientes que más han venido">
+              <ol className="tab-ranking">
                 {rankings.clientes.map((c) => (
                   <li key={`${c.tipo_documento}-${c.numero}`}>
-                    <span className="ranking-clientes-nombre">{c.razon_social || 'Consumidor final'}</span>
-                    <span className="ranking-clientes-doc">{c.tipo_documento} {c.numero}</span>
-                    <span className="ranking-clientes-veces">{c.cantidadCompras} compras</span>
-                    <span className="ranking-clientes-total">{formatoBs(c.totalGastado)}</span>
+                    <span>{c.razon_social || 'Consumidor final'}</span>
+                    <span className="tab-detalle">
+                      {c.tipo_documento} {c.numero}
+                    </span>
+                    <span className="tab-num">{c.cantidadCompras} compras</span>
+                    <strong className="tab-num">{formatoBs(c.totalGastado)}</strong>
                   </li>
                 ))}
               </ol>
-            </div>
+            </Tarjeta>
           )}
         </>
       )}

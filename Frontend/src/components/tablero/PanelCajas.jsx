@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { obtenerEstadoCajas } from '../../api/caja.js'
+import { Alerta, Boton, Chip, Selector } from '../ui'
 
 // TDSI-126: estado de cada caja (terminal).
 // TDSI-495: una tarjeta por caja.
@@ -51,87 +52,82 @@ function PanelCajas() {
   })
 
   return (
-    <section>
-      <h2>Estado de cajas</h2>
-      <p className="resumen-turno-actual">
-        Cajas registradas en la sucursal: si tienen un turno abierto ahora mismo y si están habilitadas.
-      </p>
+    <section className="tab-panel">
+      <div className="tab-cabecera">
+        <div>
+          <h2>Estado de cajas</h2>
+          <p>Cajas registradas en la sucursal: si tienen un turno abierto ahora mismo y si están habilitadas.</p>
+        </div>
+      </div>
 
-      <div className="filtro-fechas">
-        <label className="campo campo-turno-dia">
-          Estado
-          <select value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
-            {OPCIONES_ESTADO.map((o) => (
-              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
-            ))}
-          </select>
-        </label>
-        <label className="campo campo-turno-dia">
-          Actividad
-          <select value={filtroActividad} onChange={(e) => setFiltroActividad(e.target.value)}>
-            {OPCIONES_ACTIVIDAD.map((o) => (
-              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
-            ))}
-          </select>
-        </label>
+      <div className="tab-filtros">
+        <Selector etiqueta="Estado" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value)}>
+          {OPCIONES_ESTADO.map((o) => (
+            <option key={o.valor} value={o.valor}>
+              {o.etiqueta}
+            </option>
+          ))}
+        </Selector>
+        <Selector etiqueta="Actividad" value={filtroActividad} onChange={(e) => setFiltroActividad(e.target.value)}>
+          {OPCIONES_ACTIVIDAD.map((o) => (
+            <option key={o.valor} value={o.valor}>
+              {o.etiqueta}
+            </option>
+          ))}
+        </Selector>
         {hayFiltros && (
-          <button
-            type="button"
-            className="btn btn-secundario"
+          <Boton
+            variante="contorno"
             onClick={() => {
               setFiltroEstado('')
               setFiltroActividad('')
             }}
           >
             Quitar filtros
-          </button>
+          </Boton>
         )}
       </div>
 
-      {cargando && <p>Cargando...</p>}
+      {cargando && <p className="tab-nota">Cargando...</p>}
 
       {!cargando && error && (
-        <div className="orden-mensaje orden-mensaje-error cajas-mensaje">
-          <span>No se pudo obtener el estado de las cajas: {error}</span>
-          <button type="button" className="btn btn-secundario" onClick={() => setRecargar((n) => n + 1)}>
+        <div className="tab-filtros">
+          <Alerta tono="error" titulo={`No se pudo obtener el estado de las cajas: ${error}`} />
+          <Boton variante="contorno" onClick={() => setRecargar((n) => n + 1)}>
             Reintentar
-          </button>
+          </Boton>
         </div>
       )}
 
       {!cargando && !error && cajasFiltradas.length === 0 && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">
-          {hayFiltros
-            ? 'Sin cajas: ninguna caja coincide con los filtros seleccionados.'
-            : 'Todavía no hay cajas registradas en el sistema.'}
-        </p>
+        <Alerta
+          tono="info"
+          titulo={
+            hayFiltros
+              ? 'Sin cajas: ninguna caja coincide con los filtros seleccionados.'
+              : 'Todavía no hay cajas registradas en el sistema.'
+          }
+        />
       )}
 
       {!cargando && !error && cajasFiltradas.length > 0 && (
-        <div className="cajas-grid">
+        <div className="tab-rejilla">
           {cajasFiltradas.map((c) => {
             const abierta = c.estado === 'ABIERTA'
             const activa = c.activa
             return (
-              <article
-                key={c.codigo}
-                className={`caja-card${abierta ? ' caja-card--abierta' : ''}${activa ? '' : ' caja-card--inactiva'}`}
-              >
-                <div className="caja-card-encabezado">
-                  <span className="caja-card-codigo">{c.codigo}</span>
-                  <span className="caja-card-nombre">{c.nombre || 'Sin nombre'}</span>
+              <article key={c.codigo} className={`tab-ficha${activa ? '' : ' tab-ficha--inactiva'}`}>
+                <div className="tab-ficha-cabecera">
+                  <span className="tab-ficha-codigo">{c.codigo}</span>
+                  <span className="tab-detalle">{c.nombre || 'Sin nombre'}</span>
                 </div>
 
-                <div className="caja-card-badges">
-                  <span className={`badge-estado ${abierta ? 'badge-caja--abierta' : 'badge-caja--cerrada'}`}>
-                    {abierta ? 'Abierta' : 'Cerrada'}
-                  </span>
-                  <span className={`badge-estado ${activa ? 'badge-caja--activa' : 'badge-caja--inactiva'}`}>
-                    {activa ? 'Activa' : 'Inactiva'}
-                  </span>
+                <div className="tab-ficha-chips">
+                  <Chip tono={abierta ? 'exito' : 'neutro'}>{abierta ? 'Abierta' : 'Cerrada'}</Chip>
+                  <Chip tono={activa ? 'info' : 'error'}>{activa ? 'Activa' : 'Inactiva'}</Chip>
                 </div>
 
-                <p className="caja-card-detalle">
+                <p className="tab-nota">
                   {!activa
                     ? 'Caja deshabilitada, no se pueden abrir turnos'
                     : abierta

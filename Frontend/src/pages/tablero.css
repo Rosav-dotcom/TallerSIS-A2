@@ -1,0 +1,402 @@
+/* Tablero de ingresos (Figma p.17–21 y p.27). Solo variables de index.css. */
+
+.tab-pagina .ui-pestanas {
+  flex-wrap: wrap;
+  margin-bottom: var(--espacio-5);
+}
+.tab-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+  min-width: 0;
+}
+
+/* Encabezado de cada panel */
+.tab-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+.tab-cabecera h2 {
+  margin: 0;
+  font: var(--texto-titulo-2);
+  color: var(--text);
+}
+.tab-cabecera p {
+  margin: var(--espacio-1) 0 0;
+  color: var(--muted);
+}
+.tab-subtitulo {
+  margin: 0;
+  font: var(--texto-titulo-3);
+  color: var(--text);
+}
+
+/* KPI y tarjetas de resumen */
+.tab-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--espacio-4);
+}
+.tab-kpi--exito .ui-kpi-valor {
+  color: var(--success);
+}
+.tab-kpi--advertencia .ui-kpi-valor {
+  color: var(--warning);
+}
+.tab-kpi--error .ui-kpi-valor {
+  color: var(--error);
+}
+.tab-kpi-detalle {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Dos columnas */
+.tab-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-5);
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .tab-dos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Filtros */
+.tab-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-4);
+}
+.tab-filtros .ui-campo {
+  min-width: 170px;
+}
+.tab-filtros-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin-top: var(--espacio-3);
+}
+.tab-dato {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alto-tactil);
+  color: var(--muted);
+}
+
+/* Textos */
+.tab-nota {
+  margin: 0;
+  color: var(--muted);
+}
+.tab-detalle {
+  display: block;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Opciones segmentadas (Monto / Cantidad) */
+.tab-segmento {
+  display: flex;
+  gap: var(--espacio-2);
+}
+.tab-segmento button {
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  cursor: pointer;
+}
+.tab-segmento button:hover {
+  background: var(--bone);
+}
+.tab-segmento .tab-segmento--activa,
+.tab-segmento .tab-segmento--activa:hover {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--surface);
+}
+
+/* Tarjetas pequeñas (cajas, cajeros) */
+.tab-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--espacio-4);
+}
+.tab-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  background: var(--surface);
+}
+.tab-ficha--inactiva {
+  background: var(--bone);
+}
+.tab-ficha-cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+.tab-ficha-codigo {
+  font: var(--texto-subtitulo);
+  color: var(--text);
+}
+.tab-ficha-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+/* Filas etiqueta / valor */
+.tab-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tab-datos > li,
+.tab-datos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.tab-datos > li:last-child,
+.tab-datos > div:last-child {
+  border-bottom: none;
+}
+.tab-datos dt,
+.tab-datos span:first-child {
+  color: var(--muted);
+}
+.tab-datos dd {
+  margin: 0;
+}
+.tab-datos dd,
+.tab-datos strong,
+.tab-datos .tab-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tab-datos-total dt,
+.tab-datos-total dd {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* Lista de clientes */
+.tab-ranking {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: ranking;
+}
+.tab-ranking li {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 2fr) minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: var(--alto-fila);
+  border-bottom: 1px solid var(--border);
+  counter-increment: ranking;
+}
+.tab-ranking li:last-child {
+  border-bottom: none;
+}
+.tab-ranking li::before {
+  content: counter(ranking);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.tab-ranking .tab-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Monitoreo de cajeros */
+.tab-cajero {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+.tab-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--surface);
+  font: var(--texto-subtitulo);
+  flex-shrink: 0;
+}
+.tab-cajero-nombre {
+  margin: 0;
+  font: var(--texto-subtitulo);
+  color: var(--text);
+}
+.tab-cargando {
+  min-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  background: var(--bone);
+}
+
+/* Métodos de pago: dona y leyenda */
+.tab-dona {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  margin: 0 auto var(--espacio-4);
+}
+.tab-dona-titulo {
+  font: var(--texto-etiqueta);
+  fill: var(--muted);
+}
+.tab-dona-valor {
+  font: var(--texto-etiqueta);
+  font-size: 13px;
+  fill: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.tab-leyenda {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tab-leyenda li {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: 36px;
+  padding: 0 var(--espacio-2);
+  border-radius: var(--radio-control);
+}
+.tab-leyenda li strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+.tab-leyenda .tab-leyenda--activa,
+.tab-fila--activa td {
+  background: var(--bone);
+}
+.tab-punto {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: var(--espacio-2);
+  border-radius: 50%;
+  vertical-align: middle;
+}
+
+/* Diferencias con signo */
+.tab-diferencia--faltante {
+  color: var(--error);
+}
+.tab-diferencia--sobrante {
+  color: var(--warning);
+}
+
+/* Paginación */
+.tab-paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding-top: var(--espacio-3);
+  color: var(--muted);
+}
+.tab-paginacion > div {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+.tab-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+}
+
+/* Revisión de transacciones: opciones del resultado */
+.tab-opciones {
+  display: flex;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.tab-opciones legend {
+  margin-bottom: var(--espacio-2);
+  font: var(--texto-etiqueta);
+  color: var(--text);
+}
+.tab-opcion {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  cursor: pointer;
+}
+.tab-opcion--activa {
+  border-color: var(--navy);
+}
+.tab-opcion input {
+  accent-color: var(--navy);
+}
+.tab-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.tab-pagina .ui-tabla td .ui-chip + .tab-detalle {
+  margin-top: var(--espacio-1);
+}
+.tab-kpis > div > .ui-kpi {
+  height: 100%;
+}
+.tab-cargando--fila {
+  min-height: var(--alto-tactil);
+}
+/* Hasta 5 tarjetas por fila: el monto usa el tamaño de --texto-titulo-2 (24 px). */
+.tab-pagina .ui-kpi-valor {
+  font-size: 24px;
+  line-height: 32px;
+  white-space: nowrap;
+}
+/* Códigos de caja (CAJA-1): con la letra del texto para que los números se lean bien. */
+.tab-subtitulo--codigo {
+  font-family: var(--font-base);
+}

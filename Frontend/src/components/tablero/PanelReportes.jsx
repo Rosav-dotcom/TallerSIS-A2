@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarCajas, obtenerReporteCaja, descargarReporteCajaCsv } from '../../api/caja.js'
+import { Alerta, Boton, CampoTexto, Chip, Selector, Tabla, TarjetaKpi } from '../ui'
 
 // TDSI-150 / TDSI-523: "Reportes de caja" con rango de fechas y caja.
 // TDSI-524: reporte en pantalla (totales por metodo, turnos y diferencias).
@@ -100,205 +101,179 @@ function PanelReportes() {
   const r = reporte?.resumen
 
   return (
-    <section>
-      <h2>Reportes de caja</h2>
-      <p className="resumen-turno-actual">
-        Operaciones de una caja en un rango de fechas: totales por método de pago, turnos y diferencias.
-      </p>
+    <section className="tab-panel">
+      <div className="tab-cabecera">
+        <div>
+          <h2>Reportes de caja</h2>
+          <p>Operaciones de una caja en un rango de fechas: totales por método de pago, turnos y diferencias.</p>
+        </div>
+      </div>
 
-      <form className="filtro-fechas" onSubmit={generar}>
-        <label className="campo">
-          Caja
-          <select
-            value={cajaId}
-            onChange={(e) => {
-              setCajaId(e.target.value)
-              setError(null)
-            }}
-          >
-            <option value="">Elija una caja</option>
-            {cajas.map((c) => (
-              <option key={c.codigo} value={c.codigo}>
-                {c.nombre ? `${c.codigo} · ${c.nombre}` : c.codigo}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="campo">
-          Desde
-          <input
-            type="date"
-            value={desde}
-            max={hasta || hoyLocal()}
-            onChange={(e) => {
-              setDesde(e.target.value)
-              setError(null)
-            }}
-          />
-        </label>
-        <label className="campo">
-          Hasta
-          <input
-            type="date"
-            value={hasta}
-            min={desde || undefined}
-            max={hoyLocal()}
-            onChange={(e) => {
-              setHasta(e.target.value)
-              setError(null)
-            }}
-          />
-        </label>
-        <button type="submit" className="btn" disabled={cargando}>
+      <form className="tab-filtros" onSubmit={generar}>
+        <Selector
+          etiqueta="Caja"
+          value={cajaId}
+          onChange={(e) => {
+            setCajaId(e.target.value)
+            setError(null)
+          }}
+        >
+          <option value="">Elija una caja</option>
+          {cajas.map((c) => (
+            <option key={c.codigo} value={c.codigo}>
+              {c.nombre ? `${c.codigo} · ${c.nombre}` : c.codigo}
+            </option>
+          ))}
+        </Selector>
+        <CampoTexto
+          etiqueta="Desde"
+          type="date"
+          value={desde}
+          max={hasta || hoyLocal()}
+          onChange={(e) => {
+            setDesde(e.target.value)
+            setError(null)
+          }}
+        />
+        <CampoTexto
+          etiqueta="Hasta"
+          type="date"
+          value={hasta}
+          min={desde || undefined}
+          max={hoyLocal()}
+          onChange={(e) => {
+            setHasta(e.target.value)
+            setError(null)
+          }}
+        />
+        <Boton type="submit" disabled={cargando}>
           {cargando ? 'Generando...' : 'Generar reporte'}
-        </button>
+        </Boton>
       </form>
 
-      {cargando && <p>Cargando...</p>}
+      {cargando && <p className="tab-nota">Cargando...</p>}
 
-      {!cargando && error && (
-        <div className="orden-mensaje orden-mensaje-error cajas-mensaje">
-          <span>{error}</span>
-        </div>
-      )}
+      {!cargando && error && <Alerta tono="error" titulo={error} />}
 
       {!cargando && !error && !reporte && (
-        <p className="resumen-turno-actual">Elija una caja y un rango de fechas para generar el reporte.</p>
+        <p className="tab-nota">Elija una caja y un rango de fechas para generar el reporte.</p>
       )}
 
       {reporte && (
         <>
-          <div className="reporte-encabezado">
+          <div className="tab-cabecera">
             <div>
-              <h3>
+              <h3 className="tab-subtitulo tab-subtitulo--codigo">
                 {reporte.caja_id}
                 {reporte.caja_nombre && ` · ${reporte.caja_nombre}`}
               </h3>
-              <p className="tablero-sucursal">
-                {reporte.desde === reporte.hasta ? reporte.desde : `${reporte.desde} a ${reporte.hasta}`}
-              </p>
+              <p>{reporte.desde === reporte.hasta ? reporte.desde : `${reporte.desde} a ${reporte.hasta}`}</p>
             </div>
             {!sinDatos && (
-              <button type="button" className="btn btn-azul" onClick={descargarCsv} disabled={descargando}>
+              <Boton variante="contorno" onClick={descargarCsv} disabled={descargando}>
                 {descargando ? 'Descargando...' : 'Descargar CSV'}
-              </button>
+              </Boton>
             )}
           </div>
 
-          {errorCsv && (
-            <p className="orden-mensaje orden-mensaje-error cajas-mensaje">No se pudo descargar el CSV: {errorCsv}</p>
-          )}
+          {errorCsv && <Alerta tono="error" titulo={`No se pudo descargar el CSV: ${errorCsv}`} />}
 
           {sinDatos ? (
-            <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">
-              No hay datos para esta caja en el rango elegido: no se abrió ningún turno.
-            </p>
+            <Alerta tono="info" titulo="No hay datos para esta caja en el rango elegido: no se abrió ningún turno." />
           ) : (
             <>
-              <div className="resumen-cards">
-                <div className="resumen-card">
-                  <span className="resumen-card-metodo">Total recaudado</span>
-                  <span className="resumen-card-total">Bs. {bs(r.total_recaudado)}</span>
-                  <span className="resumen-card-cantidad">
-                    {r.turnos === 1 ? '1 turno' : `${r.turnos} turnos`}
-                  </span>
-                </div>
-                <div className="resumen-card">
-                  <span className="resumen-card-metodo">Ventas</span>
-                  <span className="resumen-card-total">{r.ventas}</span>
-                  <span className="resumen-card-cantidad">
+              <div className="tab-kpis">
+                <TarjetaKpi titulo="Total recaudado" valor={`Bs. ${bs(r.total_recaudado)}`}>
+                  <span className="tab-kpi-detalle">{r.turnos === 1 ? '1 turno' : `${r.turnos} turnos`}</span>
+                </TarjetaKpi>
+                <TarjetaKpi titulo="Ventas" valor={r.ventas}>
+                  <span className="tab-kpi-detalle">
                     {r.anuladas} anuladas (Bs. {bs(r.monto_anulado)})
                   </span>
-                </div>
-                <div className="resumen-card">
-                  <span className="resumen-card-metodo">Diferencias</span>
-                  <span className="resumen-card-total">{r.diferencias}</span>
-                  <span className="resumen-card-cantidad">
-                    {r.diferencias_pendientes} pendientes · Faltantes Bs. {bs(Math.abs(r.total_faltantes))} · Sobrantes Bs.{' '}
-                    {bs(r.total_sobrantes)}
+                </TarjetaKpi>
+                <TarjetaKpi titulo="Diferencias" valor={r.diferencias}>
+                  <span className="tab-kpi-detalle">
+                    {r.diferencias_pendientes} pendientes · Faltantes Bs. {bs(Math.abs(r.total_faltantes))} · Sobrantes
+                    Bs. {bs(r.total_sobrantes)}
                   </span>
-                </div>
+                </TarjetaKpi>
               </div>
 
-              <h3 className="reporte-seccion">Totales por método</h3>
-              <div className="resumen-cards">
+              <h3 className="tab-subtitulo">Totales por método</h3>
+              <div className="tab-kpis">
                 {reporte.totales_por_metodo.map((m) => (
-                  <div key={m.metodo} className="resumen-card">
-                    <span className="resumen-card-metodo">{m.metodo}</span>
-                    <span className="resumen-card-total">Bs. {bs(m.monto)}</span>
-                    <span className="resumen-card-cantidad">
+                  <TarjetaKpi key={m.metodo} titulo={m.metodo} valor={`Bs. ${bs(m.monto)}`}>
+                    <span className="tab-kpi-detalle">
                       {m.operaciones === 1 ? '1 operación' : `${m.operaciones} operaciones`}
                     </span>
-                  </div>
+                  </TarjetaKpi>
                 ))}
               </div>
 
-              <h3 className="reporte-seccion">Turnos</h3>
-              <div className="reporte-tabla">
-                <table className="tabla-facturas">
-                  <thead>
-                    <tr>
-                      <th>Turno</th>
-                      <th>Cajero</th>
-                      <th>Apertura / cierre</th>
-                      <th>Efectivo</th>
-                      <th>Tarjeta</th>
-                      <th>QR</th>
-                      <th>Total</th>
-                      <th>Ventas</th>
-                      <th>Arqueo</th>
+              <h3 className="tab-subtitulo">Turnos</h3>
+              <Tabla etiqueta="Turnos del reporte">
+                <thead>
+                  <tr>
+                    <th>Turno</th>
+                    <th>Cajero</th>
+                    <th>Apertura / cierre</th>
+                    <th className="ui-num">Efectivo</th>
+                    <th className="ui-num">Tarjeta</th>
+                    <th className="ui-num">QR</th>
+                    <th className="ui-num">Total</th>
+                    <th className="ui-num">Ventas</th>
+                    <th>Arqueo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reporte.turnos.map((t) => (
+                    <tr key={t.turno_id}>
+                      <td>
+                        {t.codigo}
+                        <span className="tab-detalle">{t.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'}</span>
+                      </td>
+                      <td>{t.cajero}</td>
+                      <td>
+                        {fechaHora(t.abierto_en)}
+                        <span className="tab-detalle">{t.cerrado_en ? fechaHora(t.cerrado_en) : 'Sin cerrar'}</span>
+                      </td>
+                      <td className="ui-num">{bs(t.por_metodo.Efectivo)}</td>
+                      <td className="ui-num">{bs(t.por_metodo.Tarjeta)}</td>
+                      <td className="ui-num">{bs(t.por_metodo.QR)}</td>
+                      <td className="ui-num">
+                        <strong>{bs(t.total_recaudado)}</strong>
+                      </td>
+                      <td className="ui-num">
+                        {t.ventas}
+                        {t.anuladas > 0 && <span className="tab-detalle">{t.anuladas} anuladas</span>}
+                      </td>
+                      <td>
+                        {t.tipo_diferencia ? (
+                          <>
+                            <Chip>{ETIQUETA_TIPO[t.tipo_diferencia] ?? t.tipo_diferencia}</Chip>
+                            <span className="tab-detalle">
+                              Esperado {bs(t.efectivo_esperado)} · Contado {bs(t.efectivo_contado)}
+                            </span>
+                          </>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {reporte.turnos.map((t) => (
-                      <tr key={t.turno_id}>
-                        <td>
-                          {t.codigo}
-                          <span className="solicitud-detalle">{t.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'}</span>
-                        </td>
-                        <td>{t.cajero}</td>
-                        <td>
-                          {fechaHora(t.abierto_en)}
-                          <span className="solicitud-detalle">{t.cerrado_en ? fechaHora(t.cerrado_en) : 'Sin cerrar'}</span>
-                        </td>
-                        <td>{bs(t.por_metodo.Efectivo)}</td>
-                        <td>{bs(t.por_metodo.Tarjeta)}</td>
-                        <td>{bs(t.por_metodo.QR)}</td>
-                        <td><strong>{bs(t.total_recaudado)}</strong></td>
-                        <td>
-                          {t.ventas}
-                          {t.anuladas > 0 && <span className="solicitud-detalle">{t.anuladas} anuladas</span>}
-                        </td>
-                        <td>
-                          {t.tipo_diferencia ? (
-                            <>
-                              <span className={`badge-estado badge-arqueo--${t.tipo_diferencia.toLowerCase()}`}>
-                                {ETIQUETA_TIPO[t.tipo_diferencia] ?? t.tipo_diferencia}
-                              </span>
-                              <span className="solicitud-detalle">
-                                Esperado {bs(t.efectivo_esperado)} · Contado {bs(t.efectivo_contado)}
-                              </span>
-                            </>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </Tabla>
 
-              <h3 className="reporte-seccion">Diferencias</h3>
+              <h3 className="tab-subtitulo">Diferencias</h3>
               {reporte.diferencias.length === 0 ? (
-                <p className="resumen-turno-actual">No se registraron diferencias en este rango.</p>
+                <p className="tab-nota">No se registraron diferencias en este rango.</p>
               ) : (
-                <table className="tabla-facturas">
+                <Tabla etiqueta="Diferencias del reporte">
                   <thead>
                     <tr>
                       <th>Turno</th>
                       <th>Tipo</th>
-                      <th>Monto (Bs.)</th>
+                      <th className="ui-num">Monto (Bs.)</th>
                       <th>Estado</th>
                       <th>Justificación</th>
                     </tr>
@@ -308,16 +283,14 @@ function PanelReportes() {
                       <tr key={d.id}>
                         <td>{d.turno_codigo}</td>
                         <td>
-                          <span className={`badge-estado badge-arqueo--${d.tipo.toLowerCase()}`}>
-                            {ETIQUETA_TIPO[d.tipo] ?? d.tipo}
-                          </span>
+                          <Chip>{ETIQUETA_TIPO[d.tipo] ?? d.tipo}</Chip>
                         </td>
-                        <td>{bs(Math.abs(d.monto))}</td>
+                        <td className="ui-num">{bs(Math.abs(d.monto))}</td>
                         <td>{ETIQUETA_ESTADO_DIFERENCIA[d.estado] ?? d.estado}</td>
                         <td>
                           {d.justificacion || '—'}
                           {d.resuelta_por && (
-                            <span className="solicitud-detalle">
+                            <span className="tab-detalle">
                               Por {d.resuelta_por} · {fechaHora(d.resuelta_en)}
                             </span>
                           )}
@@ -325,7 +298,7 @@ function PanelReportes() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </Tabla>
               )}
             </>
           )}

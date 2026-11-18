@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarCajas, obtenerComparacionMontos } from '../../api/caja.js'
+import { Alerta, Boton, CampoTexto, Chip, Selector, Tabla, TarjetaKpi } from '../ui'
 
 const ETIQUETA_TIPO = {
   CUADRA: 'Cuadra',
@@ -77,134 +78,125 @@ function PanelComparacion() {
   }
 
   return (
-    <section>
-      <h2>Comparación de montos</h2>
-      <p className="resumen-turno-actual">
-        Monto registrado por el sistema contra el efectivo disponible en caja, por turno.
-      </p>
+    <section className="tab-panel">
+      <div className="tab-cabecera">
+        <div>
+          <h2>Comparación de montos</h2>
+          <p>Monto registrado por el sistema contra el efectivo disponible en caja, por turno.</p>
+        </div>
+      </div>
 
-      <div className="filtro-fechas">
-        <label className="campo">
-          Fecha
-          <input type="date" value={fecha} max={hoyLocal()} onChange={(e) => setFecha(e.target.value)} />
-        </label>
-        <label className="campo">
-          Caja
-          <select value={filtroCaja} onChange={(e) => setFiltroCaja(e.target.value)}>
-            <option value="">Todas</option>
-            {cajas.map((c) => (
-              <option key={c.codigo} value={c.codigo}>
-                {c.nombre ? `${c.codigo} · ${c.nombre}` : c.codigo}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="campo">
-          Cajero
-          <select value={filtroCajero} onChange={(e) => setFiltroCajero(e.target.value)}>
-            <option value="">Todos</option>
-            {cajeros.map((c) => (
-              <option key={c.id} value={c.id}>{c.nombre}</option>
-            ))}
-          </select>
-        </label>
-        <label className="campo">
-          Diferencia
-          <select value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
-            <option value="">Todas</option>
-            <option value="CUADRA">Cuadra</option>
-            <option value="FALTANTE">Faltante</option>
-            <option value="SOBRANTE">Sobrante</option>
-          </select>
-        </label>
+      <div className="tab-filtros">
+        <CampoTexto
+          etiqueta="Fecha"
+          type="date"
+          value={fecha}
+          max={hoyLocal()}
+          onChange={(e) => setFecha(e.target.value)}
+        />
+        <Selector etiqueta="Caja" value={filtroCaja} onChange={(e) => setFiltroCaja(e.target.value)}>
+          <option value="">Todas</option>
+          {cajas.map((c) => (
+            <option key={c.codigo} value={c.codigo}>
+              {c.nombre ? `${c.codigo} · ${c.nombre}` : c.codigo}
+            </option>
+          ))}
+        </Selector>
+        <Selector etiqueta="Cajero" value={filtroCajero} onChange={(e) => setFiltroCajero(e.target.value)}>
+          <option value="">Todos</option>
+          {cajeros.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.nombre}
+            </option>
+          ))}
+        </Selector>
+        <Selector etiqueta="Diferencia" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)}>
+          <option value="">Todas</option>
+          <option value="CUADRA">Cuadra</option>
+          <option value="FALTANTE">Faltante</option>
+          <option value="SOBRANTE">Sobrante</option>
+        </Selector>
         {hayFiltros && (
-          <button type="button" className="btn btn-secundario" onClick={quitarFiltros}>
+          <Boton variante="contorno" onClick={quitarFiltros}>
             Quitar filtros
-          </button>
+          </Boton>
         )}
       </div>
 
-      {cargando && <p>Cargando...</p>}
+      {cargando && <p className="tab-nota">Cargando...</p>}
 
       {!cargando && error && (
-        <div className="orden-mensaje orden-mensaje-error cajas-mensaje">
-          <span>No se pudo obtener la comparación: {error}</span>
-          <button type="button" className="btn btn-secundario" onClick={() => setRecargar((n) => n + 1)}>
+        <div className="tab-filtros">
+          <Alerta tono="error" titulo={`No se pudo obtener la comparación: ${error}`} />
+          <Boton variante="contorno" onClick={() => setRecargar((n) => n + 1)}>
             Reintentar
-          </button>
+          </Boton>
         </div>
       )}
 
       {!cargando && !error && resumen && (
-        <div className="resumen-cards">
-          <div className="resumen-card">
-            <span className="resumen-card-metodo">Turnos</span>
-            <span className="resumen-card-total">{resumen.total}</span>
+        <div className="tab-kpis">
+          <TarjetaKpi titulo="Turnos" valor={resumen.total} />
+          <div className="tab-kpi--exito">
+            <TarjetaKpi titulo="Cuadran" valor={resumen.cuadran} />
           </div>
-          <div className="resumen-card comparacion-resumen--cuadra">
-            <span className="resumen-card-metodo">Cuadran</span>
-            <span className="resumen-card-total">{resumen.cuadran}</span>
+          <div className="tab-kpi--advertencia">
+            <TarjetaKpi titulo="Faltantes" valor={resumen.faltantes} />
           </div>
-          <div className="resumen-card comparacion-resumen--faltante">
-            <span className="resumen-card-metodo">Faltantes</span>
-            <span className="resumen-card-total">{resumen.faltantes}</span>
-          </div>
-          <div className="resumen-card comparacion-resumen--sobrante">
-            <span className="resumen-card-metodo">Sobrantes</span>
-            <span className="resumen-card-total">{resumen.sobrantes}</span>
+          <div className="tab-kpi--advertencia">
+            <TarjetaKpi titulo="Sobrantes" valor={resumen.sobrantes} />
           </div>
         </div>
       )}
 
       {!cargando && !error && turnos.length === 0 && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">
-          {hayFiltros
-            ? 'No hay turnos que coincidan con los filtros en esta fecha.'
-            : 'No hubo turnos en esta fecha.'}
-        </p>
+        <Alerta
+          tono="info"
+          titulo={
+            hayFiltros ? 'No hay turnos que coincidan con los filtros en esta fecha.' : 'No hubo turnos en esta fecha.'
+          }
+        />
       )}
 
       {!cargando && !error && turnos.length > 0 && (
-        <table className="tabla-facturas">
+        <Tabla etiqueta="Comparación por turno">
           <thead>
             <tr>
               <th>Turno</th>
               <th>Caja</th>
               <th>Cajero</th>
-              <th>Registrado (Bs.)</th>
-              <th>Disponible (Bs.)</th>
-              <th>Diferencia (Bs.)</th>
+              <th className="ui-num">Registrado (Bs.)</th>
+              <th className="ui-num">Disponible (Bs.)</th>
+              <th className="ui-num">Diferencia (Bs.)</th>
               <th>Resultado</th>
             </tr>
           </thead>
           <tbody>
             {turnos.map((t) => {
-              const tipoRaw = t.tipo_diferencia || 'CUADRA'; // Si viene nulo, asume cuadra
-              const tipo = tipoRaw.toLowerCase();
+              const tipoRaw = t.tipo_diferencia || 'CUADRA' // Si viene nulo, asume cuadra
+              const tipo = tipoRaw.toLowerCase()
               return (
-                <tr key={t.turno_id} className={`comparacion-fila comparacion-fila--${tipo}`}>
+                <tr key={t.turno_id}>
                   <td>
                     {t.codigo}
-                    <span className="comparacion-detalle">{t.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'}</span>
+                    <span className="tab-detalle">{t.estado === 'ABIERTO' ? 'Abierto' : 'Cerrado'}</span>
                   </td>
                   <td>{t.caja_id}</td>
                   <td>{t.cajero_nombre || t.cajero_id}</td>
-                  <td>{bs(t.efectivo_esperado)}</td>
-                  <td>{bs(t.efectivo_contado)}</td>
-                  <td className={`comparacion-diferencia--${tipo}`}>
+                  <td className="ui-num">{bs(t.efectivo_esperado)}</td>
+                  <td className="ui-num">{bs(t.efectivo_contado)}</td>
+                  <td className={`ui-num tab-diferencia--${tipo}`}>
                     {t.diferencia > 0 ? '+' : ''}
                     {bs(t.diferencia)}
                   </td>
                   <td>
-                    <span className={`badge-estado badge-comparacion--${tipo}`}>
-                      {ETIQUETA_TIPO[tipoRaw] ?? tipoRaw}
-                    </span>
+                    <Chip>{ETIQUETA_TIPO[tipoRaw] ?? tipoRaw}</Chip>
                   </td>
                 </tr>
               )
             })}
           </tbody>
-        </table>
+        </Tabla>
       )}
     </section>
   )
