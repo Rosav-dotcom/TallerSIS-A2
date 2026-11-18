@@ -45,7 +45,7 @@ function App() {
   return (
     <>
       {!esPantallaLogin && !esPaginaPublica && (esSeccionAdmin ? <AdminNavbar /> : <Navbar />)}
-      <main className={esPantallaLogin || esPaginaPublica ? undefined : esSeccionAdmin ? 'container container-ancho' : 'container'}>
+      <main className={esPantallaLogin || esPaginaPublica ? undefined : esSeccionAdmin ? 'container container-ancho con-barra-lateral' : 'container'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/facturas/verificar/:token" element={<VerificarFactura />} />

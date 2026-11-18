@@ -1,0 +1,286 @@
+/* Menús del cajero y del administrador (Figma p.7, p.8 y p.17). Solo variables de index.css. */
+
+/* ---------- Logo ---------- */
+.nav-logo {
+  font: 600 32px/1 var(--font-titulo);
+  color: var(--surface);
+  letter-spacing: 0.01em;
+}
+.nav-logo-punto {
+  position: relative;
+}
+.nav-logo-punto::before {
+  content: '';
+  position: absolute;
+  top: 0.12em;
+  left: 50%;
+  width: 0.16em;
+  height: 0.16em;
+  border-radius: 50%;
+  background: var(--gold);
+  transform: translateX(-50%);
+}
+
+/* ---------- Barra del cajero ---------- */
+.nav-cajero {
+  display: flex;
+  align-items: stretch;
+  min-height: 72px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.nav-cajero-marca {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--espacio-5);
+  background: var(--navy);
+}
+.nav-cajero-pestanas {
+  display: flex;
+  align-items: stretch;
+  gap: var(--espacio-1);
+  padding: 0 var(--espacio-4);
+}
+.nav-cajero-pestanas a {
+  display: flex;
+  align-items: center;
+  padding: 0 var(--espacio-5);
+  border-bottom: 3px solid transparent;
+  color: var(--text);
+  font: var(--texto-subtitulo);
+  font-size: 15px;
+  text-decoration: none;
+}
+.nav-cajero-pestanas a:hover {
+  background: var(--bone);
+}
+.nav-cajero-pestanas a.active {
+  border-bottom-color: var(--olive);
+}
+.nav-cajero-derecha {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-5);
+  margin-left: auto;
+  padding: 0 var(--espacio-5);
+}
+.nav-caja {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+.nav-caja-nombre {
+  font: var(--texto-subtitulo);
+  color: var(--text);
+}
+.nav-caja-codigo {
+  font: var(--texto-etiqueta);
+  color: var(--olive);
+  text-transform: uppercase;
+}
+.nav-sin-sesion {
+  color: var(--muted);
+}
+
+/* Menú del usuario (cajero) */
+.nav-usuario {
+  position: relative;
+}
+.nav-usuario-boton {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-2);
+  border: 0;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.nav-usuario-boton:hover {
+  background: var(--bone);
+}
+.nav-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--navy);
+  color: var(--surface);
+  font: var(--texto-etiqueta);
+  text-transform: uppercase;
+}
+.nav-usuario-texto {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.nav-usuario-nombre {
+  font: var(--texto-cuerpo);
+  color: var(--text);
+}
+.nav-usuario-rol {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.nav-usuario-lista {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  padding: var(--espacio-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  box-shadow: var(--sombra);
+}
+.nav-usuario-opcion {
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-3);
+  border: 0;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  text-align: left;
+  cursor: pointer;
+}
+.nav-usuario-opcion:hover {
+  background: var(--bone);
+}
+.nav-usuario-opcion--peligro {
+  color: var(--error);
+}
+
+/* ---------- Administrador: barra lateral ---------- */
+.nav-lateral {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 256px;
+  overflow-y: auto;
+  background: var(--navy);
+  color: var(--surface);
+}
+.nav-lateral-marca {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  padding: var(--espacio-5) var(--espacio-5) var(--espacio-5);
+}
+.nav-lateral-rol {
+  font: var(--texto-etiqueta);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.nav-lateral-menu {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding-bottom: var(--espacio-5);
+}
+.nav-grupo-boton,
+.nav-lateral-menu a {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  width: 100%;
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-5);
+  border: 0;
+  border-left: 3px solid transparent;
+  background: transparent;
+  color: var(--surface);
+  font: var(--texto-cuerpo);
+  font-size: 15px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.nav-grupo-boton:hover,
+.nav-lateral-menu a:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+.nav-lateral-menu a.active {
+  border-left-color: var(--gold);
+  background: var(--navy-hover);
+}
+.nav-grupo-flecha {
+  margin-left: auto;
+  display: inline-flex;
+}
+.nav-lateral-pie {
+  padding: var(--espacio-5);
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ---------- Administrador: barra superior ---------- */
+.nav-superior {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-5);
+  min-height: 64px;
+  margin-left: 256px;
+  padding: 0 var(--espacio-6);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.nav-superior-titulo {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+.nav-superior-titulo strong {
+  font: var(--texto-subtitulo);
+  color: var(--text);
+}
+.nav-superior-titulo span {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.nav-superior-derecha {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+
+/* Contenido del administrador al lado de la barra lateral */
+/* .container (App.css) centra con margin: 0 auto; aquí se deja espacio fijo para la barra lateral. */
+.container.con-barra-lateral {
+  max-width: none;
+  margin-left: 256px;
+  margin-right: 0;
+}
+
+@media (max-width: 900px) {
+  .nav-lateral {
+    position: static;
+    width: 100%;
+    max-height: none;
+  }
+  .nav-superior,
+  .container.con-barra-lateral {
+    margin-left: 0;
+  }
+  .nav-cajero {
+    flex-wrap: wrap;
+  }
+}

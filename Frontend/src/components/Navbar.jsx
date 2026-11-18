@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useBloqueo } from '../context/BloqueoContext.jsx'
+import { ChevronDown, Lock } from 'lucide-react'
+import { Boton, Icono } from './ui'
+import './navegacion.css'
 
 // "Cerrar sesión" y "Cerrar caja" son 2 acciones distintas: cerrar sesión solo
 // vuelve al login (el turno sigue activo, se puede volver a entrar); cerrar caja
@@ -36,43 +39,72 @@ function Navbar() {
   }
 
   return (
-    <nav className="navbar">
-      <span className="navbar-brand">TallerSis</span>
+    <nav className="nav-cajero" aria-label="Menú del cajero">
+      <span className="nav-cajero-marca">
+        <span className="nav-logo">
+          R<span className="nav-logo-punto">e</span>Pay
+        </span>
+      </span>
       {cajero && (
-        <>
-          <NavLink to="/" end>Inicio</NavLink>
-          <NavLink to="/pagos">Pagos</NavLink>
+        <div className="nav-cajero-pestanas">
+          <NavLink to="/" end>
+            Inicio
+          </NavLink>
+          <NavLink to="/pagos">Cobrar</NavLink>
           <NavLink to="/facturas">Facturas</NavLink>
-        </>
+        </div>
       )}
 
-      <div className="navbar-sesion">
+      <div className="nav-cajero-derecha">
         {cajero && (
-          // TDSI-855: bloquear la terminal al alejarse, sin cerrar sesión ni el turno.
-          <button type="button" className="btn btn-logout" onClick={bloquear}>
-            Bloquear pantalla
-          </button>
+          <span className="nav-caja">
+            <span className="nav-caja-nombre">{cajero.cajaNombre || cajero.caja}</span>
+            <span className="nav-caja-codigo">{cajero.caja}</span>
+          </span>
         )}
         {cajero ? (
-          <div className="navbar-menu" ref={menuRef}>
-            <button type="button" className="navbar-menu-boton" onClick={() => setMenuAbierto((v) => !v)}>
-              {cajero.nombre}
-              <span className="navbar-menu-flecha">▾</span>
+          <div className="nav-usuario" ref={menuRef}>
+            <button
+              type="button"
+              className="nav-usuario-boton"
+              onClick={() => setMenuAbierto((v) => !v)}
+              aria-expanded={menuAbierto}
+              aria-haspopup="menu"
+            >
+              <span className="nav-avatar" aria-hidden="true">
+                {String(cajero.nombre || '?').charAt(0)}
+              </span>
+              <span className="nav-usuario-texto">
+                <span className="nav-usuario-nombre">{cajero.nombre}</span>
+                <span className="nav-usuario-rol">Cajero</span>
+              </span>
+              <Icono icono={ChevronDown} tamano={16} />
             </button>
 
             {menuAbierto && (
-              <div className="navbar-menu-lista">
-                <button type="button" className="navbar-menu-opcion" onClick={handleCerrarCaja}>
+              <div className="nav-usuario-lista" role="menu">
+                <button type="button" role="menuitem" className="nav-usuario-opcion" onClick={handleCerrarCaja}>
                   Cerrar caja
                 </button>
-                <button type="button" className="navbar-menu-opcion navbar-menu-opcion--peligro" onClick={handleCerrarSesion}>
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="nav-usuario-opcion nav-usuario-opcion--peligro"
+                  onClick={handleCerrarSesion}
+                >
                   Cerrar sesión
                 </button>
               </div>
             )}
           </div>
         ) : (
-          <span className="navbar-cajero navbar-cajero--vacio">Sin sesión iniciada</span>
+          <span className="nav-sin-sesion">Sin sesión iniciada</span>
+        )}
+        {cajero && (
+          // TDSI-855: bloquear la terminal al alejarse, sin cerrar sesión ni el turno.
+          <Boton variante="contorno" icono={Lock} onClick={bloquear}>
+            Bloquear
+          </Boton>
         )}
       </div>
     </nav>

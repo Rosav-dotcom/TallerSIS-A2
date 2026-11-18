@@ -5,6 +5,12 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 - **Sprint 4 (pantallas nuevas):** carpeta `sprint4/`.
 - **Pantallas existentes (migración del Sprint 3):** se agregan en cada fase de la migración (0005 a 0011).
 
+## Pantallas existentes ya migradas
+
+| Guía | Fase |
+|---|---|
+| [`menus.md`](menus.md) | 0005 · Menús del cajero y del administrador, interruptores y rutas por rol |
+
 ## Antes de empezar una pantalla del Sprint 4
 
 1. Leer `DESIGN_SYSTEM.md` y `docs/COMPONENTES.md`.
