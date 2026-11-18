@@ -18,6 +18,9 @@ import EnvioCorreo from './pagos/EnvioCorreo.jsx'
 import ResumenCobro from './pagos/ResumenCobro.jsx'
 import CobroQrEspera from './pagos/CobroQrEspera.jsx'
 import PagoRegistrado from './pagos/PagoRegistrado.jsx'
+import { Alerta, Boton, CampoTexto, Tarjeta } from '../components/ui'
+import './turno.css'
+import './pagos/pagos.css'
 
 // TDSI-29: pantalla de cobro. El estado y la lógica del cobro viven aquí; cada parte de la
 // pantalla está en src/pages/pagos/ y solo dibuja lo que recibe (patch 0009 de la migración).
@@ -580,10 +583,14 @@ function Pagos() {
   }
 
   return (
-    <section>
+    <section className="cob-pagina">
       <EncabezadoPagos canceladasHoy={canceladasHoy} onAbrirRespuestas={() => setMostrarRespuestasRapidas(true)} />
 
-      {mensajeCancelacion && <p className="mensaje-exito pagos-mensaje">{mensajeCancelacion}</p>}
+      {mensajeCancelacion && (
+        <div className="cob-aviso">
+          <Alerta tono="exito" titulo={mensajeCancelacion} />
+        </div>
+      )}
 
       {mostrarCancelarVenta && (
         <CancelarVentaModal
@@ -598,75 +605,94 @@ function Pagos() {
         <MisRespuestasRapidas cajeroId={cajero?.nombre} onCerrar={() => setMostrarRespuestasRapidas(false)} />
       )}
 
-      <div className={`pagos-layout${mostrarPanelMixto ? ' pagos-layout--dividido' : ''}`}>
-        <div className="pagos-layout-col">
+      <div className={`cob-layout${mostrarPanelMixto ? ' cob-layout--dividido' : ''}`}>
+        <div className="cob-columna">
           {paso === 'formulario' && (
-            <form className="pago-form" onSubmit={continuar}>
-              {/* El ID de transacción ya no lo escribe el cajero: lo genera el sistema al confirmar el cobro. */}
-              <label className="campo">
-                Monto (Bs.)
-                <input type="number" step="0.01" value={datos.monto} onChange={(e) => actualizarCampo('monto', e.target.value)} />
-              </label>
+            <form className="cob-form" onSubmit={continuar}>
+              <div className="cob-columna">
+                <Tarjeta titulo="Venta">
+                  <div className="cob-bloque">
+                    {/* El ID de transacción ya no lo escribe el cajero: lo genera el sistema al confirmar el cobro. */}
+                    <CampoTexto
+                      etiqueta="Monto a cobrar"
+                      prefijo="Bs"
+                      type="number"
+                      step="0.01"
+                      value={datos.monto}
+                      onChange={(e) => actualizarCampo('monto', e.target.value)}
+                    />
 
-              <SeccionMetodoPago metodos={datos.metodos} esMixto={esMixto} onToggleMetodo={toggleMetodo} />
+                    <SeccionMetodoPago metodos={datos.metodos} esMixto={esMixto} onToggleMetodo={toggleMetodo} />
 
-              {esEfectivoSimple && (
-                <CobroEfectivo
-                  montoRecibido={datos.montoRecibido}
-                  onCambiarMontoRecibido={(valor) => actualizarCampo('montoRecibido', valor)}
-                  onAgregarBillete={agregarBillete}
-                  calculandoVuelto={calculandoVuelto}
-                  errorVuelto={errorVuelto}
-                  errorValidacion={errorValidacion}
-                  vuelto={vuelto}
-                  desgloseVuelto={desgloseVuelto}
-                />
-              )}
+                    {esEfectivoSimple && (
+                      <CobroEfectivo
+                        montoRecibido={datos.montoRecibido}
+                        onCambiarMontoRecibido={(valor) => actualizarCampo('montoRecibido', valor)}
+                        onAgregarBillete={agregarBillete}
+                        calculandoVuelto={calculandoVuelto}
+                        errorVuelto={errorVuelto}
+                        errorValidacion={errorValidacion}
+                        vuelto={vuelto}
+                        desgloseVuelto={desgloseVuelto}
+                      />
+                    )}
 
-              {esEfectivoUsd && (
-                <CobroUsd
-                  errorTipoCambio={errorTipoCambio}
-                  onReintentarTipoCambio={() => setIntentoTipoCambio((n) => n + 1)}
-                  tipoCambioVigente={tipoCambioVigente}
-                  monto={datos.monto}
-                  dolaresRecibidos={datos.dolaresRecibidos}
-                  onCambiarDolares={(valor) => {
-                    setErrorValidacion(null)
-                    actualizarCampo('dolaresRecibidos', valor)
-                  }}
-                  calculandoCobroUsd={calculandoCobroUsd}
-                  errorCobroUsd={errorCobroUsd}
-                  faltanteBs={faltanteBs}
-                  cobroUsd={cobroUsd}
-                />
-              )}
+                    {esEfectivoUsd && (
+                      <CobroUsd
+                        errorTipoCambio={errorTipoCambio}
+                        onReintentarTipoCambio={() => setIntentoTipoCambio((n) => n + 1)}
+                        tipoCambioVigente={tipoCambioVigente}
+                        monto={datos.monto}
+                        dolaresRecibidos={datos.dolaresRecibidos}
+                        onCambiarDolares={(valor) => {
+                          setErrorValidacion(null)
+                          actualizarCampo('dolaresRecibidos', valor)
+                        }}
+                        calculandoCobroUsd={calculandoCobroUsd}
+                        errorCobroUsd={errorCobroUsd}
+                        faltanteBs={faltanteBs}
+                        cobroUsd={cobroUsd}
+                      />
+                    )}
+                  </div>
+                </Tarjeta>
+              </div>
 
-              <DatosFacturacion
-                tipoDocumento={datos.tipoDocumento}
-                numeroDocumento={datos.numeroDocumento}
-                razonSocial={datos.razonSocial}
-                telefono={datos.telefono}
-                onElegirTipoDocumento={elegirTipoDocumento}
-                onCambiarCampo={actualizarCampo}
-                onSalirDocumento={alPerderFocoDocumento}
-              />
+              <div className="cob-columna">
+                <Tarjeta titulo="Cliente">
+                  <div className="cob-bloque">
+                    <DatosFacturacion
+                      tipoDocumento={datos.tipoDocumento}
+                      numeroDocumento={datos.numeroDocumento}
+                      razonSocial={datos.razonSocial}
+                      telefono={datos.telefono}
+                      onElegirTipoDocumento={elegirTipoDocumento}
+                      onCambiarCampo={actualizarCampo}
+                      onSalirDocumento={alPerderFocoDocumento}
+                    />
 
-              <EnvioCorreo enviarCorreo={datos.enviarCorreo} email={datos.email} onCambiarCampo={actualizarCampo} />
+                    <EnvioCorreo
+                      enviarCorreo={datos.enviarCorreo}
+                      email={datos.email}
+                      onCambiarCampo={actualizarCampo}
+                    />
+                  </div>
+                </Tarjeta>
 
-              {errorValidacion && <p className="error">{errorValidacion}</p>}
+                {errorValidacion && <Alerta tono="error" titulo={errorValidacion} />}
 
-              <div className="pago-acciones">
-                <button type="submit" className="btn" disabled={cobroUsdBloqueado}>
-                  Continuar
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-secundario"
-                  onClick={() => setMostrarCancelarVenta(true)}
-                  disabled={!(Number(datos.monto) > 0)}
-                >
-                  Cancelar venta
-                </button>
+                <div className="cob-acciones">
+                  <Boton
+                    variante="contorno"
+                    onClick={() => setMostrarCancelarVenta(true)}
+                    disabled={!(Number(datos.monto) > 0)}
+                  >
+                    Cancelar venta
+                  </Boton>
+                  <Boton type="submit" disabled={cobroUsdBloqueado}>
+                    Continuar
+                  </Boton>
+                </div>
               </div>
             </form>
           )}
@@ -716,7 +742,7 @@ function Pagos() {
         </div>
 
         {mostrarPanelMixto && (
-          <div className="pagos-layout-col">
+          <div className="cob-columna">
             <PagoMixtoForm
               totalVenta={Number(datos.monto) || 0}
               metodo1={datos.metodos[0]}

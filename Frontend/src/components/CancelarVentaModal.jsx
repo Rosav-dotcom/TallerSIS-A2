@@ -1,6 +1,7 @@
 import { useState } from 'react'
 // TDSI-44: respuestas rapidas del cajero (componente de esa historia).
 import RespuestasRapidasBotones from './RespuestasRapidasBotones.jsx'
+import { Alerta, AreaTexto, Boton, Modal } from './ui'
 
 // Los mismos valores que acepta el backend (columna motivo de pagos.ventas_canceladas).
 const MOTIVOS = ['El cliente desistió', 'Fondos insuficientes', 'Error al cargar ítems', 'Otro']
@@ -41,63 +42,62 @@ function CancelarVentaModal({ total, cajeroId, onConfirmar, onVolver }) {
   }
 
   return (
-    <div className="modal-overlay">
-      <form className="modal-caja cancelar-venta" onSubmit={confirmar} role="dialog" aria-modal="true" aria-labelledby="titulo-cancelar-venta">
-        <h2 id="titulo-cancelar-venta">Cancelar venta</h2>
-        <p className="cancelar-venta-resumen">
-          Venta de Bs. {total.toFixed(2)} sin cobrar. No se genera cobro ni factura.
-        </p>
+    <Modal abierto titulo="Cancelar venta" onCerrar={enviando ? undefined : onVolver}>
+      <form className="cob-bloque" onSubmit={confirmar}>
+        <p className="cob-nota">Venta de Bs. {total.toFixed(2)} sin cobrar. No se genera cobro ni factura.</p>
 
-        <div className="cancelar-venta-rapidas">
-          <p className="cancelar-venta-subtitulo">Mis respuestas rápidas</p>
+        <div>
+          <p className="cob-pregunta">Mis respuestas rápidas</p>
           <RespuestasRapidasBotones cajeroId={cajeroId} onElegir={enviar} disabled={enviando} />
         </div>
 
-        <fieldset className="cancelar-venta-motivos">
+        <fieldset className="cob-grupo">
           <legend>¿Por qué se cancela?</legend>
-          {MOTIVOS.map((m) => (
-            <label key={m} className={`cancelar-venta-motivo${motivo === m ? ' activa' : ''}`}>
-              <input
-                type="radio"
-                name="motivo-cancelacion"
-                value={m}
-                checked={motivo === m}
-                onChange={() => {
-                  setMotivo(m)
-                  setError(null)
-                }}
-              />
-              {m}
-            </label>
-          ))}
+          <div className="cob-motivos">
+            {MOTIVOS.map((m) => (
+              <label key={m} className={`cob-motivo${motivo === m ? ' cob-motivo--activa' : ''}`}>
+                <input
+                  type="radio"
+                  name="motivo-cancelacion"
+                  value={m}
+                  checked={motivo === m}
+                  onChange={() => {
+                    setMotivo(m)
+                    setError(null)
+                  }}
+                />
+                {m}
+              </label>
+            ))}
+          </div>
         </fieldset>
 
         {motivo === 'Otro' && (
-          <label className="campo">
-            Motivo
-            <textarea
-              rows={3}
-              maxLength={LARGO_MAXIMO_TEXTO}
-              value={texto}
-              autoFocus
-              onChange={(e) => {
-                setTexto(e.target.value)
-                setError(null)
-              }}
-            />
-          </label>
+          <AreaTexto
+            etiqueta="Motivo"
+            rows={3}
+            maxLength={LARGO_MAXIMO_TEXTO}
+            value={texto}
+            autoFocus
+            onChange={(e) => {
+              setTexto(e.target.value)
+              setError(null)
+            }}
+          />
         )}
 
-        {error && <p className="error">{error}</p>}
+        {error && <Alerta tono="error" titulo={error} />}
 
-        <button type="submit" className="btn btn-peligro" disabled={enviando}>
-          {enviando ? 'Cancelando...' : 'Cancelar venta'}
-        </button>
-        <button type="button" className="btn btn-secundario" onClick={onVolver} disabled={enviando}>
-          Volver
-        </button>
+        <div className="ui-modal-acciones">
+          <Boton variante="contorno" onClick={onVolver} disabled={enviando}>
+            Volver
+          </Boton>
+          <Boton type="submit" variante="peligro" disabled={enviando}>
+            {enviando ? 'Cancelando...' : 'Cancelar venta'}
+          </Boton>
+        </div>
       </form>
-    </div>
+    </Modal>
   )
 }
 

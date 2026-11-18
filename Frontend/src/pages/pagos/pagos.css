@@ -1,0 +1,407 @@
+/* Cobrar (Figma p.7, p.14–16, p.22–26, p.34–35 y p.72–74). Solo variables de index.css. */
+
+/* El cobro va en dos columnas: necesita más ancho que el contenedor del cajero (960 px). */
+main.container:has(.cob-pagina) {
+  max-width: 1280px;
+}
+
+/* ---------- Encabezado ---------- */
+.cob-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  margin-bottom: var(--espacio-5);
+}
+.cob-cabecera .turno-encabezado {
+  margin-bottom: 0;
+}
+.cob-aviso {
+  margin-bottom: var(--espacio-4);
+}
+
+/* ---------- Distribución ---------- */
+.cob-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-5);
+  align-items: start;
+}
+.cob-layout--dividido {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.cob-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--espacio-5);
+  align-items: start;
+}
+/* Con el panel de pago mixto a la derecha, el formulario queda en una sola columna. */
+.cob-layout--dividido .cob-form {
+  grid-template-columns: minmax(0, 1fr);
+}
+.cob-columna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+  min-width: 0;
+}
+.cob-bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+/* Pasos de una sola tarjeta: confirmar, QR y pago registrado. */
+.cob-paso {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+  .cob-layout--dividido,
+  .cob-form {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ---------- Textos ---------- */
+.cob-nota {
+  margin: 0;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.cob-grupo {
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+.cob-grupo legend,
+.cob-pregunta {
+  margin: 0 0 var(--espacio-2);
+  padding: 0;
+  font: var(--texto-etiqueta);
+  color: var(--text);
+}
+
+/* ---------- Métodos de pago ---------- */
+.cob-metodos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-3);
+}
+.cob-metodos .ui-opcion {
+  min-height: 56px;
+  padding: 0 var(--espacio-4);
+  font-size: 14px;
+}
+.cob-metodos .ui-opcion span {
+  overflow-wrap: anywhere;
+}
+
+/* ---------- Opciones segmentadas (Sin datos / NIT / CI, No / Sí) ---------- */
+.cob-segmento {
+  display: flex;
+  gap: var(--espacio-2);
+}
+.cob-segmento-opcion {
+  flex: 1;
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  cursor: pointer;
+}
+.cob-segmento-opcion:hover {
+  background: var(--bone);
+}
+.cob-segmento-opcion--activa,
+.cob-segmento-opcion--activa:hover {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--surface);
+}
+
+/* ---------- Billetes rápidos y respuestas rápidas ---------- */
+.cob-fichas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.cob-ficha {
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.cob-ficha:hover:not(:disabled) {
+  border-color: var(--navy);
+}
+.cob-ficha:disabled {
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.cob-ficha--limpiar {
+  background: transparent;
+  color: var(--muted);
+}
+
+/* ---------- Vuelto ---------- */
+.cob-vuelto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+}
+.cob-vuelto-etiqueta {
+  font: var(--texto-etiqueta);
+  color: var(--muted);
+}
+.cob-vuelto-monto {
+  font: var(--texto-titulo-3);
+  font-family: var(--font-base);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.cob-vuelto-cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+.cob-desglose {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cob-desglose li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: 32px;
+  padding: 0 var(--espacio-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.cob-desglose .cob-desglose-moneda {
+  border-style: dashed;
+}
+
+/* ---------- Filas de datos (etiqueta a la izquierda, valor a la derecha) ---------- */
+.cob-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cob-datos li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding: var(--espacio-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.cob-datos li:last-child {
+  border-bottom: none;
+}
+.cob-datos span:first-child {
+  color: var(--muted);
+}
+.cob-datos span:last-child,
+.cob-datos strong {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Total grande (Total a cobrar, Total pagado) */
+.cob-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--border);
+}
+.cob-total-etiqueta {
+  font: var(--texto-titulo-3);
+  color: var(--text);
+}
+.cob-total-monto {
+  font: var(--texto-titulo-2);
+  font-family: var(--font-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ---------- Acciones ---------- */
+.cob-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--espacio-3);
+}
+.cob-acciones--columna {
+  flex-direction: column;
+}
+.cob-acciones--columna .ui-boton {
+  width: 100%;
+}
+a.ui-boton {
+  text-decoration: none;
+}
+
+/* ---------- Pago mixto ---------- */
+.cob-mixto-montos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-3);
+}
+.cob-mixto-suma {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.cob-mixto-estado--ok {
+  color: var(--success);
+  font-weight: 600;
+}
+.cob-mixto-estado--pendiente {
+  color: var(--error);
+  font-weight: 600;
+}
+
+/* ---------- Cobro con QR ---------- */
+.cob-qr-monto {
+  font: var(--texto-titulo-2);
+  font-family: var(--font-base);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.cob-qr-imagen {
+  display: block;
+  width: 220px;
+  max-width: 100%;
+  height: auto;
+  margin: 0 auto;
+  padding: var(--espacio-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+}
+.cob-qr-estado {
+  margin: 0;
+  padding: var(--espacio-3);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+  text-align: center;
+  color: var(--text);
+}
+.cob-centro {
+  text-align: center;
+}
+
+/* Título con el ícono de éxito (Pago registrado) */
+.cob-titulo-exito {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+.cob-titulo-exito svg {
+  color: var(--success);
+}
+
+/* ---------- Cancelar venta: motivos ---------- */
+.cob-motivos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+.cob-motivo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.cob-motivo:hover {
+  background: var(--bone);
+}
+.cob-motivo--activa {
+  border-color: var(--navy);
+}
+.cob-motivo input {
+  accent-color: var(--navy);
+}
+
+/* ---------- Mis respuestas rápidas ---------- */
+.cob-panel-lista {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cob-panel-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+.cob-panel-item > form,
+.cob-panel-item > .cob-panel-confirmar {
+  flex: 1;
+}
+.cob-panel-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.cob-panel-confirmar p {
+  margin: 0 0 var(--espacio-2);
+}
+.cob-accion--peligro {
+  color: var(--error);
+}
+.cob-contador {
+  align-self: flex-end;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}

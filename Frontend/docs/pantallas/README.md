@@ -14,6 +14,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | [`turno.md`](turno.md) | 0007 · Inicio, apertura de turno, Cierre de caja y Arqueo |
 | [`facturas.md`](facturas.md) | 0008 · Facturas del cajero: lista, anulación, modificación y respuestas |
 | [`pagos-estructura.md`](pagos-estructura.md) | 0009 · Pagos dividido en componentes (sin cambios visibles) |
+| [`pagos.md`](pagos.md) | 0010 · Cobrar: efectivo, dólares, pago mixto, QR, confirmación, pago registrado y sus modales |
 
 ## Antes de empezar una pantalla del Sprint 4
 

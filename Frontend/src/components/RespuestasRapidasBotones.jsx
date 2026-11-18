@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listarRespuestasRapidas } from '../api/respuestasRapidas.js'
+import { Alerta } from './ui'
 
 // El registro de venta cancelada (POST /api/pagos/canceladas, TDSI-45) acepta motivos fijos o
 // "Otro" con el texto escrito. Una respuesta rapida va como "Otro" con su texto copiado, asi la
@@ -34,19 +35,19 @@ function RespuestasRapidasBotones({ cajeroId, onElegir, disabled = false }) {
     }
   }, [cajeroId])
 
-  if (cargando) return <p className="ayuda-mixto">Cargando respuestas rápidas...</p>
-  if (error) return <p className="error">No se pudieron cargar tus respuestas rápidas: {error}</p>
+  if (cargando) return <p className="cob-nota">Cargando respuestas rápidas...</p>
+  if (error) return <Alerta tono="error" titulo={`No se pudieron cargar tus respuestas rápidas: ${error}`} />
   if (respuestas.length === 0) {
-    return <p className="respuestas-vacio">No tienes respuestas rápidas. Puedes crearlas en «Mis respuestas rápidas».</p>
+    return <p className="cob-nota">No tienes respuestas rápidas. Puedes crearlas en «Mis respuestas rápidas».</p>
   }
 
   return (
-    <div className="respuestas-botones" role="group" aria-label="Respuestas rápidas">
+    <div className="cob-fichas" role="group" aria-label="Respuestas rápidas">
       {respuestas.map((r) => (
         <button
           key={r.id}
           type="button"
-          className="respuesta-rapida"
+          className="cob-ficha"
           disabled={disabled}
           onClick={() => onElegir(motivoDesdeRespuestaRapida(r.texto))}
         >

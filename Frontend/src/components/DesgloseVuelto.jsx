@@ -11,24 +11,31 @@ function etiquetaDenominacion(denominacion) {
 
 function DesgloseVuelto({ vuelto, desglose = [] }) {
   if (vuelto === 0) {
-    return <p className="vuelto-destacado">Sin vuelto</p>
+    return (
+      <div className="cob-vuelto">
+        <span className="cob-vuelto-monto">Sin vuelto</span>
+      </div>
+    )
   }
 
   return (
-    <div className="desglose-vuelto">
-      <p className="vuelto-destacado">Vuelto a entregar: Bs. {vuelto.toFixed(2)}</p>
-      <p className="desglose-vuelto-titulo">Desglose sugerido</p>
-      <ul className="fichas-dinero">
+    <div className="cob-vuelto">
+      <div className="cob-vuelto-cabecera">
+        <span className="cob-vuelto-etiqueta">Vuelto a entregar</span>
+        <span className="cob-vuelto-monto">Bs. {vuelto.toFixed(2)}</span>
+      </div>
+      <span className="cob-vuelto-etiqueta">Desglose sugerido</span>
+      <ul className="cob-desglose">
         {desglose.map(({ denominacion, cantidad }) => {
           const esBillete = denominacion >= MENOR_BILLETE
           return (
             <li
               key={denominacion}
-              className={`ficha-dinero ${esBillete ? 'ficha-dinero--billete' : 'ficha-dinero--moneda'}`}
+              className={esBillete ? 'cob-desglose-billete' : 'cob-desglose-moneda'}
               aria-label={`${cantidad} ${esBillete ? 'billete' : 'moneda'}${cantidad === 1 ? '' : 's'} de ${etiquetaDenominacion(denominacion)}`}
             >
-              <span className="ficha-dinero-cantidad">{cantidad} ×</span>
-              <span className="ficha-dinero-valor">{etiquetaDenominacion(denominacion)}</span>
+              <span>{cantidad} ×</span>
+              <span>{etiquetaDenominacion(denominacion)}</span>
             </li>
           )
         })}

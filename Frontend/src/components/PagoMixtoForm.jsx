@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { calcularPagoMixto } from '../api/pagos';
 import DesgloseVuelto from './DesgloseVuelto.jsx';
+import { Alerta, Boton, CampoTexto, Chip, Tarjeta } from './ui';
 
 // TDSI-88: División de montos entre 2 métodos de pago. Este componente ya NO
 // finaliza el cobro (eso lo hace el formulario principal de Pagos.jsx con el
@@ -69,205 +70,75 @@ export default function PagoMixtoForm({
   };
 
   return (
-    <div
-      style={{
-        padding: '1.5rem',
-        backgroundColor: 'var(--surface)',
-        borderRadius: '16px',
-        border: '1px solid var(--border)',
-        boxShadow: 'var(--sombra)',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      }}
-    >
-      {/* Cabecera */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--text)', margin: 0 }}>
-          División de Pago (Pago Mixto)
-        </h2>
-        <span
-          style={{
-            fontSize: '0.85rem',
-            backgroundColor: 'var(--info-bg)',
-            color: 'var(--info)',
-            padding: '0.35rem 0.75rem',
-            borderRadius: '9999px',
-            fontWeight: '700',
-          }}
-        >
-          Total: Bs. {totalVenta.toFixed(2)}
-        </span>
-      </div>
-
-      <form onSubmit={validarMontos} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Bloque Método 1 */}
-        <div style={{ backgroundColor: 'var(--bone)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--bone)' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '0.4rem' }}>
-            Primer Método de Pago
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
-            <div
-              style={{
-                padding: '0.55rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                backgroundColor: 'var(--surface)',
-                color: 'var(--text)',
-              }}
-            >
-              {metodo1}
-            </div>
-
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>Bs.</span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={monto1}
-                onKeyDown={evitarCaracteresInvalidos}
-                onChange={manejarCambioMonto(onCambiarMonto1)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', fontWeight: '600' }}
-              />
-            </div>
-          </div>
+    <Tarjeta titulo="Pago mixto" acciones={<Chip tono="info">Total: Bs. {totalVenta.toFixed(2)}</Chip>}>
+      <form onSubmit={validarMontos} className="cob-bloque">
+        <div className="cob-mixto-montos">
+          <CampoTexto
+            etiqueta={metodo1}
+            prefijo="Bs"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={monto1}
+            onKeyDown={evitarCaracteresInvalidos}
+            onChange={manejarCambioMonto(onCambiarMonto1)}
+          />
+          <CampoTexto
+            etiqueta={metodo2}
+            prefijo="Bs"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={monto2}
+            onKeyDown={evitarCaracteresInvalidos}
+            onChange={manejarCambioMonto(onCambiarMonto2)}
+          />
         </div>
 
-        {/* Bloque Método 2 */}
-        <div style={{ backgroundColor: 'var(--bone)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--bone)' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '0.4rem' }}>
-            Segundo Método de Pago
-          </label>
-          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
-            <div
-              style={{
-                padding: '0.55rem',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                fontSize: '0.85rem',
-                fontWeight: '600',
-                backgroundColor: 'var(--surface)',
-                color: 'var(--text)',
-              }}
-            >
-              {metodo2}
-            </div>
-
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>Bs.</span>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={monto2}
-                onKeyDown={evitarCaracteresInvalidos}
-                onChange={manejarCambioMonto(onCambiarMonto2)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', fontWeight: '600' }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Resumen dinámico y validación visual */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '0.75rem 1rem',
-            borderRadius: '10px',
-            backgroundColor: diferencia === 0 && montosCompletos ? 'var(--success-bg)' : 'var(--error-bg)',
-            border: `1px solid ${diferencia === 0 && montosCompletos ? 'var(--success)' : 'var(--error)'}`,
-          }}
-        >
-          <div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block' }}>Suma registrada:</span>
-            <strong style={{ fontSize: '0.95rem', color: 'var(--text)' }}>Bs. {sumaTotal.toFixed(2)}</strong>
-          </div>
-
-          <div style={{ textAlign: 'right' }}>
-            {diferencia === 0 && montosCompletos ? (
-              <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: '700' }}>✓ Montos cuadrados</span>
-            ) : (
-              <span style={{ fontSize: '0.75rem', color: 'var(--error)', fontWeight: '600' }}>
-                {diferencia > 0 ? `Faltan Bs. ${diferencia.toFixed(2)}` : `Excede Bs. ${Math.abs(diferencia).toFixed(2)}`}
-              </span>
-            )}
-          </div>
+        {/* Resumen dinámico: suma registrada y si cuadra con el total */}
+        <div className="cob-mixto-suma">
+          <span>Suma registrada: Bs. {sumaTotal.toFixed(2)}</span>
+          {diferencia === 0 && montosCompletos ? (
+            <span className="cob-mixto-estado--ok">✓ Montos cuadrados</span>
+          ) : (
+            <span className="cob-mixto-estado--pendiente">
+              {diferencia > 0 ? `Faltan Bs. ${diferencia.toFixed(2)}` : `Excede Bs. ${Math.abs(diferencia).toFixed(2)}`}
+            </span>
+          )}
         </div>
 
         {incluyeEfectivo && (
-          <div style={{ backgroundColor: 'var(--bone)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--bone)' }}>
-            <label htmlFor="efectivo-recibido-mixto" style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '0.4rem' }}>
-              Efectivo recibido del cliente (opcional, para calcular el vuelto)
-            </label>
-            <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>Bs.</span>
-              <input
-                id="efectivo-recibido-mixto"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="0.00"
-                value={montoRecibido}
-                onKeyDown={evitarCaracteresInvalidos}
-                onChange={manejarCambioMonto(onCambiarMontoRecibido)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', fontWeight: '600' }}
-              />
-            </div>
+          <div className="cob-bloque">
+            <CampoTexto
+              id="efectivo-recibido-mixto"
+              etiqueta="Efectivo recibido del cliente (opcional, para calcular el vuelto)"
+              prefijo="Bs"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="0.00"
+              value={montoRecibido}
+              onKeyDown={evitarCaracteresInvalidos}
+              onChange={manejarCambioMonto(onCambiarMontoRecibido)}
+            />
 
             {montoRecibido && !(diferencia === 0 && montosCompletos) && (
-              <p className="ayuda-mixto" style={{ margin: '0.75rem 0 0' }}>El vuelto se calcula cuando los montos cuadren con el total.</p>
+              <p className="cob-nota">El vuelto se calcula cuando los montos cuadren con el total.</p>
             )}
-            {calculandoVuelto && <p className="ayuda-mixto" style={{ margin: '0.75rem 0 0' }}>Calculando vuelto...</p>}
-            {errorVuelto && !calculandoVuelto && <p className="error" style={{ margin: '0.75rem 0 0' }}>{errorVuelto}</p>}
-            {vuelto !== null && !calculandoVuelto && (
-              <div style={{ marginTop: '0.75rem' }}>
-                <DesgloseVuelto vuelto={vuelto} desglose={desgloseVuelto} />
-              </div>
-            )}
+            {calculandoVuelto && <p className="cob-nota">Calculando vuelto...</p>}
+            {errorVuelto && !calculandoVuelto && <Alerta tono="error" titulo={errorVuelto} />}
+            {vuelto !== null && !calculandoVuelto && <DesgloseVuelto vuelto={vuelto} desglose={desgloseVuelto} />}
           </div>
         )}
 
-        {validacion && (
-          <div
-            style={{
-              backgroundColor: validacion.ok ? 'var(--success-bg)' : 'var(--warning-bg)',
-              border: `1px solid ${validacion.ok ? 'var(--success)' : 'var(--warning)'}`,
-              color: validacion.ok ? 'var(--success)' : 'var(--error)',
-              padding: '0.65rem 0.85rem',
-              borderRadius: '8px',
-              fontSize: '0.85rem',
-              fontWeight: '600',
-            }}
-          >
-            {validacion.ok ? '✓ ' : '⚠️ '}
-            {validacion.mensaje}
-          </div>
-        )}
+        {validacion && <Alerta tono={validacion.ok ? 'exito' : 'advertencia'} titulo={validacion.mensaje} />}
 
-        <button
-          type="submit"
-          disabled={!montosCompletos || validando}
-          style={{
-            marginTop: '0.5rem',
-            padding: '0.75rem',
-            borderRadius: '10px',
-            border: 'none',
-            backgroundColor: montosCompletos ? 'var(--navy)' : 'var(--border)',
-            color: 'var(--surface)',
-            fontSize: '0.9rem',
-            fontWeight: 'bold',
-            cursor: montosCompletos && !validando ? 'pointer' : 'not-allowed',
-            transition: 'background-color 0.2s',
-          }}
-        >
+        <Boton type="submit" ancho disabled={!montosCompletos || validando}>
           {validando ? 'Validando...' : 'Validar montos'}
-        </button>
+        </Boton>
       </form>
-    </div>
+    </Tarjeta>
   );
 }

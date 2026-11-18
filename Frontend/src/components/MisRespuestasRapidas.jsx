@@ -8,20 +8,23 @@ import {
   MAXIMO_RESPUESTAS,
   LARGO_MAXIMO,
 } from '../api/respuestasRapidas.js'
+import { Alerta, Boton, Modal } from './ui'
 
 // Campo de texto con contador de caracteres, para crear y para editar una respuesta.
 function CampoRespuesta({ id, valor, onCambiar, autoFocus }) {
   return (
     <>
-      <textarea
-        id={id}
-        rows={2}
-        maxLength={LARGO_MAXIMO}
-        value={valor}
-        autoFocus={autoFocus}
-        onChange={(e) => onCambiar(e.target.value)}
-      />
-      <span className="respuestas-contador">
+      <span className="ui-control ui-control--area">
+        <textarea
+          id={id}
+          rows={2}
+          maxLength={LARGO_MAXIMO}
+          value={valor}
+          autoFocus={autoFocus}
+          onChange={(e) => onCambiar(e.target.value)}
+        />
+      </span>
+      <span className="cob-contador">
         {valor.trim().length}/{LARGO_MAXIMO}
       </span>
     </>
@@ -138,41 +141,37 @@ function MisRespuestasRapidas({ cajeroId, onCerrar }) {
   }
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-caja respuestas-panel" role="dialog" aria-modal="true" aria-labelledby="titulo-respuestas">
-        <div className="respuestas-encabezado">
-          <h2 id="titulo-respuestas">Mis respuestas rápidas</h2>
-          <button type="button" className="respuestas-cerrar" onClick={onCerrar} aria-label="Cerrar">
-            ×
-          </button>
-        </div>
-        <p className="respuestas-ayuda">
+    <Modal abierto titulo="Mis respuestas rápidas" onCerrar={onCerrar}>
+      <div className="cob-bloque">
+        <p className="cob-nota">
           Frases para elegir con un clic al cancelar una venta. Si editas o eliminas una, las ventas ya canceladas
           conservan el texto que tenían.
         </p>
 
-        {cargando && <p>Cargando...</p>}
+        {cargando && <p className="cob-nota">Cargando...</p>}
 
         {!cargando && errorCarga && (
-          <p className="error">
-            No se pudieron cargar tus respuestas: {errorCarga}{' '}
-            <button type="button" className="billete-rapido" onClick={() => setIntento((n) => n + 1)}>
-              Reintentar
-            </button>
-          </p>
+          <div className="cob-bloque">
+            <Alerta tono="error" titulo={`No se pudieron cargar tus respuestas: ${errorCarga}`} />
+            <div>
+              <Boton variante="contorno" onClick={() => setIntento((n) => n + 1)}>
+                Reintentar
+              </Boton>
+            </div>
+          </div>
         )}
 
         {!cargando && !errorCarga && (
           <>
             {respuestas.length === 0 ? (
-              <p className="respuestas-vacio">Todavía no tienes respuestas rápidas.</p>
+              <p className="cob-nota">Todavía no tienes respuestas rápidas.</p>
             ) : (
-              <ul className="respuestas-lista">
+              <ul className="cob-panel-lista">
                 {respuestas.map((r) => (
-                  <li key={r.id} className="respuestas-item">
+                  <li key={r.id} className="cob-panel-item">
                     {editando?.id === r.id ? (
-                      <form onSubmit={guardarEdicion} className="respuestas-form">
-                        <label htmlFor={`editar-${r.id}`} className="respuestas-etiqueta">
+                      <form onSubmit={guardarEdicion} className="cob-bloque">
+                        <label htmlFor={`editar-${r.id}`} className="ui-campo-etiqueta">
                           Editar respuesta
                         </label>
                         <CampoRespuesta
@@ -181,34 +180,33 @@ function MisRespuestasRapidas({ cajeroId, onCerrar }) {
                           onCambiar={(texto) => setEditando({ id: r.id, texto })}
                           autoFocus
                         />
-                        <div className="respuestas-acciones">
-                          <button type="submit" className="btn" disabled={enviando}>
+                        <div className="cob-panel-acciones">
+                          <Boton type="submit" disabled={enviando}>
                             Guardar
-                          </button>
-                          <button type="button" className="btn btn-secundario" onClick={() => setEditando(null)} disabled={enviando}>
+                          </Boton>
+                          <Boton variante="contorno" onClick={() => setEditando(null)} disabled={enviando}>
                             Cancelar
-                          </button>
+                          </Boton>
                         </div>
                       </form>
                     ) : porEliminar === r.id ? (
-                      <div className="respuestas-confirmar">
+                      <div className="cob-panel-confirmar">
                         <p>¿Eliminar «{r.texto}»?</p>
-                        <div className="respuestas-acciones">
-                          <button type="button" className="btn btn-peligro" onClick={() => confirmarEliminar(r.id)} disabled={enviando}>
+                        <div className="cob-panel-acciones">
+                          <Boton variante="peligro" onClick={() => confirmarEliminar(r.id)} disabled={enviando}>
                             Sí, eliminar
-                          </button>
-                          <button type="button" className="btn btn-secundario" onClick={() => setPorEliminar(null)} disabled={enviando} autoFocus>
+                          </Boton>
+                          <Boton variante="contorno" onClick={() => setPorEliminar(null)} disabled={enviando} autoFocus>
                             No
-                          </button>
+                          </Boton>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <span className="respuestas-texto">{r.texto}</span>
-                        <div className="respuestas-acciones">
-                          <button
-                            type="button"
-                            className="btn btn-secundario"
+                        <span>{r.texto}</span>
+                        <div className="cob-panel-acciones">
+                          <Boton
+                            variante="fantasma"
                             onClick={() => {
                               setPorEliminar(null)
                               setError(null)
@@ -216,17 +214,17 @@ function MisRespuestasRapidas({ cajeroId, onCerrar }) {
                             }}
                           >
                             Editar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-secundario"
+                          </Boton>
+                          <Boton
+                            variante="fantasma"
+                            className="cob-accion--peligro"
                             onClick={() => {
                               setEditando(null)
                               setPorEliminar(r.id)
                             }}
                           >
                             Eliminar
-                          </button>
+                          </Boton>
                         </div>
                       </>
                     )}
@@ -235,32 +233,35 @@ function MisRespuestasRapidas({ cajeroId, onCerrar }) {
               </ul>
             )}
 
-            <p className="respuestas-cuenta">
+            <p className="cob-nota">
               {respuestas.length} de {MAXIMO_RESPUESTAS} respuestas
             </p>
 
             {llegoAlMaximo ? (
-              <p className="ayuda-mixto">Llegaste al máximo de {MAXIMO_RESPUESTAS}. Elimina una para agregar otra.</p>
+              <Alerta
+                tono="info"
+                titulo={`Llegaste al máximo de ${MAXIMO_RESPUESTAS}. Elimina una para agregar otra.`}
+              />
             ) : (
-              <form onSubmit={guardarNueva} className="respuestas-form">
-                <label htmlFor="nueva-respuesta" className="respuestas-etiqueta">
+              <form onSubmit={guardarNueva} className="cob-bloque">
+                <label htmlFor="nueva-respuesta" className="ui-campo-etiqueta">
                   Nueva respuesta
                 </label>
                 <CampoRespuesta id="nueva-respuesta" valor={nuevoTexto} onCambiar={setNuevoTexto} />
-                <div className="respuestas-acciones">
-                  <button type="submit" className="btn" disabled={enviando}>
+                <div className="cob-panel-acciones">
+                  <Boton type="submit" disabled={enviando}>
                     Agregar
-                  </button>
+                  </Boton>
                 </div>
               </form>
             )}
           </>
         )}
 
-        {error && <p className="error">{error}</p>}
-        {mensaje && <p className="mensaje-exito">{mensaje}</p>}
+        {error && <Alerta tono="error" titulo={error} />}
+        {mensaje && <Alerta tono="exito" titulo={mensaje} />}
       </div>
-    </div>
+    </Modal>
   )
 }
 

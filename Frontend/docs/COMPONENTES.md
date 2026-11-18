@@ -133,6 +133,9 @@ Escape cierra, el foco entra al abrir y vuelve al elemento anterior al cerrar. N
 </Modal>
 ```
 
+- `ancho`: hasta 760 px, para tablas o resúmenes.
+- `rol="alertdialog"`: para avisos que piden una decisión antes de seguir (por ejemplo, "Posible cobro repetido"). Por defecto es `dialog`.
+
 ### `Pasos`
 ```jsx
 <Pasos pasos={['Comprobante', 'Ítems', 'Motivo', 'Reembolso']} actual={paso} />

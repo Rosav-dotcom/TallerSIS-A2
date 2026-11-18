@@ -1,12 +1,16 @@
+import { Boton } from '../../components/ui'
+
 // Título de Pagos, ventas canceladas hoy y botón "Mis respuestas rápidas".
 function EncabezadoPagos({ canceladasHoy, onAbrirRespuestas }) {
   return (
-    <div className="pagos-encabezado">
-      <h1>Método de pago</h1>
-      {canceladasHoy !== null && <span className="canceladas-hoy">Canceladas hoy: {canceladasHoy}</span>}
-      <button type="button" className="btn btn-secundario" onClick={onAbrirRespuestas}>
+    <div className="cob-cabecera">
+      <div className="turno-encabezado">
+        <h1>Cobrar</h1>
+        {canceladasHoy !== null && <p>Canceladas hoy: {canceladasHoy}</p>}
+      </div>
+      <Boton variante="contorno" onClick={onAbrirRespuestas}>
         Mis respuestas rápidas
-      </button>
+      </Boton>
     </div>
   )
 }

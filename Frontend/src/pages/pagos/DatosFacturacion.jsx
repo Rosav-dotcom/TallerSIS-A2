@@ -1,3 +1,4 @@
+import { CampoTexto } from '../../components/ui'
 import { MENSAJE_FORMATO_DOCUMENTO, REGEX_DOCUMENTO } from './constantes.js'
 
 const TIPOS_DOCUMENTO = [
@@ -20,14 +21,15 @@ function DatosFacturacion({
 }) {
   return (
     <>
-      <fieldset style={{ border: 'none', padding: 0 }}>
+      <fieldset className="cob-grupo">
         <legend>Datos de facturación</legend>
-        <div className="tipo-venta-opciones">
+        <div className="cob-segmento">
           {TIPOS_DOCUMENTO.map((tipo) => (
             <button
               key={tipo.id}
               type="button"
-              className={`tipo-venta-opcion${tipoDocumento === tipo.id ? ' activa' : ''}`}
+              className={`cob-segmento-opcion${tipoDocumento === tipo.id ? ' cob-segmento-opcion--activa' : ''}`}
+              aria-pressed={tipoDocumento === tipo.id}
               onClick={() => onElegirTipoDocumento(tipo.id)}
             >
               {tipo.etiqueta}
@@ -38,33 +40,35 @@ function DatosFacturacion({
 
       {tipoDocumento !== 'NINGUNO' && (
         <>
-          <label className="campo">
-            Número de {tipoDocumento}
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={MAX_LARGO_DOCUMENTO[tipoDocumento]}
-              value={numeroDocumento}
-              onChange={(e) => onCambiarCampo('numeroDocumento', e.target.value.replace(/\D/g, ''))}
-              onBlur={onSalirDocumento}
-            />
-          </label>
-          {numeroDocumento && !REGEX_DOCUMENTO[tipoDocumento].test(numeroDocumento) && (
-            <p className="error" style={{ marginTop: '-0.75rem' }}>
-              {MENSAJE_FORMATO_DOCUMENTO[tipoDocumento]}
-            </p>
-          )}
-          <label className="campo">
-            Razón social
-            <input type="text" value={razonSocial} onChange={(e) => onCambiarCampo('razonSocial', e.target.value)} />
-          </label>
+          <CampoTexto
+            etiqueta={`Número de ${tipoDocumento}`}
+            type="text"
+            inputMode="numeric"
+            maxLength={MAX_LARGO_DOCUMENTO[tipoDocumento]}
+            value={numeroDocumento}
+            onChange={(e) => onCambiarCampo('numeroDocumento', e.target.value.replace(/\D/g, ''))}
+            onBlur={onSalirDocumento}
+            error={
+              numeroDocumento && !REGEX_DOCUMENTO[tipoDocumento].test(numeroDocumento)
+                ? MENSAJE_FORMATO_DOCUMENTO[tipoDocumento]
+                : undefined
+            }
+          />
+          <CampoTexto
+            etiqueta="Razón social"
+            type="text"
+            value={razonSocial}
+            onChange={(e) => onCambiarCampo('razonSocial', e.target.value)}
+          />
         </>
       )}
 
-      <label className="campo">
-        Teléfono del cliente (opcional)
-        <input type="tel" value={telefono} onChange={(e) => onCambiarCampo('telefono', e.target.value)} />
-      </label>
+      <CampoTexto
+        etiqueta="Teléfono del cliente (opcional)"
+        type="tel"
+        value={telefono}
+        onChange={(e) => onCambiarCampo('telefono', e.target.value)}
+      />
     </>
   )
 }

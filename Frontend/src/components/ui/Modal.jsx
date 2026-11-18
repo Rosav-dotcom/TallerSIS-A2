@@ -6,7 +6,17 @@ import Icono from './Icono.jsx'
 // Modal accesible: Escape cierra, el foco entra al abrir y vuelve al cerrar.
 // acciones: botones del pie (Cancelar a la izquierda, acción principal a la derecha).
 // ancho: para contenido con tablas o resúmenes (hasta 760 px).
-function Modal({ abierto, titulo, onCerrar, acciones, cerrarAlClicFuera = false, ancho = false, children }) {
+// rol: "alertdialog" para avisos que piden una decisión (por ejemplo, un posible cobro repetido).
+function Modal({
+  abierto,
+  titulo,
+  onCerrar,
+  acciones,
+  cerrarAlClicFuera = false,
+  ancho = false,
+  rol = 'dialog',
+  children,
+}) {
   const idTitulo = useId()
   const ref = useRef(null)
   // onCerrar suele ser una función nueva en cada render: se guarda en una referencia para que
@@ -39,7 +49,14 @@ function Modal({ abierto, titulo, onCerrar, acciones, cerrarAlClicFuera = false,
       className="ui-modal-velo"
       onMouseDown={(e) => cerrarAlClicFuera && e.target === e.currentTarget && onCerrar?.()}
     >
-      <div className={`ui-modal${ancho ? ' ui-modal--ancho' : ''}`} role="dialog" aria-modal="true" aria-labelledby={idTitulo} ref={ref} tabIndex={-1}>
+      <div
+        className={`ui-modal${ancho ? ' ui-modal--ancho' : ''}`}
+        role={rol}
+        aria-modal="true"
+        aria-labelledby={idTitulo}
+        ref={ref}
+        tabIndex={-1}
+      >
         <div className="ui-modal-cabecera">
           <h2 id={idTitulo} className="ui-modal-titulo">
             {titulo}
