@@ -41,6 +41,20 @@ Reglas:
 - **El dorado no comunica estados.** Para estados se usan success, warning, error e info.
 - **Un estado siempre lleva texto**, nunca solo color (por ejemplo, chip "Pagado" verde, no un punto verde).
 - Contraste mínimo AA en todo texto.
+- **Blanco translúcido** (`rgba(255, 255, 255, …)`) solo sobre fondos navy (menú, login), para separadores y estados hover.
+
+### Colores en JavaScript
+
+Los atributos SVG (`fill`, `stroke`) no aceptan `var(--…)`. Para gráficos se usa `src/styles/colores.js`:
+
+```js
+import { COLOR, SERIE_GRAFICO } from '../styles/colores.js'
+<polyline stroke={COLOR.navy} />
+```
+
+- `SERIE_GRAFICO`: navy, olive, gold y sus tonos, en ese orden.
+- En estilos normales (`style={{ … }}` o CSS) siempre `var(--…)`, nunca `COLOR`.
+- Si un color cambia en `index.css`, se cambia también en `colores.js`.
 
 ## 3. Tipografía
 
@@ -69,6 +83,7 @@ Uso: `font: var(--texto-titulo-2);`
 | `--alto-tactil` | 44 px | Alto mínimo de botones y campos |
 | `--alto-fila` | 48 px | Alto de fila de tabla |
 | `--sombra` | navy al 8 % | Única sombra permitida (tarjetas y modales) |
+| `--overlay` | navy al 50 % | Velo detrás de los modales |
 
 - **Íconos:** lineales de 1,5 px, estilo Lucide.
 - **Foco visible:** contorno `--info` de 2 px en todo elemento enfocado con teclado.

@@ -239,7 +239,7 @@ function VentasOnline() {
                 margin: '0.75rem 0 1.25rem',
                 padding: '0.75rem 1rem',
                 borderRadius: '8px',
-                backgroundColor: '#f4f6fa',
+                backgroundColor: 'var(--bone)',
                 display: 'flex',
                 flexWrap: 'wrap',
                 gap: '0.75rem',

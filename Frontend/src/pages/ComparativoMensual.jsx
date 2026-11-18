@@ -16,7 +16,7 @@ function Variacion({ valor }) {
   if (valor === null || valor === undefined) {
     return <span className="resumen-turno-actual" style={{ fontSize: '0.85rem' }}>Sin datos del mes anterior</span>
   }
-  const color = valor > 0 ? '#166534' : valor < 0 ? '#b91c1c' : '#616e7c'
+  const color = valor > 0 ? 'var(--success)' : valor < 0 ? 'var(--error)' : 'var(--muted)'
   const signo = valor > 0 ? '+' : ''
   return <strong style={{ color }}>{signo}{valor.toFixed(2)}%</strong>
 }

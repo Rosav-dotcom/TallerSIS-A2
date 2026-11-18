@@ -20,9 +20,9 @@ function etiquetaVendido(fecha) {
 }
 
 function colorAvance(porcentaje) {
-  if (porcentaje >= 100) return '#166534' // verde
-  if (porcentaje >= 50) return '#92400e' // amarillo/ambar
-  return '#b91c1c' // rojo
+  if (porcentaje >= 100) return 'var(--success)' // verde
+  if (porcentaje >= 50) return 'var(--warning)' // amarillo/ambar
+  return 'var(--error)' // rojo
 }
 
 // TDSI-194/777-780: pantalla "Metas de venta" del Administrador -- una tarjeta por
@@ -125,7 +125,7 @@ function MetasVenta() {
                 ) : (
                   <>
                     <p className="caja-card-detalle">Meta: Bs. {bs(c.meta)}</p>
-                    <div style={{ background: '#e4e7eb', borderRadius: '999px', overflow: 'hidden', height: '10px', margin: '0.5rem 0' }}>
+                    <div style={{ background: 'var(--border)', borderRadius: '999px', overflow: 'hidden', height: '10px', margin: '0.5rem 0' }}>
                       <div
                         style={{
                           width: `${Math.min(porcentaje, 100)}%`,

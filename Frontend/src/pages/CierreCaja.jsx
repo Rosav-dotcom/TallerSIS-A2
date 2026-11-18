@@ -124,7 +124,7 @@ function CierreCaja() {
     return (
       <section>
         <h1>Cierre de Caja</h1>
-        <div className="error" style={{ padding: '1rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px' }}>
+        <div className="error" style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>
           {errorTurno || 'No hay un turno abierto en su caja. Abra un turno antes de cerrar caja.'}
         </div>
       </section>
@@ -135,12 +135,12 @@ function CierreCaja() {
     <section>
       <h1>Cierre de Caja</h1>
 
-      {error && <div className="error" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px' }}>{error}</div>}
+      {error && <div className="error" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>{error}</div>}
 
       {paso === 'ingreso' && (
-        <div style={{ maxWidth: '480px', margin: 'auto', padding: '1rem', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+        <div style={{ maxWidth: '480px', margin: 'auto', padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px' }}>
           <h3>Por favor, ingrese los datos del supervisor de caja para cerrar caja</h3>
-          <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1rem' }}>
+          <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '1rem' }}>
             Pida a un supervisor de caja su usuario y PIN para poder cerrar el turno.
           </p>
           <form onSubmit={manejarContinuar}>
@@ -190,31 +190,31 @@ function CierreCaja() {
 
       {paso === 'reporte' && reporte && (
         <div style={{ maxWidth: '600px', margin: 'auto' }}>
-          <div style={{ padding: '1.5rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
-            <h3 style={{ borderBottom: '1px solid #d1d5db', paddingBottom: '0.5rem' }}>Reporte de Cierre de Turno #{turnoActual.codigo ?? turnoId}</h3>
+          <div style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--surface)' }}>
+            <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>Reporte de Cierre de Turno #{turnoActual.codigo ?? turnoId}</h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '1rem 0' }}>
-              <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#065f46' }}>Efectivo</p>
-                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#065f46' }}>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--success-bg)', borderRadius: '8px', border: '1px solid var(--success)' }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--success)' }}>Efectivo</p>
+                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--success)' }}>
                   Bs. {reporte.totalesPorMetodo?.Efectivo?.neto ?? 0}
                 </p>
               </div>
-              <div style={{ padding: '1rem', backgroundColor: '#eef2ff', borderRadius: '8px', border: '1px solid #c7d2fe' }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#3730a3' }}>Digital (Tarjeta + QR)</p>
-                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#3730a3' }}>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info)' }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--info)' }}>Digital (Tarjeta + QR)</p>
+                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--info)' }}>
                   Bs. {reporte.resumenVentas?.totalDigital ?? 0}
                 </p>
               </div>
             </div>
 
-            <div style={{ padding: '1rem', backgroundColor: '#f1f5f9', borderRadius: '8px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--bone)', borderRadius: '8px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
               <span><strong>Total recaudado:</strong> Bs. {reporte.totalRecaudado}</span>
               <span><strong>Ventas:</strong> {reporte.resumenVentas?.cantidadVentas ?? 0}</span>
               <span><strong>Facturas anuladas:</strong> {reporte.resumenVentas?.cantidadAnuladas ?? 0}</span>
               {reporte.resumenVentas?.cantidadAnuladas > 0 && (
                 <>
-                  <span style={{ color: '#b91c1c' }}>(Bs. {reporte.resumenVentas.montoAnulado} anulados, no contados)</span>
+                  <span style={{ color: 'var(--error)' }}>(Bs. {reporte.resumenVentas.montoAnulado} anulados, no contados)</span>
                   <button type="button" className="btn btn-secundario" onClick={abrirAnuladas} style={{ padding: '0.35rem 0.75rem' }}>
                     Ver anuladas
                   </button>
@@ -248,7 +248,7 @@ function CierreCaja() {
                 className="btn"
                 onClick={manejarCerrarCaja}
                 disabled={cargando}
-                style={{ flex: 2, backgroundColor: '#dc2626' }}
+                style={{ flex: 2, backgroundColor: 'var(--error)' }}
               >
                 {cargando ? 'Cerrando Turno...' : 'Cerrar caja y continuar'}
               </button>
@@ -268,7 +268,7 @@ function CierreCaja() {
             {cargandoAnuladas && <p>Cargando...</p>}
 
             {!cargandoAnuladas && errorAnuladas && (
-              <div className="error" style={{ padding: '1rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px' }}>
+              <div className="error" style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>
                 No se pudo cargar la lista de anuladas: {errorAnuladas}
               </div>
             )}
@@ -309,9 +309,9 @@ function CierreCaja() {
       )}
 
       {paso === 'listo' && (
-        <div style={{ maxWidth: '520px', margin: 'auto', textAlign: 'center', padding: '2rem', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#ecfdf5' }}>
-          <h2 style={{ color: '#065f46' }}>Caja Cerrada Exitosamente</h2>
-          <p style={{ color: '#064e3b', marginBottom: '1rem' }}>
+        <div style={{ maxWidth: '520px', margin: 'auto', textAlign: 'center', padding: '2rem', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--success-bg)' }}>
+          <h2 style={{ color: 'var(--success)' }}>Caja Cerrada Exitosamente</h2>
+          <p style={{ color: 'var(--success)', marginBottom: '1rem' }}>
             El turno #{turnoActual.codigo ?? turnoId} ha sido cerrado. El reporte en PDF se abrió en una pestaña nueva.
           </p>
           <div style={{ textAlign: 'left', margin: '0 0 1.5rem' }}>

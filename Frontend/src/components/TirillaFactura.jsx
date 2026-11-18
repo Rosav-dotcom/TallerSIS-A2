@@ -86,14 +86,14 @@ export default function TirillaFactura({
           alignItems: 'center',
           gap: '8px',
           padding: '0.65rem 1.25rem',
-          backgroundColor: '#0f172a',
-          color: '#ffffff',
+          backgroundColor: 'var(--navy)',
+          color: 'var(--surface)',
           borderRadius: '8px',
           border: 'none',
           fontSize: '0.875rem',
           fontWeight: '600',
           cursor: 'pointer',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+          boxShadow: 'var(--sombra)'
         }}
       >
         <span>Imprimir Factura</span>
@@ -104,10 +104,10 @@ export default function TirillaFactura({
         <div style={{
           marginTop: '12px',
           padding: '10px 14px',
-          backgroundColor: '#ecfdf5',
-          border: '1px solid #a7f3d0',
+          backgroundColor: 'var(--success-bg)',
+          border: '1px solid var(--success)',
           borderRadius: '8px',
-          color: '#065f46',
+          color: 'var(--success)',
           fontSize: '0.85rem',
           fontWeight: '600',
           display: 'flex',
@@ -123,10 +123,10 @@ export default function TirillaFactura({
         <div style={{
           marginTop: '12px',
           padding: '10px 14px',
-          backgroundColor: '#fef2f2',
-          border: '1px solid #fecdd3',
+          backgroundColor: 'var(--error-bg)',
+          border: '1px solid var(--error)',
           borderRadius: '8px',
-          color: '#9f1239',
+          color: 'var(--error)',
           fontSize: '0.85rem',
           fontWeight: '600',
           display: 'flex',
@@ -142,7 +142,7 @@ export default function TirillaFactura({
         <div style={{
           position: 'fixed',
           inset: 0,
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backgroundColor: 'var(--overlay)',
           backdropFilter: 'blur(3px)',
           display: 'flex',
           justifyContent: 'center',
@@ -152,24 +152,24 @@ export default function TirillaFactura({
         }}>
           
           <div style={{
-            backgroundColor: '#ffffff',
+            backgroundColor: 'var(--surface)',
             borderRadius: '16px',
             padding: '20px',
             maxWidth: '360px',
             width: '100%',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+            boxShadow: 'var(--sombra)',
             display: 'flex',
             flexDirection: 'column',
             gap: '14px'
           }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#334155' }}>
+              <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text)' }}>
                 Vista Previa de Tirilla - {numeroFactura}
               </span>
               <button
                 onClick={() => setMostrarModal(false)}
-                style={{ background: 'transparent', border: 'none', fontSize: '1rem', cursor: 'pointer', color: '#64748b' }}
+                style={{ background: 'transparent', border: 'none', fontSize: '1rem', cursor: 'pointer', color: 'var(--muted)' }}
               >
                 ✕
               </button>
@@ -178,13 +178,13 @@ export default function TirillaFactura({
             {/* CUERPO DE LA TIRILLA CARGADA DEL BACKEND */}
             <div
               style={{
-                backgroundColor: '#fafafa',
-                border: '1px solid #cbd5e1',
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
                 padding: '16px',
                 borderRadius: '6px',
                 fontFamily: "'Courier New', Courier, monospace",
                 fontSize: '0.78rem',
-                color: '#111827',
+                color: 'var(--text)',
                 lineHeight: '1.4',
                 whiteSpace: 'pre-wrap',
                 maxHeight: '400px',
@@ -198,7 +198,7 @@ export default function TirillaFactura({
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               
               {/* TDSI-302: Selector para probar el caso de error */}
-              <label style={{ fontSize: '0.75rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+              <label style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                 <input
                   type="checkbox"
                   checked={simularFallo}
@@ -214,10 +214,10 @@ export default function TirillaFactura({
                   style={{
                     flex: 1,
                     padding: '8px',
-                    backgroundColor: '#f1f5f9',
-                    border: '1px solid #cbd5e1',
+                    backgroundColor: 'var(--bone)',
+                    border: '1px solid var(--border)',
                     borderRadius: '8px',
-                    color: '#475569',
+                    color: 'var(--muted)',
                     fontSize: '0.8rem',
                     fontWeight: '600',
                     cursor: 'pointer'
@@ -231,10 +231,10 @@ export default function TirillaFactura({
                   style={{
                     flex: 1,
                     padding: '8px',
-                    backgroundColor: '#16a34a',
+                    backgroundColor: 'var(--success)',
                     border: 'none',
                     borderRadius: '8px',
-                    color: '#ffffff',
+                    color: 'var(--surface)',
                     fontSize: '0.8rem',
                     fontWeight: 'bold',
                     cursor: 'pointer'

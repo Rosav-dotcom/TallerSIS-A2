@@ -408,10 +408,10 @@ function Facturas() {
                       </button>
                     )}
                     {factura.estado === 'AnulacionSolicitada' && (
-                      <span style={{ fontSize: '0.8rem', color: '#616e7c' }}>Esperando a un supervisor...</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Esperando a un supervisor...</span>
                     )}
                     {factura.estado === 'Registrado' && !dentroDelPlazo(factura.fecha) && (
-                      <span style={{ fontSize: '0.8rem', color: '#616e7c' }}>Fuera de plazo (2h)</span>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>Fuera de plazo (2h)</span>
                     )}
                   </td>
                 </tr>
@@ -638,7 +638,7 @@ function Facturas() {
             {cargandoAnuladasTurno && <p>Cargando...</p>}
 
             {!cargandoAnuladasTurno && errorAnuladasTurno && (
-              <div className="error" style={{ padding: '1rem', backgroundColor: '#fee2e2', color: '#b91c1c', borderRadius: '8px' }}>
+              <div className="error" style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>
                 {errorAnuladasTurno}
               </div>
             )}

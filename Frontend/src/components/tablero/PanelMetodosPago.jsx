@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import '../../App.css'
+import { COLOR, SERIE_GRAFICO } from '../../styles/colores.js'
 
 const BASE_URL = import.meta.env.VITE_GESTION_PAGOS_API_BASE_URL || 'http://localhost:4005'
 const CAJEROS_URL = `${BASE_URL}/api/pagos/revision/cajeros`
 const METODOS_URL = `${BASE_URL}/api/pagos/metodos`
 
-const COLORES = ['#2f5d31', '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#14b8a6', '#ec4899']
+const COLORES = SERIE_GRAFICO
 
 const aFechaLocal = (fecha) => {
   const offset = fecha.getTimezoneOffset()
@@ -84,7 +85,7 @@ function Donut({ segmentos, activo, setActivo, centroTitulo, centroValor }) {
   let acumulado = 0
   return (
     <svg className="mp-donut" viewBox="0 0 200 200" role="group" aria-label="Participación por método de pago">
-      <circle cx="100" cy="100" r={RADIO} fill="none" stroke="#eef1f6" strokeWidth="26" />
+      <circle cx="100" cy="100" r={RADIO} fill="none" stroke={COLOR.bone} strokeWidth="26" />
       {segmentos.map((s, i) => {
         const largo = (s.porcentaje / 100) * CIRCUNFERENCIA
         const desplazamiento = -acumulado

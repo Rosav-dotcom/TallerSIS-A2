@@ -72,23 +72,23 @@ export default function PagoMixtoForm({
     <div
       style={{
         padding: '1.5rem',
-        backgroundColor: '#ffffff',
+        backgroundColor: 'var(--surface)',
         borderRadius: '16px',
-        border: '1px solid #e2e8f0',
-        boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+        border: '1px solid var(--border)',
+        boxShadow: 'var(--sombra)',
         fontFamily: 'system-ui, -apple-system, sans-serif',
       }}
     >
       {/* Cabecera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-        <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
+        <h2 style={{ fontSize: '1.15rem', fontWeight: 'bold', color: 'var(--text)', margin: 0 }}>
           División de Pago (Pago Mixto)
         </h2>
         <span
           style={{
             fontSize: '0.85rem',
-            backgroundColor: '#e0e7ff',
-            color: '#3730a3',
+            backgroundColor: 'var(--info-bg)',
+            color: 'var(--info)',
             padding: '0.35rem 0.75rem',
             borderRadius: '9999px',
             fontWeight: '700',
@@ -100,8 +100,8 @@ export default function PagoMixtoForm({
 
       <form onSubmit={validarMontos} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {/* Bloque Método 1 */}
-        <div style={{ backgroundColor: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '0.4rem' }}>
+        <div style={{ backgroundColor: 'var(--bone)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--bone)' }}>
+          <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '0.4rem' }}>
             Primer Método de Pago
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
@@ -109,18 +109,18 @@ export default function PagoMixtoForm({
               style={{
                 padding: '0.55rem',
                 borderRadius: '8px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border)',
                 fontSize: '0.85rem',
                 fontWeight: '600',
-                backgroundColor: '#fff',
-                color: '#1e293b',
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text)',
               }}
             >
               {metodo1}
             </div>
 
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>Bs.</span>
+              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>Bs.</span>
               <input
                 type="number"
                 step="0.01"
@@ -129,15 +129,15 @@ export default function PagoMixtoForm({
                 value={monto1}
                 onKeyDown={evitarCaracteresInvalidos}
                 onChange={manejarCambioMonto(onCambiarMonto1)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: '600' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', fontWeight: '600' }}
               />
             </div>
           </div>
         </div>
 
         {/* Bloque Método 2 */}
-        <div style={{ backgroundColor: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-          <label style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '0.4rem' }}>
+        <div style={{ backgroundColor: 'var(--bone)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--bone)' }}>
+          <label style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '0.4rem' }}>
             Segundo Método de Pago
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '0.5rem' }}>
@@ -145,18 +145,18 @@ export default function PagoMixtoForm({
               style={{
                 padding: '0.55rem',
                 borderRadius: '8px',
-                border: '1px solid #e2e8f0',
+                border: '1px solid var(--border)',
                 fontSize: '0.85rem',
                 fontWeight: '600',
-                backgroundColor: '#fff',
-                color: '#1e293b',
+                backgroundColor: 'var(--surface)',
+                color: 'var(--text)',
               }}
             >
               {metodo2}
             </div>
 
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>Bs.</span>
+              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>Bs.</span>
               <input
                 type="number"
                 step="0.01"
@@ -165,7 +165,7 @@ export default function PagoMixtoForm({
                 value={monto2}
                 onKeyDown={evitarCaracteresInvalidos}
                 onChange={manejarCambioMonto(onCambiarMonto2)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: '600' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', fontWeight: '600' }}
               />
             </div>
           </div>
@@ -179,20 +179,20 @@ export default function PagoMixtoForm({
             alignItems: 'center',
             padding: '0.75rem 1rem',
             borderRadius: '10px',
-            backgroundColor: diferencia === 0 && montosCompletos ? '#ecfdf5' : '#fff1f2',
-            border: `1px solid ${diferencia === 0 && montosCompletos ? '#a7f3d0' : '#fecdd3'}`,
+            backgroundColor: diferencia === 0 && montosCompletos ? 'var(--success-bg)' : 'var(--error-bg)',
+            border: `1px solid ${diferencia === 0 && montosCompletos ? 'var(--success)' : 'var(--error)'}`,
           }}
         >
           <div>
-            <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Suma registrada:</span>
-            <strong style={{ fontSize: '0.95rem', color: '#0f172a' }}>Bs. {sumaTotal.toFixed(2)}</strong>
+            <span style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'block' }}>Suma registrada:</span>
+            <strong style={{ fontSize: '0.95rem', color: 'var(--text)' }}>Bs. {sumaTotal.toFixed(2)}</strong>
           </div>
 
           <div style={{ textAlign: 'right' }}>
             {diferencia === 0 && montosCompletos ? (
-              <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700' }}>✓ Montos cuadrados</span>
+              <span style={{ fontSize: '0.75rem', color: 'var(--success)', fontWeight: '700' }}>✓ Montos cuadrados</span>
             ) : (
-              <span style={{ fontSize: '0.75rem', color: '#e11d48', fontWeight: '600' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--error)', fontWeight: '600' }}>
                 {diferencia > 0 ? `Faltan Bs. ${diferencia.toFixed(2)}` : `Excede Bs. ${Math.abs(diferencia).toFixed(2)}`}
               </span>
             )}
@@ -200,12 +200,12 @@ export default function PagoMixtoForm({
         </div>
 
         {incluyeEfectivo && (
-          <div style={{ backgroundColor: '#f8fafc', padding: '0.85rem', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-            <label htmlFor="efectivo-recibido-mixto" style={{ fontSize: '0.8rem', fontWeight: '600', color: '#475569', display: 'block', marginBottom: '0.4rem' }}>
+          <div style={{ backgroundColor: 'var(--bone)', padding: '0.85rem', borderRadius: '10px', border: '1px solid var(--bone)' }}>
+            <label htmlFor="efectivo-recibido-mixto" style={{ fontSize: '0.8rem', fontWeight: '600', color: 'var(--muted)', display: 'block', marginBottom: '0.4rem' }}>
               Efectivo recibido del cliente (opcional, para calcular el vuelto)
             </label>
             <div style={{ position: 'relative' }}>
-              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: '#94a3b8' }}>Bs.</span>
+              <span style={{ position: 'absolute', left: '10px', top: '9px', fontSize: '0.8rem', fontWeight: 'bold', color: 'var(--muted)' }}>Bs.</span>
               <input
                 id="efectivo-recibido-mixto"
                 type="number"
@@ -215,7 +215,7 @@ export default function PagoMixtoForm({
                 value={montoRecibido}
                 onKeyDown={evitarCaracteresInvalidos}
                 onChange={manejarCambioMonto(onCambiarMontoRecibido)}
-                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '0.85rem', fontWeight: '600' }}
+                style={{ width: '100%', boxSizing: 'border-box', padding: '0.55rem 0.55rem 0.55rem 2rem', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '0.85rem', fontWeight: '600' }}
               />
             </div>
 
@@ -235,9 +235,9 @@ export default function PagoMixtoForm({
         {validacion && (
           <div
             style={{
-              backgroundColor: validacion.ok ? '#ecfdf5' : '#fffbeb',
-              border: `1px solid ${validacion.ok ? '#a7f3d0' : '#fde68a'}`,
-              color: validacion.ok ? '#047857' : '#dc2626',
+              backgroundColor: validacion.ok ? 'var(--success-bg)' : 'var(--warning-bg)',
+              border: `1px solid ${validacion.ok ? 'var(--success)' : 'var(--warning)'}`,
+              color: validacion.ok ? 'var(--success)' : 'var(--error)',
               padding: '0.65rem 0.85rem',
               borderRadius: '8px',
               fontSize: '0.85rem',
@@ -257,8 +257,8 @@ export default function PagoMixtoForm({
             padding: '0.75rem',
             borderRadius: '10px',
             border: 'none',
-            backgroundColor: montosCompletos ? '#4f46e5' : '#cbd5e1',
-            color: '#ffffff',
+            backgroundColor: montosCompletos ? 'var(--navy)' : 'var(--border)',
+            color: 'var(--surface)',
             fontSize: '0.9rem',
             fontWeight: 'bold',
             cursor: montosCompletos && !validando ? 'pointer' : 'not-allowed',

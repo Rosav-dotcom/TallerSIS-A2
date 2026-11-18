@@ -56,6 +56,7 @@
   --alto-tactil: 44px;
   --alto-fila: 48px;
   --sombra: 0 1px 3px rgba(20, 33, 61, 0.08);
+  --overlay: rgba(20, 33, 61, 0.5);
 
   /* Compatibilidad: variables anteriores apuntando al diseño nuevo (se retiran al terminar la migración) */
   --color-brand-dark: var(--navy);

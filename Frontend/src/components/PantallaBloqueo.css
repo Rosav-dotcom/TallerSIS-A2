@@ -14,9 +14,9 @@
   width: 100%;
   max-width: 360px;
   padding: 2rem 1.75rem;
-  background-color: #fff;
+  background-color: var(--surface);
   border-radius: 12px;
-  box-shadow: 0 10px 30px rgba(11, 11, 11, 0.3);
+  box-shadow: var(--sombra);
   text-align: center;
 }
 
@@ -31,18 +31,18 @@
 .pantalla-bloqueo-cajero {
   margin: 0;
   font-weight: 700;
-  color: #1f2933;
+  color: var(--text);
   overflow-wrap: anywhere;
 }
 
 .pantalla-bloqueo-caja-nombre {
   margin: 0.25rem 0 0;
-  color: #616e7c;
+  color: var(--muted);
 }
 
 .pantalla-bloqueo-ayuda {
   margin: 1rem 0;
-  color: #616e7c;
+  color: var(--muted);
   font-size: 0.85rem;
 }
 

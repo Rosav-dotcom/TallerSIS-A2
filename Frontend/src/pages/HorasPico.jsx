@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react'
 import { obtenerHorasPico } from '../api/tablero.js'
 import { listarCajas } from '../api/caja.js'
 import GraficoBarras from '../components/GraficoBarras.jsx'
+import { COLOR } from '../styles/colores.js'
 
 const HORA_INICIO = 7
 const HORA_FIN = 23
-const COLOR_NORMAL = '#2a78d6'
-const COLOR_PICO = '#eb6834'
+const COLOR_NORMAL = COLOR.navy
+const COLOR_PICO = COLOR.gold
 
 function hoyLocal() {
   const d = new Date()

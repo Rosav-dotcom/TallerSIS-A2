@@ -77,23 +77,23 @@ function Clientes() {
       {buscado && !cargando && !error && cliente && (
         <div className="cliente-resumen">
           <h2>{cliente.razon_social || 'Cliente'}</h2>
-          <p style={{ color: '#616e7c', marginTop: '-0.5rem' }}>
+          <p style={{ color: 'var(--muted)', marginTop: '-0.5rem' }}>
             {cliente.tipo_documento}: {cliente.numero}
           </p>
 
           <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', margin: '1rem 0' }}>
-            <div style={{ padding: '1rem', backgroundColor: '#ecfdf5', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#065f46' }}>Veces que vino</p>
-              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#065f46' }}>{cliente.cantidadCompras}</p>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--success-bg)', borderRadius: '8px', border: '1px solid var(--success)' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--success)' }}>Veces que vino</p>
+              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--success)' }}>{cliente.cantidadCompras}</p>
             </div>
-            <div style={{ padding: '1rem', backgroundColor: '#eef2ff', borderRadius: '8px', border: '1px solid #c7d2fe' }}>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: '#3730a3' }}>Total gastado</p>
-              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#3730a3' }}>Bs. {cliente.totalGastado.toFixed(2)}</p>
+            <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info)' }}>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--info)' }}>Total gastado</p>
+              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--info)' }}>Bs. {cliente.totalGastado.toFixed(2)}</p>
             </div>
             {cliente.cantidadAnuladas > 0 && (
-              <div style={{ padding: '1rem', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fecdd3' }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: '#b91c1c' }}>Facturas anuladas</p>
-                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#b91c1c' }}>{cliente.cantidadAnuladas}</p>
+              <div style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', borderRadius: '8px', border: '1px solid var(--error)' }}>
+                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--error)' }}>Facturas anuladas</p>
+                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--error)' }}>{cliente.cantidadAnuladas}</p>
               </div>
             )}
           </div>

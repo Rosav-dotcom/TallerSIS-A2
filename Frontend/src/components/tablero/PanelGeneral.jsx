@@ -5,16 +5,17 @@ import { listarCajas } from '../../api/caja.js'
 import GraficoBarras from '../GraficoBarras.jsx'
 import GraficoArea from '../GraficoArea.jsx'
 import GraficoPastel from '../GraficoPastel.jsx'
+import { COLOR } from '../../styles/colores.js'
 
-// Paleta de datos (no la de marca): estas dos pasan el validador de contraste/CVD
-// para uso como color categorico, cosa que el verde/oliva/menta de la marca no logra.
-const COLOR_FISICO = '#2a78d6'
-const COLOR_VIRTUAL = '#eb6834'
-const COLOR_CAJA = '#2a78d6'
-const COLOR_CAJERO = '#7c3aed'
-const COLOR_EFECTIVO = '#2a9d5c'
-const COLOR_TARJETA = '#2a78d6'
-const COLOR_QR = '#eb6834'
+// Colores de marca para gráficos (DESIGN_SYSTEM.md): navy y gold son los de mayor
+// contraste entre sí; la identidad nunca depende solo del color (siempre hay etiqueta).
+const COLOR_FISICO = COLOR.navy
+const COLOR_VIRTUAL = COLOR.gold
+const COLOR_CAJA = COLOR.navy
+const COLOR_CAJERO = COLOR.gold
+const COLOR_EFECTIVO = COLOR.navy
+const COLOR_TARJETA = COLOR.olive
+const COLOR_QR = COLOR.gold
 
 const formatoBs = (valor) => `Bs. ${valor.toFixed(2)}`
 
@@ -185,11 +186,11 @@ function PanelGeneral() {
 
       {totalHistorico && (
         <div className="tablero-resumen" style={{ marginBottom: '2rem' }}>
-          <StatCard icono={ICONOS.trofeo} color="#345c32" etiqueta="Total histórico ganado" valor={formatoBs(totalHistorico.totalGeneral)} />
+          <StatCard icono={ICONOS.trofeo} color={COLOR.navy} etiqueta="Total histórico ganado" valor={formatoBs(totalHistorico.totalGeneral)} />
           <StatCard icono={ICONOS.efectivo} color={COLOR_FISICO} etiqueta="Efectivo" valor={formatoBs(totalHistorico.totalEfectivo)} />
           <StatCard icono={ICONOS.tarjeta} color={COLOR_VIRTUAL} etiqueta="Digital (Tarjeta + QR)" valor={formatoBs(totalHistorico.totalDigital)} />
           <StatCard icono={ICONOS.recibo} color={COLOR_CAJERO} etiqueta="Ventas totales" valor={totalHistorico.cantidadVentas} />
-          <StatCard icono={ICONOS.anulado} color="#b91c1c" etiqueta="Facturas anuladas" valor={totalHistorico.cantidadAnuladas} />
+          <StatCard icono={ICONOS.anulado} color={COLOR.error} etiqueta="Facturas anuladas" valor={totalHistorico.cantidadAnuladas} />
         </div>
       )}
 
@@ -197,7 +198,7 @@ function PanelGeneral() {
         <div className="tablero-grafico" style={{ marginBottom: 0 }}>
           <h2>Ventas de los últimos 14 días</h2>
           {errorSerie && <p className="error">{errorSerie}</p>}
-          {serieItems.length > 0 && <GraficoArea items={serieItems} color="#345c32" formatoValor={formatoBs} />}
+          {serieItems.length > 0 && <GraficoArea items={serieItems} color={COLOR.navy} formatoValor={formatoBs} />}
         </div>
 
         <div className="tablero-grafico" style={{ marginBottom: 0 }}>
