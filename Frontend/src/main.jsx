@@ -5,6 +5,10 @@ import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext.jsx'
 import { AdminAuthProvider } from './context/AdminAuthContext.jsx'
 import { BloqueoProvider } from './context/BloqueoContext.jsx'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/cormorant-garamond/600.css'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(

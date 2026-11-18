@@ -1,9 +1,67 @@
-/* Paleta de marca de TallerSis: usar estas variables en todo el proyecto en vez de colores sueltos. */
+/*
+ * Sistema de diseño RePay: colores, tipografía y medidas.
+ * Fuente: Figma "01 · Fundamentos". Documentación: Frontend/DESIGN_SYSTEM.md
+ * Regla: en el código nuevo se usan solo estas variables, nunca colores sueltos.
+ */
 :root {
-  --color-brand-dark: #345c32;
-  --color-brand-olive: #9cac54;
-  --color-brand-mint: #a7f0dd;
-  --color-brand-green: #97cd97;
+  /* Marca */
+  --navy: #14213d;
+  --navy-hover: #1e2f55;
+  --olive: #5c6236;
+  --olive-dark: #474c29;
+
+  /* Fondos y bordes */
+  --bone: #efe8d8;
+  --surface: #faf7f0;
+  --border: #d9cfba;
+
+  /* Texto */
+  --text: #1c2230;
+  --muted: #5a6072;
+
+  /* Dorado: decorativo. gold solo sobre navy; gold-dark para texto sobre fondos claros. Nunca indica un estado. */
+  --gold: #b08d4f;
+  --gold-dark: #8a6a35;
+
+  /* Estados (siempre con texto, no solo color) y sus fondos al 10 % */
+  --success: #2e7d4f;
+  --warning: #96590a;
+  --error: #b42318;
+  --info: #2f6db5;
+  --success-bg: rgba(46, 125, 79, 0.1);
+  --warning-bg: rgba(150, 89, 10, 0.1);
+  --error-bg: rgba(180, 35, 24, 0.1);
+  --info-bg: rgba(47, 109, 181, 0.1);
+
+  /* Tipografía */
+  --font-titulo: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --font-base: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --texto-titulo-1: 600 32px/40px var(--font-titulo);
+  --texto-titulo-2: 600 24px/32px var(--font-titulo);
+  --texto-titulo-3: 600 20px/28px var(--font-titulo);
+  --texto-subtitulo: 500 16px/24px var(--font-base);
+  --texto-cuerpo: 400 14px/24px var(--font-base);
+  --texto-etiqueta: 500 12px/16px var(--font-base);
+
+  /* Medidas: grilla de 8 px */
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 24px;
+  --espacio-6: 32px;
+  --espacio-7: 48px;
+  --radio-tarjeta: 10px;
+  --radio-control: 8px;
+  --alto-tactil: 44px;
+  --alto-fila: 48px;
+  --sombra: 0 1px 3px rgba(20, 33, 61, 0.08);
+
+  /* Compatibilidad: variables anteriores apuntando al diseño nuevo (se retiran al terminar la migración) */
+  --color-brand-dark: var(--navy);
+  --color-brand-olive: var(--olive);
+  --color-brand-mint: var(--border);
+  --color-brand-green: var(--success-bg);
 }
 
 * {
@@ -18,7 +76,29 @@ body,
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-  background-color: #f5f6fa;
-  color: #1f2933;
+  font: var(--texto-cuerpo);
+  font-variant-numeric: tabular-nums;
+  background-color: var(--bone);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-titulo);
+  font-weight: 600;
+  font-variant-numeric: normal;
+}
+
+:focus-visible {
+  outline: 2px solid var(--info);
+  outline-offset: 2px;
 }
