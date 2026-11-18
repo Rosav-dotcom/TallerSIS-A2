@@ -1,0 +1,221 @@
+/* Login y Verificar factura (Figma p.6, p.11 y p.62–63). Solo variables de index.css. */
+
+/* ---------- Login ---------- */
+.acceso {
+  display: grid;
+  grid-template-columns: minmax(320px, 38%) 1fr;
+  min-height: 100vh;
+}
+.acceso-hero {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--espacio-6);
+  padding: var(--espacio-7) var(--espacio-7) var(--espacio-6);
+  background: var(--navy);
+  color: var(--surface);
+}
+.acceso-hero .nav-logo {
+  font-size: 40px;
+}
+.acceso-hero-centro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.acceso-etiqueta {
+  font: var(--texto-etiqueta);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.acceso-linea {
+  width: 64px;
+  height: 2px;
+  background: var(--gold);
+}
+.acceso-hero h1 {
+  margin: 0;
+  font: 600 32px/44px var(--font-titulo);
+}
+.acceso-hero p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.85);
+}
+.acceso-hero-pie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+}
+.acceso-hero-pie strong {
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.acceso-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-5);
+  padding: var(--espacio-6) var(--espacio-5);
+}
+.acceso-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+  width: 100%;
+  max-width: 600px;
+  padding: var(--espacio-6) var(--espacio-6) var(--espacio-6);
+}
+.acceso-encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+.acceso-titulo {
+  margin: 0;
+  font: var(--texto-titulo-1);
+  color: var(--navy);
+}
+.acceso-subtitulo {
+  margin: 0;
+  color: var(--muted);
+}
+.acceso-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.acceso-ayuda {
+  margin: 0;
+  color: var(--muted);
+}
+.acceso-nota {
+  width: 100%;
+  max-width: 600px;
+  margin: 0;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Pestañas de perfil de acceso */
+.acceso-perfiles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+.acceso-perfiles-lista {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: var(--espacio-2);
+}
+.acceso-perfil {
+  min-height: 52px;
+  padding: var(--espacio-2) var(--espacio-3);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  border-radius: var(--radio-control) var(--radio-control) 0 0;
+  background: transparent;
+  color: var(--muted);
+  font: var(--texto-cuerpo);
+  cursor: pointer;
+}
+.acceso-perfil:hover {
+  background: var(--bone);
+}
+.acceso-perfil--activo {
+  border-bottom-color: var(--olive);
+  background: color-mix(in srgb, var(--border) 60%, var(--surface));
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* El campo de contraseña conserva su botón de mostrar u ocultar */
+.acceso-form .ui-control .campo-password-boton,
+.bloqueo .ui-control .campo-password-boton {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+@media (max-width: 900px) {
+  .acceso {
+    grid-template-columns: 1fr;
+  }
+  .acceso-hero {
+    padding: var(--espacio-6) var(--espacio-5);
+  }
+  .acceso-tarjeta {
+    padding: var(--espacio-5);
+  }
+}
+
+/* ---------- Verificar factura (página pública del QR) ---------- */
+.verificar {
+  min-height: 100vh;
+  background: var(--bone);
+}
+.verificar-cabecera {
+  display: flex;
+  align-items: center;
+  min-height: 72px;
+  padding: 0 var(--espacio-5);
+  background: var(--navy);
+}
+.verificar-contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--espacio-6) var(--espacio-5) var(--espacio-7);
+}
+.verificar-titulo {
+  margin: 0;
+  font: var(--texto-titulo-1);
+  color: var(--navy);
+}
+.verificar-datos {
+  display: grid;
+  gap: var(--espacio-3);
+  margin: 0;
+}
+.verificar-datos dt {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+.verificar-datos dd {
+  margin: 0 0 var(--espacio-1);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.verificar-total-etiqueta {
+  font: var(--texto-etiqueta);
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.verificar-total {
+  display: block;
+  margin-top: var(--espacio-2);
+  font: 600 32px/40px var(--font-base);
+  color: var(--text);
+}
+.verificar-pie {
+  margin: 0;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}

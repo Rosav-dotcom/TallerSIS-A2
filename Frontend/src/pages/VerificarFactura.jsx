@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { verificarFactura } from '../api/facturaPublica.js'
+import { Alerta, EstadoCargando, EstadoError, Tabla, Tarjeta } from '../components/ui'
+import '../components/navegacion.css'
+import './acceso.css'
 
 // TDSI-38/551-554: pagina publica (sin login) a la que lleva el QR impreso en
 // la factura. De solo lectura, pensada para abrirse desde el celular del cliente.
@@ -25,69 +28,84 @@ function VerificarFactura() {
   }, [token])
 
   return (
-    <div className="verificar-factura-pagina">
-      <div className="verificar-factura-tarjeta">
-        <div className="verificar-factura-marca">TallerSis</div>
+    <div className="verificar">
+      <header className="verificar-cabecera">
+        <span className="nav-logo">
+          R<span className="nav-logo-punto">e</span>Pay
+        </span>
+      </header>
 
-        {cargando && <p>Cargando...</p>}
+      <main className="verificar-contenido">
+        <h1 className="verificar-titulo">Verificar factura</h1>
+
+        {cargando && <EstadoCargando lineas={4} texto="Cargando..." />}
 
         {/* TDSI-554 */}
         {!cargando && error && (
-          <div className="verificar-factura-error">
-            <h1>Factura no encontrada</h1>
-            <p>Este código QR no corresponde a ninguna factura válida, o ya no está disponible.</p>
-          </div>
+          <Tarjeta>
+            <EstadoError
+              titulo="Factura no encontrada"
+              texto="Este código QR no corresponde a ninguna factura válida, o ya no está disponible."
+            />
+          </Tarjeta>
         )}
 
         {!cargando && factura && (
           <>
-            {factura.estado === 'Anulado' && <div className="verificar-factura-anulada">ANULADA</div>}
+            {factura.estado === 'Anulado' ? (
+              <Alerta tono="error" titulo="ANULADA" />
+            ) : (
+              <Alerta tono="exito" titulo="Factura válida">
+                Estado: {factura.estado}
+              </Alerta>
+            )}
 
-            <h1>Comprobante de pago</h1>
-            <p className="verificar-factura-numero">{factura.id_transaccion}</p>
+            <Tarjeta titulo="Comprobante de pago">
+              <dl className="verificar-datos">
+                <dt>Número</dt>
+                <dd>{factura.id_transaccion}</dd>
 
-            <dl className="verificar-factura-datos">
-              <dt>Fecha</dt>
-              <dd>{new Date(factura.fecha).toLocaleString()}</dd>
+                <dt>Fecha</dt>
+                <dd>{new Date(factura.fecha).toLocaleString()}</dd>
 
-              <dt>Cliente</dt>
-              <dd>
-                {factura.cliente}
-                {factura.nit ? ` (NIT/CI: ${factura.nit})` : ''}
-              </dd>
+                <dt>Cliente</dt>
+                <dd>
+                  {factura.cliente}
+                  {factura.nit ? ` (NIT/CI: ${factura.nit})` : ''}
+                </dd>
 
-              {/* TDSI-61/947: quien atendio la venta (nombre + caja, o "no registrado"). */}
-              <dt>Atendido por</dt>
-              <dd>{factura.atendido_por}</dd>
-            </dl>
+                {/* TDSI-61/947: quien atendio la venta (nombre + caja, o "no registrado"). */}
+                <dt>Atendido por</dt>
+                <dd>{factura.atendido_por}</dd>
+              </dl>
+            </Tarjeta>
 
-            <table className="verificar-factura-tabla">
+            <Tabla etiqueta="Métodos de pago">
               <thead>
                 <tr>
                   <th>Método de pago</th>
-                  <th>Monto</th>
+                  <th className="ui-num">Monto</th>
                 </tr>
               </thead>
               <tbody>
                 {factura.metodos.map((m) => (
                   <tr key={m.metodo}>
                     <td>{m.metodo}</td>
-                    <td>Bs. {m.monto.toFixed(2)}</td>
+                    <td className="ui-num">Bs. {m.monto.toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot>
-                <tr>
-                  <td>Total</td>
-                  <td>Bs. {factura.total.toFixed(2)}</td>
-                </tr>
-              </tfoot>
-            </table>
+            </Tabla>
 
-            <p className="verificar-factura-pie">Documento generado por el sistema TallerSis. Uso académico.</p>
+            <Tarjeta>
+              <span className="verificar-total-etiqueta">Total</span>
+              <strong className="verificar-total">Bs. {factura.total.toFixed(2)}</strong>
+            </Tarjeta>
+
+            <p className="verificar-pie">Documento generado por el sistema RePay. Uso académico.</p>
           </>
         )}
-      </div>
+      </main>
     </div>
   )
 }

@@ -10,6 +10,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | Guía | Fase |
 |---|---|
 | [`menus.md`](menus.md) | 0005 · Menús del cajero y del administrador, interruptores y rutas por rol |
+| [`acceso.md`](acceso.md) | 0006 · Login, Pantalla de bloqueo y Verificar factura |
 
 ## Antes de empezar una pantalla del Sprint 4
 

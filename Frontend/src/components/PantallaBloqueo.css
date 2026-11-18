@@ -1,55 +1,66 @@
-/* Pantalla de bloqueo del cajero (TDSI-53). Va en su propio archivo para no tocar App.css. */
-.pantalla-bloqueo {
+/* Pantalla de bloqueo del cajero (TDSI-53), Figma p.9. Solo variables de index.css. */
+.bloqueo {
   position: fixed;
   inset: 0;
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background-color: var(--color-brand-dark);
+  padding: var(--espacio-4);
+  background: var(--overlay);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
-.pantalla-bloqueo-caja {
+.bloqueo-tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
   width: 100%;
-  max-width: 360px;
-  padding: 2rem 1.75rem;
-  background-color: var(--surface);
-  border-radius: 12px;
-  box-shadow: var(--sombra);
+  max-width: 480px;
+  padding: var(--espacio-6);
   text-align: center;
 }
 
-.pantalla-bloqueo-caja h2 {
-  margin: 0.5rem 0 1rem;
-}
-
-.pantalla-bloqueo-icono {
-  color: var(--color-brand-dark);
-}
-
-.pantalla-bloqueo-cajero {
-  margin: 0;
-  font-weight: 700;
-  color: var(--text);
-  overflow-wrap: anywhere;
-}
-
-.pantalla-bloqueo-caja-nombre {
-  margin: 0.25rem 0 0;
-  color: var(--muted);
-}
-
-.pantalla-bloqueo-ayuda {
-  margin: 1rem 0;
-  color: var(--muted);
-  font-size: 0.85rem;
-}
-
-.pantalla-bloqueo-caja .campo {
+.bloqueo-usuario {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-3);
   text-align: left;
 }
 
-.pantalla-bloqueo-caja .btn {
-  width: 100%;
+.bloqueo-usuario .nav-usuario-nombre {
+  overflow-wrap: anywhere;
+}
+
+.bloqueo-titulo {
+  margin: 0;
+  font: var(--texto-titulo-1);
+  color: var(--text);
+}
+
+.bloqueo-ayuda {
+  margin: 0;
+  color: var(--muted);
+}
+
+.bloqueo-tarjeta .ui-campo,
+.bloqueo-tarjeta .ui-alerta {
+  text-align: left;
+}
+
+/* CampoPassword (compartido) dentro del control del sistema */
+.bloqueo .ui-control .campo-password {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.bloqueo-nota {
+  margin: 0;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
 }

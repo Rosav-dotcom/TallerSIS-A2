@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext.jsx'
 import { desbloquearPantalla } from '../api/auth.js'
 import CampoPassword from './CampoPassword.jsx'
+import { Alerta, Boton } from './ui'
+import './navegacion.css'
+import '../pages/acceso.css'
 import './PantallaBloqueo.css'
 
 const MAXIMO_INTENTOS = 3
@@ -61,37 +64,45 @@ function PantallaBloqueo({ intentos, onIntentoFallido, onDesbloqueada }) {
   }
 
   return (
-    <div className="pantalla-bloqueo" role="dialog" aria-modal="true" aria-labelledby="titulo-bloqueo">
-      <form className="pantalla-bloqueo-caja" onSubmit={desbloquear}>
-        <svg className="pantalla-bloqueo-icono" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <rect x="4" y="11" width="16" height="10" rx="2" />
-          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
-        </svg>
-        <h2 id="titulo-bloqueo">Pantalla bloqueada</h2>
-        <p className="pantalla-bloqueo-cajero">{cajero.nombre}</p>
-        <p className="pantalla-bloqueo-caja-nombre">
-          {cajero.cajaNombre ? `${cajero.caja} · ${cajero.cajaNombre}` : cajero.caja}
-        </p>
-        <p className="pantalla-bloqueo-ayuda">El turno sigue abierto. Escriba su contraseña para volver.</p>
+    <div className="bloqueo" role="dialog" aria-modal="true" aria-labelledby="titulo-bloqueo">
+      <form className="ui-tarjeta bloqueo-tarjeta" onSubmit={desbloquear}>
+        <div className="bloqueo-usuario">
+          <span className="nav-avatar" aria-hidden="true">
+            {String(cajero.nombre || '?').charAt(0)}
+          </span>
+          <span className="nav-usuario-texto">
+            <span className="nav-usuario-nombre">{cajero.nombre}</span>
+            <span className="nav-usuario-rol">
+              Cajero · {cajero.cajaNombre ? `${cajero.caja} · ${cajero.cajaNombre}` : cajero.caja}
+            </span>
+          </span>
+        </div>
+        <h2 id="titulo-bloqueo" className="bloqueo-titulo">
+          Pantalla bloqueada
+        </h2>
+        <p className="bloqueo-ayuda">El turno sigue abierto. Escriba su contraseña para volver.</p>
 
-        <label className="campo">
-          Contraseña
-          <CampoPassword
-            autoComplete="new-password"
-            autoFocus
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
-              setError(null)
-            }}
-          />
+        <label className="ui-campo">
+          <span className="ui-campo-etiqueta">Contraseña</span>
+          <span className="ui-control">
+            <CampoPassword
+              autoComplete="new-password"
+              autoFocus
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value)
+                setError(null)
+              }}
+            />
+          </span>
         </label>
 
-        {error && <p className="error">{error}</p>}
+        {error && <Alerta tono="error" titulo={error} />}
 
-        <button type="submit" className="btn" disabled={enviando}>
+        <Boton type="submit" ancho disabled={enviando}>
           {enviando ? 'Verificando...' : 'Desbloquear'}
-        </button>
+        </Boton>
+        <p className="bloqueo-nota">Tus operaciones permanecen protegidas.</p>
       </form>
     </div>
   )

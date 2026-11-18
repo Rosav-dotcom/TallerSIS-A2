@@ -5,6 +5,10 @@ import { loginAdministrador } from '../api/authAdministrador.js'
 import { listarCajas } from '../api/caja.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useAdminAuth } from '../context/AdminAuthContext.jsx'
+import { ChevronDown, Eye, EyeOff } from 'lucide-react'
+import { Alerta, Boton, Icono } from '../components/ui'
+import '../components/navegacion.css'
+import './acceso.css'
 
 const ESTADO_INICIAL = {
   email: '',
@@ -27,32 +31,34 @@ function validarCampos({ email, password, caja_id }, modo) {
   return null
 }
 
-// Alterna entre "entrar como Cajero" o "entrar como Administrador" en la misma pantalla.
-function SelectorModo({ modo, onCambiar }) {
-  const esAdmin = modo === 'ADMINISTRADOR'
+// Perfil de acceso: Cajero o Administrador (Figma p.6 y p.11). Cada pestaña elige su perfil.
+// Los perfiles del Sprint 4 (Encargado de Devoluciones y Usuario de Soporte) se agregan en TDSI-993.
+const PERFILES = [
+  { modo: 'CAJERO', texto: 'Cajero' },
+  { modo: 'ADMINISTRADOR', texto: 'Administrador' },
+]
 
+function SelectorModo({ modo, onCambiar }) {
   return (
-    <button
-      type="button"
-      className={`selector-modo${esAdmin ? ' selector-modo--admin' : ''}`}
-      onClick={() => onCambiar(esAdmin ? 'CAJERO' : 'ADMINISTRADOR')}
-      aria-pressed={esAdmin}
-    >
-      <span className={`selector-modo-opcion${!esAdmin ? ' activo' : ''}`}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-          <circle cx="12" cy="8" r="4" />
-          <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" />
-        </svg>
-        Cajero
+    <div className="acceso-perfiles">
+      <span className="ui-campo-etiqueta" id="perfil-acceso">
+        PERFIL DE ACCESO
       </span>
-      <span className={`selector-modo-opcion${esAdmin ? ' activo' : ''}`}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M12 3l7 3v5c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6l7-3z" />
-        </svg>
-        Administrador
-      </span>
-      <span className="selector-modo-thumb" />
-    </button>
+      <div className="acceso-perfiles-lista" role="radiogroup" aria-labelledby="perfil-acceso">
+        {PERFILES.map((p) => (
+          <button
+            key={p.modo}
+            type="button"
+            role="radio"
+            aria-checked={modo === p.modo}
+            className={`acceso-perfil${modo === p.modo ? ' acceso-perfil--activo' : ''}`}
+            onClick={() => onCambiar(p.modo)}
+          >
+            {p.texto}
+          </button>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -145,73 +151,58 @@ function Login() {
   const esAdmin = modo === 'ADMINISTRADOR'
 
   return (
-    <div className="login-page">
-      <aside className="login-hero">
-        <div className="login-hero-content">
-          <svg
-            className="login-hero-logo"
-            width="36"
-            height="36"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            aria-hidden="true"
-          >
-            <line x1="12" y1="2" x2="12" y2="22" />
-            <line x1="4" y1="7" x2="20" y2="17" />
-            <line x1="20" y1="7" x2="4" y2="17" />
-          </svg>
-          {esAdmin ? (
-            <>
-              <h1>
-                Panel de
-                <br />
-                Administración
-              </h1>
-              <p>Tablero de ingresos, documentos de factura y egresos a proveedores.</p>
-            </>
-          ) : (
-            <>
-              <h1>
-                Hola
-                <br />
-                TallerSis!
-              </h1>
-              <p>Inicia sesión para habilitar la caja y empezar a atender en el terminal POS.</p>
-            </>
-          )}
+    <div className="acceso">
+      <aside className="acceso-hero">
+        <span className="nav-logo">
+          R<span className="nav-logo-punto">e</span>Pay
+        </span>
+        <div className="acceso-hero-centro">
+          <span className="acceso-etiqueta">Gestión financiera</span>
+          <span className="acceso-linea" aria-hidden="true" />
+          <h1>
+            Cobros y facturación
+            <br />
+            del supermercado
+          </h1>
+          <p>
+            Cada movimiento en orden.
+            <br />
+            Cada jornada, con tranquilidad.
+          </p>
         </div>
-        <p className="login-hero-footer">© 2026 TallerSis. Todos los derechos reservados.</p>
+        <div className="acceso-hero-pie">
+          <strong>RePay / Bolivia</strong>
+          <span>Acceso seguro al ERP del supermercado</span>
+        </div>
       </aside>
 
-      <div className="login-panel">
-        <div className="login-panel-inner">
-          <span className="login-brand">TallerSis</span>
+      <div className="acceso-panel">
+        <section className="ui-tarjeta acceso-tarjeta">
+          <div className="acceso-encabezado">
+            <h2 className="acceso-titulo">Bienvenido a RePay</h2>
+            <p className="acceso-subtitulo">Ingresa con el perfil asignado a tu cuenta.</p>
+          </div>
 
           <SelectorModo modo={modo} onCambiar={cambiarModo} />
 
-          <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
-            <h2 className="login-titulo">{esAdmin ? 'Acceso de administrador' : 'Bienvenido de nuevo'}</h2>
-            <p className="login-subtitulo">
-              {esAdmin ? 'Ingresa tus credenciales para continuar.' : 'Ingresa tus credenciales de cajero para continuar.'}
-            </p>
-
-            <label className="campo">
-              Usuario (correo)
-              <input
-                ref={emailRef}
-                type="email"
-                autoComplete="off"
-                value={datos.email}
-                onChange={(e) => actualizarCampo('email', e.target.value)}
-              />
+          <form className="acceso-form" onSubmit={handleSubmit} autoComplete="off">
+            <label className="ui-campo">
+              <span className="ui-campo-etiqueta">Usuario (correo)</span>
+              <span className="ui-control">
+                <input
+                  ref={emailRef}
+                  type="email"
+                  autoComplete="off"
+                  placeholder="tu.correo@empresa.bo"
+                  value={datos.email}
+                  onChange={(e) => actualizarCampo('email', e.target.value)}
+                />
+              </span>
             </label>
 
-            <label className="campo">
-              Contraseña
-              <div className="campo-password">
+            <label className="ui-campo">
+              <span className="ui-campo-etiqueta">Contraseña</span>
+              <span className="ui-control">
                 <input
                   ref={passwordRef}
                   type={mostrarPassword ? 'text' : 'password'}
@@ -226,47 +217,49 @@ function Login() {
                   aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   tabIndex={-1}
                 >
-                  {mostrarPassword ? (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
-                      <circle cx="12" cy="12" r="3" />
-                    </svg>
-                  ) : (
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a20.3 20.3 0 0 1-2.68 3.68M14.12 14.12a3 3 0 1 1-4.24-4.24" />
-                      <line x1="1" y1="1" x2="23" y2="23" />
-                    </svg>
-                  )}
+                  <Icono icono={mostrarPassword ? EyeOff : Eye} />
                 </button>
-              </div>
+              </span>
             </label>
 
-            {!esAdmin && (
-              <label className="campo">
-                Caja / terminal
-                <select value={datos.caja_id} onChange={(e) => actualizarCampo('caja_id', e.target.value)}>
-                  <option value="" disabled>
-                    Selecciona una caja...
-                  </option>
-                  {cajas.map((caja) => (
-                    <option key={caja.codigo} value={caja.codigo}>
-                      {caja.codigo} — {caja.nombre}
+            {!esAdmin ? (
+              <label className="ui-campo">
+                <span className="ui-campo-etiqueta">Caja</span>
+                <span className="ui-control">
+                  <select value={datos.caja_id} onChange={(e) => actualizarCampo('caja_id', e.target.value)}>
+                    <option value="" disabled>
+                      Selecciona una caja...
                     </option>
-                  ))}
-                </select>
+                    {cajas.map((caja) => (
+                      <option key={caja.codigo} value={caja.codigo}>
+                        {caja.codigo} — {caja.nombre}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="ui-control-icono">
+                    <Icono icono={ChevronDown} />
+                  </span>
+                </span>
+                <span className="ui-campo-ayuda">La caja seleccionada se asignará a tu turno al ingresar.</span>
               </label>
+            ) : (
+              <div className="acceso-encabezado">
+                <p className="acceso-ayuda">Acceso a la administración y al análisis de la operación.</p>
+                <span className="ui-campo-ayuda">La selección de caja está disponible únicamente para Cajero.</span>
+              </div>
             )}
 
-            {errorValidacion && <p className="error">{errorValidacion}</p>}
-            {errorApi && <p className="error">Error: {errorApi}</p>}
+            {errorValidacion && <Alerta tono="error" titulo={errorValidacion} />}
+            {errorApi && <Alerta tono="error" titulo={`Error: ${errorApi}`} />}
             {/* TDSI-858: aviso cuando la sesion se cerro por fallar el desbloqueo 3 veces */}
-            {!errorApi && location.state?.mensaje && <p className="error">{location.state.mensaje}</p>}
+            {!errorApi && location.state?.mensaje && <Alerta tono="error" titulo={location.state.mensaje} />}
 
-            <button type="submit" className="btn login-btn" disabled={enviando}>
+            <Boton type="submit" ancho disabled={enviando}>
               {enviando ? 'Ingresando...' : 'Ingresar'}
-            </button>
+            </Boton>
           </form>
-        </div>
+        </section>
+        <p className="acceso-nota">Usa tus credenciales personales. No compartas tu contraseña.</p>
       </div>
     </div>
   )
