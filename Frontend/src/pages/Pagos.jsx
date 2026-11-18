@@ -1,185 +1,26 @@
 import { useEffect, useState } from 'react'
-import { registrarPago, registrarPagoMixto, calcularPagoMixto, registrarVentaCancelada, contarVentasCanceladas, consultarPosibleDuplicado, obtenerTipoCambio, listarMisFacturas, enviarFacturaPorCorreo, urlFacturaPdf, buscarClientePorDocumento } from '../api/pagos.js'
-import { calcularVuelto, calcularCobroUsd, crearCobroQr, consultarEstadoCobroQr, confirmarCobroQr, urlQrCuenta } from '../api/cobros.js'
+import { registrarPago, registrarPagoMixto, calcularPagoMixto, registrarVentaCancelada, contarVentasCanceladas, consultarPosibleDuplicado, obtenerTipoCambio, enviarFacturaPorCorreo, buscarClientePorDocumento } from '../api/pagos.js'
+import { calcularVuelto, calcularCobroUsd, crearCobroQr, consultarEstadoCobroQr, confirmarCobroQr } from '../api/cobros.js'
 import PagoMixtoForm from '../components/PagoMixtoForm.jsx'
 import CancelarVentaModal from '../components/CancelarVentaModal.jsx'
 import MisRespuestasRapidas from '../components/MisRespuestasRapidas.jsx'
 import AvisoCobroDuplicadoModal from '../components/AvisoCobroDuplicadoModal.jsx'
-import DesgloseVuelto from '../components/DesgloseVuelto.jsx'
 import { useAuth } from '../context/AuthContext.jsx'
 
-// TDSI-29/572: botones rápidos de billetes para armar el monto recibido en efectivo.
-const BILLETES_RAPIDOS = [10, 20, 50, 100, 200]
-const MENSAJE_MONTO_INSUFICIENTE = 'El monto recibido es insuficiente: es menor al total a cobrar.'
+import { EFECTIVO_USD, ESTADO_INICIAL, MENSAJE_FORMATO_DOCUMENTO, MENSAJE_MONTO_INSUFICIENTE, REGEX_DOCUMENTO } from './pagos/constantes.js'
+import { buscarCobroAnterior, hoyLocal, leyendaPagadoEnUsd, validarFormulario } from './pagos/utilidades.js'
+import EncabezadoPagos from './pagos/EncabezadoPagos.jsx'
+import SeccionMetodoPago from './pagos/SeccionMetodoPago.jsx'
+import CobroEfectivo from './pagos/CobroEfectivo.jsx'
+import CobroUsd from './pagos/CobroUsd.jsx'
+import DatosFacturacion from './pagos/DatosFacturacion.jsx'
+import EnvioCorreo from './pagos/EnvioCorreo.jsx'
+import ResumenCobro from './pagos/ResumenCobro.jsx'
+import CobroQrEspera from './pagos/CobroQrEspera.jsx'
+import PagoRegistrado from './pagos/PagoRegistrado.jsx'
 
-// TDSI-162: opcion de la pantalla; se registra como metodo "Efectivo" con el monto en Bs.
-const EFECTIVO_USD = 'EfectivoUSD'
-
-const METODOS_PAGO = [
-  {
-    id: 'Efectivo',
-    etiqueta: 'Efectivo',
-    icono: (
-      <svg width="32" height="20" viewBox="0 0 32 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="1" width="30" height="18" rx="2" />
-        <circle cx="16" cy="10" r="4" />
-        <circle cx="5" cy="10" r="1" fill="currentColor" stroke="none" />
-        <circle cx="27" cy="10" r="1" fill="currentColor" stroke="none" />
-      </svg>
-    ),
-  },
-  {
-    id: EFECTIVO_USD,
-    etiqueta: 'Efectivo en dólares',
-    icono: (
-      <svg width="32" height="20" viewBox="0 0 32 20" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="1" width="30" height="18" rx="2" />
-        <text x="16" y="15" textAnchor="middle" fontSize="13" fontWeight="700" fill="currentColor" stroke="none">$</text>
-      </svg>
-    ),
-  },
-  {
-    id: 'Tarjeta',
-    etiqueta: 'Tarjeta',
-    icono: (
-      <svg width="32" height="22" viewBox="0 0 32 22" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="1" width="30" height="20" rx="3" />
-        <rect x="1" y="6" width="30" height="4" fill="currentColor" stroke="none" />
-        <line x1="5" y1="16" x2="13" y2="16" strokeLinecap="round" />
-      </svg>
-    ),
-  },
-  {
-    id: 'QR',
-    etiqueta: 'QR',
-    icono: (
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="1" y="1" width="8" height="8" />
-        <rect x="17" y="1" width="8" height="8" />
-        <rect x="1" y="17" width="8" height="8" />
-        <rect x="3.5" y="3.5" width="3" height="3" fill="currentColor" stroke="none" />
-        <rect x="19.5" y="3.5" width="3" height="3" fill="currentColor" stroke="none" />
-        <rect x="3.5" y="19.5" width="3" height="3" fill="currentColor" stroke="none" />
-        <rect x="14" y="14" width="3" height="3" fill="currentColor" stroke="none" />
-        <rect x="20" y="14" width="3" height="3" fill="currentColor" stroke="none" />
-        <rect x="14" y="20" width="3" height="3" fill="currentColor" stroke="none" />
-        <rect x="20" y="20" width="3" height="3" fill="currentColor" stroke="none" />
-      </svg>
-    ),
-  },
-]
-
-const TIPOS_DOCUMENTO = [
-  { id: 'NINGUNO', etiqueta: 'Sin datos' },
-  { id: 'NIT', etiqueta: 'NIT' },
-  { id: 'CI', etiqueta: 'CI' },
-]
-
-const ESTADO_INICIAL = {
-  monto: '',
-  metodos: [], // 1 metodo = pago simple, 2 metodos = pago mixto
-  montoMixto1: '',
-  montoMixto2: '',
-  montoRecibido: '', // TDSI-29/793: efectivo que dio el cliente (obligatorio en pago simple, opcional en mixto)
-  dolaresRecibidos: '', // TDSI-817: solo aplica a "Efectivo en dólares"
-  tipoDocumento: 'NINGUNO',
-  numeroDocumento: '',
-  razonSocial: '',
-  telefono: '',
-  enviarCorreo: null, // null = sin elegir, true/false = Si/No
-  email: '',
-}
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-// En Bolivia el NIT tiene exactamente 10 dígitos; el CI tiene 7 u 8.
-const REGEX_DOCUMENTO = {
-  NIT: /^\d{10}$/,
-  CI: /^\d{7,8}$/,
-}
-const MAX_LARGO_DOCUMENTO = { NIT: 10, CI: 8 }
-const MENSAJE_FORMATO_DOCUMENTO = {
-  NIT: 'El NIT debe tener exactamente 10 dígitos.',
-  CI: 'El CI debe tener entre 7 y 8 dígitos.',
-}
-
-function formatearTiempoRestante(segundos) {
-  if (segundos == null) return null
-  const minutos = Math.floor(segundos / 60)
-  const resto = segundos % 60
-  return `${minutos}:${String(resto).padStart(2, '0')}`
-}
-
-// El conteo se pide con la fecha local: sin fecha, el backend usa la fecha del servidor de la base,
-// que en UTC ya cambia de dia a las 20:00 de Bolivia.
-function hoyLocal() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-// TDSI-831: datos del cobro que se esta por repetir. mis-facturas filtra por dia ("YYYY-MM-DD"):
-// se pide desde ayer para no perderlo cerca de medianoche o por la zona horaria del servidor.
-async function buscarCobroAnterior(cajero, factura) {
-  const ayer = new Date(Date.now() - 24 * 60 * 60 * 1000)
-  const desde = `${ayer.getFullYear()}-${String(ayer.getMonth() + 1).padStart(2, '0')}-${String(ayer.getDate()).padStart(2, '0')}`
-  const { data } = await listarMisFacturas(cajero, { desde })
-  return data.find((f) => f.id_transaccion === factura) ?? null
-}
-
-// TDSI-816: total de la venta en dolares. Se redondea hacia arriba al centavo para que
-// el monto que se le pide al cliente siempre cubra el total (100 / 12 = 8.34, no 8.33).
-function totalEnDolares(totalBs, tipoCambio) {
-  return Math.ceil((Math.round(totalBs * 100) * 100) / Math.round(tipoCambio * 100)) / 100
-}
-
-function leyendaPagadoEnUsd(dolares, tipoCambio) {
-  return `Pagado en USD: ${dolares.toFixed(2)} (T.C. ${tipoCambio})`
-}
-
-function validarFormulario(datos) {
-  if (!datos.monto || Number(datos.monto) <= 0) {
-    return 'Ingrese un monto válido.'
-  }
-  if (datos.metodos.length === 0) {
-    return 'Seleccione un método de pago.'
-  }
-  if (datos.metodos.length === 2) {
-    const m1 = Number(datos.montoMixto1)
-    const m2 = Number(datos.montoMixto2)
-    if (!datos.montoMixto1 || !datos.montoMixto2 || m1 <= 0 || m2 <= 0) {
-      return 'Complete el monto de cada método del pago mixto.'
-    }
-    if (Math.round((m1 + m2) * 100) !== Math.round(Number(datos.monto) * 100)) {
-      return 'La suma de los montos del pago mixto debe ser igual al monto total.'
-    }
-  }
-  // TDSI-29/548: en efectivo (pago simple) hay que saber cuánto dio el cliente,
-  // y no puede ser menor al total (no se puede dar un vuelto negativo).
-  if (datos.metodos.length === 1 && datos.metodos[0] === 'Efectivo') {
-    if (!datos.montoRecibido || Number(datos.montoRecibido) <= 0) {
-      return 'Ingrese cuánto dinero recibió del cliente.'
-    }
-    if (Number(datos.montoRecibido) < Number(datos.monto)) {
-      return MENSAJE_MONTO_INSUFICIENTE
-    }
-  }
-  if (datos.metodos[0] === EFECTIVO_USD && !(Number(datos.dolaresRecibidos) > 0)) {
-    return 'Ingrese cuántos dólares recibió del cliente.'
-  }
-  if (datos.tipoDocumento !== 'NINGUNO') {
-    if (!datos.numeroDocumento.trim() || !datos.razonSocial.trim()) {
-      return `Complete el número de ${datos.tipoDocumento} y la razón social.`
-    }
-    if (!REGEX_DOCUMENTO[datos.tipoDocumento].test(datos.numeroDocumento.trim())) {
-      return MENSAJE_FORMATO_DOCUMENTO[datos.tipoDocumento]
-    }
-  }
-  if (datos.enviarCorreo === true && !EMAIL_REGEX.test(datos.email.trim())) {
-    return 'Ingrese un correo válido para enviar la factura.'
-  }
-  return null
-}
-
+// TDSI-29: pantalla de cobro. El estado y la lógica del cobro viven aquí; cada parte de la
+// pantalla está en src/pages/pagos/ y solo dibuja lo que recibe (patch 0009 de la migración).
 function Pagos() {
   const { cajero } = useAuth()
 
@@ -740,13 +581,7 @@ function Pagos() {
 
   return (
     <section>
-      <div className="pagos-encabezado">
-        <h1>Método de pago</h1>
-        {canceladasHoy !== null && <span className="canceladas-hoy">Canceladas hoy: {canceladasHoy}</span>}
-        <button type="button" className="btn btn-secundario" onClick={() => setMostrarRespuestasRapidas(true)}>
-          Mis respuestas rápidas
-        </button>
-      </div>
+      <EncabezadoPagos canceladasHoy={canceladasHoy} onAbrirRespuestas={() => setMostrarRespuestasRapidas(true)} />
 
       {mensajeCancelacion && <p className="mensaje-exito pagos-mensaje">{mensajeCancelacion}</p>}
 
@@ -773,188 +608,50 @@ function Pagos() {
                 <input type="number" step="0.01" value={datos.monto} onChange={(e) => actualizarCampo('monto', e.target.value)} />
               </label>
 
-              <fieldset className="metodo-opciones" style={{ border: 'none', padding: 0 }}>
-                <legend>Método de pago (puede elegir hasta 2 para un pago mixto)</legend>
-                <div className="metodo-pago-opciones">
-                  {METODOS_PAGO.map((metodo) => (
-                    <button
-                      key={metodo.id}
-                      type="button"
-                      className={`metodo-pago-opcion${datos.metodos.includes(metodo.id) ? ' activa' : ''}`}
-                      onClick={() => toggleMetodo(metodo.id)}
-                    >
-                      {metodo.icono}
-                      {metodo.etiqueta}
-                    </button>
-                  ))}
-                </div>
-                {esMixto && <p className="ayuda-mixto">Pago mixto: complete los montos en el panel de la derecha.</p>}
-              </fieldset>
+              <SeccionMetodoPago metodos={datos.metodos} esMixto={esMixto} onToggleMetodo={toggleMetodo} />
 
               {esEfectivoSimple && (
-                <div className="cobro-efectivo">
-                  <label className="campo">
-                    Monto recibido (Bs.)
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={datos.montoRecibido}
-                      onChange={(e) => actualizarCampo('montoRecibido', e.target.value)}
-                    />
-                  </label>
-
-                  <div className="billetes-rapidos">
-                    {BILLETES_RAPIDOS.map((valor) => (
-                      <button key={valor} type="button" className="billete-rapido" onClick={() => agregarBillete(valor)}>
-                        +{valor}
-                      </button>
-                    ))}
-                    {datos.montoRecibido && (
-                      <button type="button" className="billete-rapido billete-rapido--limpiar" onClick={() => actualizarCampo('montoRecibido', '')}>
-                        Limpiar
-                      </button>
-                    )}
-                  </div>
-
-                  {calculandoVuelto && <p className="ayuda-mixto">Calculando vuelto...</p>}
-                  {/* TDSI-573: si ya se muestra la validacion del formulario, no repetir el aviso */}
-                  {errorVuelto && !errorValidacion && <p className="error">{errorVuelto}</p>}
-                  {vuelto !== null && !calculandoVuelto && <DesgloseVuelto vuelto={vuelto} desglose={desgloseVuelto} />}
-                </div>
+                <CobroEfectivo
+                  montoRecibido={datos.montoRecibido}
+                  onCambiarMontoRecibido={(valor) => actualizarCampo('montoRecibido', valor)}
+                  onAgregarBillete={agregarBillete}
+                  calculandoVuelto={calculandoVuelto}
+                  errorVuelto={errorVuelto}
+                  errorValidacion={errorValidacion}
+                  vuelto={vuelto}
+                  desgloseVuelto={desgloseVuelto}
+                />
               )}
 
               {esEfectivoUsd && (
-                <div className="cobro-efectivo">
-                  {errorTipoCambio && (
-                    <p className="error">
-                      No se pudo obtener el tipo de cambio: {errorTipoCambio}{' '}
-                      <button type="button" className="billete-rapido" onClick={() => setIntentoTipoCambio((n) => n + 1)}>
-                        Reintentar
-                      </button>
-                    </p>
-                  )}
-                  {tipoCambioVigente !== null && (
-                    <ul className="cobro-usd-datos">
-                      <li>
-                        <span>Tipo de cambio vigente</span>
-                        <strong>1 USD = Bs. {tipoCambioVigente.toFixed(2)}</strong>
-                      </li>
-                      {Number(datos.monto) > 0 && (
-                        <li>
-                          <span>Total a cobrar</span>
-                          <strong>USD {totalEnDolares(Number(datos.monto), tipoCambioVigente).toFixed(2)}</strong>
-                        </li>
-                      )}
-                    </ul>
-                  )}
-
-                  <label className="campo">
-                    Dólares recibidos (USD)
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={datos.dolaresRecibidos}
-                      onChange={(e) => {
-                        setErrorValidacion(null)
-                        actualizarCampo('dolaresRecibidos', e.target.value)
-                      }}
-                    />
-                  </label>
-
-                  {calculandoCobroUsd && <p className="ayuda-mixto">Calculando vuelto...</p>}
-                  {errorCobroUsd && <p className="error">{errorCobroUsd}</p>}
-                  {faltanteBs !== null && <p className="cobro-usd-faltante">Faltan Bs. {faltanteBs.toFixed(2)}</p>}
-                  {cobroUsd && (
-                    <>
-                      <ul className="cobro-usd-datos">
-                        <li>
-                          <span>Equivalente recibido</span>
-                          <strong>Bs. {cobroUsd.equivalenteBs.toFixed(2)}</strong>
-                        </li>
-                      </ul>
-                      <p className="vuelto-destacado">Vuelto a entregar: Bs. {cobroUsd.vuelto.toFixed(2)}</p>
-                    </>
-                  )}
-                </div>
+                <CobroUsd
+                  errorTipoCambio={errorTipoCambio}
+                  onReintentarTipoCambio={() => setIntentoTipoCambio((n) => n + 1)}
+                  tipoCambioVigente={tipoCambioVigente}
+                  monto={datos.monto}
+                  dolaresRecibidos={datos.dolaresRecibidos}
+                  onCambiarDolares={(valor) => {
+                    setErrorValidacion(null)
+                    actualizarCampo('dolaresRecibidos', valor)
+                  }}
+                  calculandoCobroUsd={calculandoCobroUsd}
+                  errorCobroUsd={errorCobroUsd}
+                  faltanteBs={faltanteBs}
+                  cobroUsd={cobroUsd}
+                />
               )}
 
-              <fieldset style={{ border: 'none', padding: 0 }}>
-                <legend>Datos de facturación</legend>
-                <div className="tipo-venta-opciones">
-                  {TIPOS_DOCUMENTO.map((tipo) => (
-                    <button
-                      key={tipo.id}
-                      type="button"
-                      className={`tipo-venta-opcion${datos.tipoDocumento === tipo.id ? ' activa' : ''}`}
-                      onClick={() => elegirTipoDocumento(tipo.id)}
-                    >
-                      {tipo.etiqueta}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
+              <DatosFacturacion
+                tipoDocumento={datos.tipoDocumento}
+                numeroDocumento={datos.numeroDocumento}
+                razonSocial={datos.razonSocial}
+                telefono={datos.telefono}
+                onElegirTipoDocumento={elegirTipoDocumento}
+                onCambiarCampo={actualizarCampo}
+                onSalirDocumento={alPerderFocoDocumento}
+              />
 
-              {datos.tipoDocumento !== 'NINGUNO' && (
-                <>
-                  <label className="campo">
-                    Número de {datos.tipoDocumento}
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={MAX_LARGO_DOCUMENTO[datos.tipoDocumento]}
-                      value={datos.numeroDocumento}
-                      onChange={(e) => actualizarCampo('numeroDocumento', e.target.value.replace(/\D/g, ''))}
-                      onBlur={alPerderFocoDocumento}
-                    />
-                  </label>
-                  {datos.numeroDocumento && !REGEX_DOCUMENTO[datos.tipoDocumento].test(datos.numeroDocumento) && (
-                    <p className="error" style={{ marginTop: '-0.75rem' }}>
-                      {MENSAJE_FORMATO_DOCUMENTO[datos.tipoDocumento]}
-                    </p>
-                  )}
-                  <label className="campo">
-                    Razón social
-                    <input
-                      type="text"
-                      value={datos.razonSocial}
-                      onChange={(e) => actualizarCampo('razonSocial', e.target.value)}
-                    />
-                  </label>
-                </>
-              )}
-
-              <label className="campo">
-                Teléfono del cliente (opcional)
-                <input type="tel" value={datos.telefono} onChange={(e) => actualizarCampo('telefono', e.target.value)} />
-              </label>
-
-              <div className="factura-correo">
-                <p>¿Desea enviar la factura al cliente por correo?</p>
-                <div className="factura-correo-acciones">
-                  <button
-                    type="button"
-                    className={`btn${datos.enviarCorreo === false ? '' : ' btn-secundario'}`}
-                    onClick={() => actualizarCampo('enviarCorreo', false)}
-                  >
-                    No
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn${datos.enviarCorreo === true ? '' : ' btn-secundario'}`}
-                    onClick={() => actualizarCampo('enviarCorreo', true)}
-                  >
-                    Sí
-                  </button>
-                </div>
-
-                {datos.enviarCorreo === true && (
-                  <label className="campo" style={{ marginTop: '1rem' }}>
-                    Correo del cliente
-                    <input type="email" value={datos.email} onChange={(e) => actualizarCampo('email', e.target.value)} />
-                  </label>
-                )}
-              </div>
+              <EnvioCorreo enviarCorreo={datos.enviarCorreo} email={datos.email} onCambiarCampo={actualizarCampo} />
 
               {errorValidacion && <p className="error">{errorValidacion}</p>}
 
@@ -975,178 +672,46 @@ function Pagos() {
           )}
 
           {paso === 'confirmacion' && (
-            <div className="pago-resumen">
-              <h2>Confirmar cobro</h2>
-              <ul>
-                <li>Monto: Bs. {datos.monto}</li>
-                {esMixto ? (
-                  <li>
-                    Métodos de pago: {datos.metodos[0]} (Bs. {datos.montoMixto1}) + {datos.metodos[1]} (Bs. {datos.montoMixto2})
-                  </li>
-                ) : (
-                  <li>Método de pago: {esEfectivoUsd ? 'Efectivo en dólares' : datos.metodos[0]}</li>
-                )}
-                {esEfectivoUsd && cobroUsd && (
-                  <>
-                    <li>Dólares recibidos: USD {cobroUsd.dolaresRecibidos.toFixed(2)}</li>
-                    <li>Tipo de cambio: 1 USD = Bs. {cobroUsd.tipoCambio.toFixed(2)}</li>
-                    <li>Equivalente recibido: Bs. {cobroUsd.equivalenteBs.toFixed(2)}</li>
-                    <li>Vuelto a entregar: Bs. {cobroUsd.vuelto.toFixed(2)}</li>
-                  </>
-                )}
-                {(esEfectivoSimple || (esMixtoConEfectivo && datos.montoRecibido)) && (
-                  <li>{esMixto ? 'Efectivo recibido' : 'Monto recibido'}: Bs. {datos.montoRecibido}</li>
-                )}
-                <li>
-                  Datos de facturación:{' '}
-                  {datos.tipoDocumento === 'NINGUNO'
-                    ? 'Sin datos'
-                    : `${datos.tipoDocumento} ${datos.numeroDocumento} — ${datos.razonSocial}`}
-                </li>
-                {datos.telefono && <li>Teléfono: {datos.telefono}</li>}
-                <li>
-                  Envío por correo:{' '}
-                  {datos.enviarCorreo ? `Sí, a ${datos.email}` : 'No'}
-                </li>
-              </ul>
-              {vuelto !== null && !calculandoVuelto && <DesgloseVuelto vuelto={vuelto} desglose={desgloseVuelto} />}
-
-              {errorApi && <p className="error">Error: {errorApi}</p>}
-
-              <div className="pago-acciones">
-                <button type="button" className="btn btn-secundario" onClick={cambiarMetodo} disabled={enviando}>
-                  Editar
-                </button>
-                <button type="button" className="btn" onClick={confirmarCobro} disabled={enviando}>
-                  {enviando
-                    ? (esQrSimple ? 'Generando QR...' : 'Confirmando...')
-                    : (esQrSimple ? 'Generar QR' : 'Confirmar cobro')}
-                </button>
-                <button type="button" className="btn btn-secundario" onClick={() => setMostrarCancelarVenta(true)} disabled={enviando}>
-                  Cancelar venta
-                </button>
-              </div>
-            </div>
+            <ResumenCobro
+              datos={datos}
+              esMixto={esMixto}
+              esEfectivoUsd={esEfectivoUsd}
+              cobroUsd={cobroUsd}
+              esEfectivoSimple={esEfectivoSimple}
+              esMixtoConEfectivo={esMixtoConEfectivo}
+              vuelto={vuelto}
+              calculandoVuelto={calculandoVuelto}
+              desgloseVuelto={desgloseVuelto}
+              errorApi={errorApi}
+              enviando={enviando}
+              esQrSimple={esQrSimple}
+              onEditar={cambiarMetodo}
+              onConfirmar={confirmarCobro}
+              onCancelarVenta={() => setMostrarCancelarVenta(true)}
+            />
           )}
 
           {paso === 'esperando-qr' && cobroQr && (
-            <div className="cobro-qr-espera">
-              <h2>Cobro con QR</h2>
-              <img src={urlQrCuenta()} alt="QR de la cuenta del negocio" className="cobro-qr-imagen" />
-              <p className="cobro-qr-monto">Bs. {cobroQr.monto}</p>
-              <p className="cobro-qr-referencia">Referencia: {cobroQr.referencia}</p>
-
-              {cobroQr.estado === 'Pendiente' && (
-                <>
-                  <p className="cobro-qr-estado cobro-qr-estado--pendiente">Esperando pago...</p>
-                  {segundosRestantes != null && (
-                    <p className="cobro-qr-cuenta-regresiva">
-                      {segundosRestantes > 0
-                        ? `El QR expira en ${formatearTiempoRestante(segundosRestantes)}`
-                        : 'Verificando vencimiento...'}
-                    </p>
-                  )}
-                  {errorApi && <p className="error">{errorApi}</p>}
-                  <div className="pago-acciones">
-                    <button type="button" className="btn btn-secundario" onClick={cancelarCobroQr} disabled={enviando}>
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={confirmarPagoQrRecibido}
-                      disabled={enviando || segundosRestantes === 0}
-                    >
-                      {enviando ? 'Confirmando...' : 'Confirmar pago recibido'}
-                    </button>
-                  </div>
-                </>
-              )}
-
-              {cobroQr.estado === 'Pagado' && (
-                <>
-                  <p className="cobro-qr-estado cobro-qr-estado--pendiente">
-                    Pago confirmado. Terminando de registrar la venta...
-                  </p>
-                  {errorApi && (
-                    <>
-                      <p className="error">{errorApi}</p>
-                      <div className="pago-acciones">
-                        <button type="button" className="btn" onClick={reintentarRegistroVentaQr} disabled={enviando}>
-                          {enviando ? 'Reintentando...' : 'Reintentar registrar venta'}
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </>
-              )}
-
-              {cobroQr.estado === 'Expirado' && (
-                <>
-                  <p className="cobro-qr-estado cobro-qr-estado--expirado">
-                    El QR expiró (pasaron más de 5 minutos). Genere uno nuevo para cobrar.
-                  </p>
-                  {errorApi && <p className="error">{errorApi}</p>}
-                  <div className="pago-acciones">
-                    <button type="button" className="btn btn-secundario" onClick={cancelarCobroQr} disabled={enviando}>
-                      Cancelar
-                    </button>
-                    <button type="button" className="btn" onClick={generarCobroQr} disabled={enviando}>
-                      {enviando ? 'Generando...' : 'Regenerar QR'}
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
+            <CobroQrEspera
+              cobroQr={cobroQr}
+              segundosRestantes={segundosRestantes}
+              errorApi={errorApi}
+              enviando={enviando}
+              onCancelar={cancelarCobroQr}
+              onConfirmarPagoRecibido={confirmarPagoQrRecibido}
+              onReintentarRegistro={reintentarRegistroVentaQr}
+              onRegenerarQr={generarCobroQr}
+            />
           )}
 
           {paso === 'listo' && pagoRegistrado && (
-            <div className="pago-exito">
-              <h2>Pago registrado</h2>
-              <ul>
-                <li>ID de transacción: {pagoRegistrado.id_transaccion}</li>
-                {pagoRegistrado.detalle ? (
-                  pagoRegistrado.detalle.map((d) => (
-                    <li key={d.orden}>{d.metodo}: Bs. {d.monto}</li>
-                  ))
-                ) : (
-                  <li>Método de pago: {pagoRegistrado.metodo}</li>
-                )}
-                {pagoRegistrado.leyendaUsd && <li className="leyenda-usd">{pagoRegistrado.leyendaUsd}</li>}
-                <li>Monto: Bs. {pagoRegistrado.monto}</li>
-                {pagoRegistrado.monto_recibido != null && (
-                  <>
-                    <li>Monto recibido: Bs. {pagoRegistrado.monto_recibido}</li>
-                    <li>Vuelto entregado: Bs. {pagoRegistrado.vuelto}</li>
-                  </>
-                )}
-                <li>Estado: {pagoRegistrado.estado}</li>
-                <li>Fecha: {new Date(pagoRegistrado.fecha).toLocaleString()}</li>
-              </ul>
-
-              {datos.enviarCorreo && (
-                <p className={enviandoFactura ? '' : envioFactura?.ok ? 'mensaje-exito' : 'error'}>
-                  {enviandoFactura ? 'Enviando factura por correo...' : envioFactura?.mensaje}
-                </p>
-              )}
-
-              <div className="pago-exito-acciones">
-                {/* TDSI-303: factura real en PDF (formato tirilla), lista para ver o imprimir */}
-                <a
-                  href={urlFacturaPdf(pagoRegistrado.id_transaccion)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-azul"
-                  style={{ display: 'inline-block', textDecoration: 'none', textAlign: 'center' }}
-                >
-                  Ver / Imprimir factura
-                </a>
-
-                <button type="button" className="btn" onClick={registrarOtro}>
-                  Registrar otro pago
-                </button>
-              </div>
-            </div>
+            <PagoRegistrado
+              pagoRegistrado={pagoRegistrado}
+              enviarCorreo={datos.enviarCorreo}
+              enviandoFactura={enviandoFactura}
+              envioFactura={envioFactura}
+              onRegistrarOtro={registrarOtro}
+            />
           )}
         </div>
 

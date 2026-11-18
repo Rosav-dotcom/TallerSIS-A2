@@ -13,6 +13,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | [`acceso.md`](acceso.md) | 0006 · Login, Pantalla de bloqueo y Verificar factura |
 | [`turno.md`](turno.md) | 0007 · Inicio, apertura de turno, Cierre de caja y Arqueo |
 | [`facturas.md`](facturas.md) | 0008 · Facturas del cajero: lista, anulación, modificación y respuestas |
+| [`pagos-estructura.md`](pagos-estructura.md) | 0009 · Pagos dividido en componentes (sin cambios visibles) |
 
 ## Antes de empezar una pantalla del Sprint 4
 
