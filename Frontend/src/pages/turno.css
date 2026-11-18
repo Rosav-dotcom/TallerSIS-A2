@@ -1,0 +1,231 @@
+/* Inicio, apertura de turno, Cierre de caja y Arqueo (Figma p.12–13, p.45–47, p.60–61). Solo variables de index.css. */
+
+/* CampoPassword (compartido) dentro de un control del sistema */
+.ui-control > .campo-password {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+.ui-control .campo-password input {
+  flex: 1;
+  min-width: 0;
+  padding-right: 0;
+}
+.ui-control .campo-password-boton {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+/* ---------- Encabezado de pantalla ---------- */
+.turno-encabezado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  margin-bottom: var(--espacio-5);
+}
+.turno-encabezado h1 {
+  margin: 0;
+  font: var(--texto-titulo-1);
+  color: var(--text);
+}
+.turno-encabezado p {
+  margin: 0;
+  color: var(--muted);
+}
+.turno-encabezado--exito h1 {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  color: var(--success);
+}
+
+.turno-aviso {
+  margin-bottom: var(--espacio-4);
+}
+
+/* Dos columnas: contenido principal y columna lateral */
+.turno-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--espacio-5);
+  align-items: start;
+}
+.turno-columna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.turno-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+}
+.turno-acciones > * {
+  flex: 1;
+}
+
+/* Total destacado en barra navy (Figma p.45) */
+.turno-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  margin-top: var(--espacio-4);
+  padding: var(--espacio-4) var(--espacio-5);
+  border-radius: var(--radio-control);
+  background: var(--navy);
+  color: var(--surface);
+}
+.turno-total strong {
+  font: 600 24px/32px var(--font-base);
+}
+
+/* Dato con etiqueta (columnas laterales y modales) */
+.turno-datos {
+  display: grid;
+  gap: var(--espacio-2);
+  margin: 0;
+}
+.turno-datos div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+.turno-datos dt {
+  color: var(--muted);
+}
+.turno-datos dd {
+  margin: 0;
+  color: var(--text);
+  font-weight: 500;
+  text-align: right;
+}
+.turno-dato-grande {
+  font: 600 24px/32px var(--font-base);
+  color: var(--text);
+}
+
+/* ---------- Arqueo de efectivo ---------- */
+.turno-arqueo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.turno-arqueo-titulo {
+  margin: 0;
+  font: var(--texto-titulo-3);
+  color: var(--text);
+}
+.turno-arqueo-ayuda {
+  margin: 0;
+  color: var(--muted);
+}
+.turno-arqueo-grupos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--espacio-4);
+}
+.turno-arqueo .ui-tabla td,
+.turno-arqueo .ui-tabla th {
+  padding: 0 var(--espacio-3);
+}
+.turno-arqueo-input {
+  width: 72px;
+  height: 36px;
+  padding: 0 var(--espacio-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  text-align: center;
+}
+.turno-arqueo-input:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 1px var(--navy);
+}
+.turno-arqueo-input--invalido {
+  border-color: var(--error);
+  background: var(--error-bg);
+}
+.turno-arqueo-error {
+  display: block;
+  margin: var(--espacio-1) 0;
+  font: var(--texto-etiqueta);
+  color: var(--error);
+}
+.turno-arqueo-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--espacio-4) var(--espacio-5);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+}
+.turno-arqueo-total span {
+  font: var(--texto-etiqueta);
+  color: var(--muted);
+}
+.turno-arqueo-total strong {
+  font: 600 28px/36px var(--font-base);
+  color: var(--text);
+}
+.turno-arqueo-resultado {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-5);
+  padding: var(--espacio-4) var(--espacio-5);
+  border: 1px solid;
+  border-radius: var(--radio-control);
+}
+.turno-arqueo-resultado span {
+  display: block;
+  font: var(--texto-etiqueta);
+  text-transform: uppercase;
+}
+.turno-arqueo-resultado strong {
+  font: var(--texto-subtitulo);
+}
+.turno-arqueo-resultado--cuadra {
+  border-color: var(--success);
+  background: var(--success-bg);
+  color: var(--success);
+}
+.turno-arqueo-resultado--faltante {
+  border-color: var(--error);
+  background: var(--error-bg);
+  color: var(--error);
+}
+.turno-arqueo-resultado--sobrante {
+  border-color: var(--warning);
+  background: var(--warning-bg);
+  color: var(--warning);
+}
+.turno-arqueo-resultado--sin-dato {
+  border-color: var(--border);
+  background: var(--bone);
+  color: var(--muted);
+}
+
+/* ---------- Inicio ---------- */
+.turno-inicio p {
+  margin: 0;
+  color: var(--muted);
+}
+
+@media (max-width: 1100px) {
+  .turno-columnas {
+    grid-template-columns: 1fr;
+  }
+}

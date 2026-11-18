@@ -449,6 +449,25 @@
   text-align: left;
   white-space: nowrap;
 }
+/* Encabezados de fila (<th scope="row">) y pie de tabla: se ven como celdas, no como encabezado */
+.ui-tabla tbody th,
+.ui-tabla tfoot th {
+  height: var(--alto-fila);
+  padding: 0 var(--espacio-4);
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  font-weight: 500;
+  text-align: left;
+}
+.ui-tabla tfoot th,
+.ui-tabla tfoot td {
+  border-top: 1px solid var(--border);
+  border-bottom: 0;
+  background: var(--bone);
+  font-weight: 600;
+}
 .ui-tabla td {
   height: var(--alto-fila);
   padding: 0 var(--espacio-4);

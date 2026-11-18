@@ -5,6 +5,9 @@ import { obtenerTurnoActual } from '../api/turnos.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import ArqueoEfectivo, { ResumenArqueo } from '../components/ArqueoEfectivo.jsx'
 import CampoPassword from '../components/CampoPassword.jsx'
+import { Check } from 'lucide-react'
+import { Alerta, Boton, CampoTexto, EstadoCargando, Icono, Modal, Tabla, Tarjeta } from '../components/ui'
+import './turno.css'
 import { arqueoEsValido, arqueoTieneConteo, totalContadoCentavos, detalleArqueo } from '../utils/arqueo.js'
 
 function CierreCaja() {
@@ -114,8 +117,13 @@ function CierreCaja() {
   if (cargandoTurno) {
     return (
       <section>
-        <h1>Cierre de Caja</h1>
-        <p>Buscando el turno abierto de su caja...</p>
+        <div className="turno-encabezado">
+          <h1>Cierre de caja</h1>
+        </div>
+        <Tarjeta>
+          <EstadoCargando texto="Buscando el turno abierto de su caja..." />
+          <p className="turno-arqueo-ayuda">Buscando el turno abierto de su caja...</p>
+        </Tarjeta>
       </section>
     )
   }
@@ -123,55 +131,40 @@ function CierreCaja() {
   if (errorTurno || !turnoActual) {
     return (
       <section>
-        <h1>Cierre de Caja</h1>
-        <div className="error" style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>
-          {errorTurno || 'No hay un turno abierto en su caja. Abra un turno antes de cerrar caja.'}
+        <div className="turno-encabezado">
+          <h1>Cierre de caja</h1>
         </div>
+        <Alerta
+          tono="error"
+          titulo={errorTurno || 'No hay un turno abierto en su caja. Abra un turno antes de cerrar caja.'}
+        />
       </section>
     )
   }
 
+  const codigoTurno = turnoActual.codigo ?? turnoId
+
   return (
     <section>
-      <h1>Cierre de Caja</h1>
+      <div className={`turno-encabezado${paso === 'listo' ? ' turno-encabezado--exito' : ''}`}>
+        <h1>
+          {paso === 'listo' && <Icono icono={Check} tamano={28} />}
+          {paso === 'listo' ? 'Caja cerrada exitosamente' : 'Cierre de caja'}
+        </h1>
+        <p>
+          Turno {codigoTurno} · {cajero?.cajaNombre || cajero?.caja} · {cajero?.nombre}
+        </p>
+      </div>
 
-      {error && <div className="error" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>{error}</div>}
+      {error && (
+        <div className="turno-columna turno-aviso">
+          <Alerta tono="error" titulo={error} />
+        </div>
+      )}
 
       {paso === 'ingreso' && (
-        <div style={{ maxWidth: '480px', margin: 'auto', padding: '1rem', border: '1px solid var(--border)', borderRadius: '8px' }}>
-          <h3>Por favor, ingrese los datos del supervisor de caja para cerrar caja</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--muted)', marginBottom: '1rem' }}>
-            Pida a un supervisor de caja su usuario y PIN para poder cerrar el turno.
-          </p>
-          <form onSubmit={manejarContinuar}>
-            <label className="campo" style={{ display: 'block', marginBottom: '1rem' }}>
-              Usuario del supervisor
-              <input
-                type="text"
-                autoComplete="off"
-                value={supervisorId}
-                onChange={(e) => {
-                  setSupervisorId(e.target.value)
-                  setError(null)
-                }}
-                style={{ width: '100%', padding: '0.5rem', marginTop: '0.25rem' }}
-              />
-            </label>
-
-            <label className="campo" style={{ display: 'block', marginBottom: '1rem' }}>
-              PIN del supervisor
-              <CampoPassword
-                inputMode="numeric"
-                autoComplete="new-password"
-                value={pin}
-                onChange={(e) => {
-                  setPin(e.target.value)
-                  setError(null)
-                }}
-                style={{ width: '100%', padding: '0.5rem', paddingRight: '2rem', marginTop: '0.25rem' }}
-              />
-            </label>
-
+        <form className="turno-columnas" onSubmit={manejarContinuar}>
+          <Tarjeta>
             <ArqueoEfectivo
               cantidades={cantidades}
               onChange={(nuevas) => {
@@ -180,144 +173,182 @@ function CierreCaja() {
               }}
               mostrarDiferencia={false}
             />
+          </Tarjeta>
 
-            <button type="submit" className="btn" disabled={cargando} style={{ width: '100%' }}>
-              {cargando ? 'Generando Reporte...' : 'Continuar al Reporte'}
-            </button>
-          </form>
-        </div>
+          <Tarjeta titulo="Autorización del supervisor">
+            <div className="turno-columna">
+              <p className="turno-arqueo-ayuda">
+                Por favor, ingrese los datos del supervisor de caja para cerrar caja. Pida a un supervisor de caja su
+                usuario y PIN para poder cerrar el turno.
+              </p>
+              <CampoTexto
+                etiqueta="Usuario del supervisor"
+                type="text"
+                autoComplete="off"
+                value={supervisorId}
+                onChange={(e) => {
+                  setSupervisorId(e.target.value)
+                  setError(null)
+                }}
+              />
+
+              <label className="ui-campo">
+                <span className="ui-campo-etiqueta">PIN del supervisor</span>
+                <span className="ui-control">
+                  <CampoPassword
+                    inputMode="numeric"
+                    autoComplete="new-password"
+                    value={pin}
+                    onChange={(e) => {
+                      setPin(e.target.value)
+                      setError(null)
+                    }}
+                  />
+                </span>
+              </label>
+
+              <Boton type="submit" ancho disabled={cargando}>
+                {cargando ? 'Generando Reporte...' : 'Continuar al Reporte'}
+              </Boton>
+              <span className="ui-campo-ayuda">Esta autorización quedará registrada en la auditoría.</span>
+            </div>
+          </Tarjeta>
+        </form>
       )}
 
       {paso === 'reporte' && reporte && (
-        <div style={{ maxWidth: '600px', margin: 'auto' }}>
-          <div style={{ padding: '1.5rem', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--surface)' }}>
-            <h3 style={{ borderBottom: '1px solid var(--border)', paddingBottom: '0.5rem' }}>Reporte de Cierre de Turno #{turnoActual.codigo ?? turnoId}</h3>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', margin: '1rem 0' }}>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--success-bg)', borderRadius: '8px', border: '1px solid var(--success)' }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--success)' }}>Efectivo</p>
-                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--success)' }}>
-                  Bs. {reporte.totalesPorMetodo?.Efectivo?.neto ?? 0}
-                </p>
-              </div>
-              <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info)' }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--info)' }}>Digital (Tarjeta + QR)</p>
-                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--info)' }}>
-                  Bs. {reporte.resumenVentas?.totalDigital ?? 0}
-                </p>
-              </div>
-            </div>
-
-            <div style={{ padding: '1rem', backgroundColor: 'var(--bone)', borderRadius: '8px', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
-              <span><strong>Total recaudado:</strong> Bs. {reporte.totalRecaudado}</span>
-              <span><strong>Ventas:</strong> {reporte.resumenVentas?.cantidadVentas ?? 0}</span>
-              <span><strong>Facturas anuladas:</strong> {reporte.resumenVentas?.cantidadAnuladas ?? 0}</span>
-              {reporte.resumenVentas?.cantidadAnuladas > 0 && (
-                <>
-                  <span style={{ color: 'var(--error)' }}>(Bs. {reporte.resumenVentas.montoAnulado} anulados, no contados)</span>
-                  <button type="button" className="btn btn-secundario" onClick={abrirAnuladas} style={{ padding: '0.35rem 0.75rem' }}>
-                    Ver anuladas
-                  </button>
-                </>
-              )}
-            </div>
-
-            <div style={{ marginTop: '1rem' }}>
-              <h4>Resumen Medios de Pago:</h4>
-              <ul style={{ listStyleType: 'none', padding: 0 }}>
-                {Object.entries(reporte.totalesPorMetodo || {}).map(([metodo, totales]) => (
-                   <li key={metodo}>{metodo}: Bs. {totales.neto} ({totales.operaciones} op.)</li>
-                ))}
-              </ul>
-            </div>
-
-            <ResumenArqueo cantidades={cantidades} efectivoEsperado={efectivoEsperado} />
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
-              <button
-                type="button"
-                className="btn btn-secundario"
-                onClick={() => setPaso('ingreso')}
-                disabled={cargando}
-                style={{ flex: 1 }}
-              >
-                Volver
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={manejarCerrarCaja}
-                disabled={cargando}
-                style={{ flex: 2, backgroundColor: 'var(--error)' }}
-              >
-                {cargando ? 'Cerrando Turno...' : 'Cerrar caja y continuar'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {mostrandoAnuladas && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Facturas anuladas del turno">
-          <div className="rt-modal-facturas">
-            <button type="button" className="rt-modal-cerrar" onClick={cerrarAnuladas} aria-label="Cerrar">
-              ✕
-            </button>
-            <h3 style={{ marginTop: 0 }}>Facturas anuladas del turno</h3>
-
-            {cargandoAnuladas && <p>Cargando...</p>}
-
-            {!cargandoAnuladas && errorAnuladas && (
-              <div className="error" style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', color: 'var(--error)', borderRadius: '8px' }}>
-                No se pudo cargar la lista de anuladas: {errorAnuladas}
-              </div>
-            )}
-
-            {!cargandoAnuladas && !errorAnuladas && anuladas && (
-              <table className="tabla-facturas">
+        <div className="turno-columnas">
+          <div className="turno-columna">
+            <Tarjeta titulo={`Reporte de cierre de turno #${codigoTurno}`}>
+              <Tabla etiqueta="Resumen medios de pago">
                 <thead>
                   <tr>
-                    <th>N° Factura</th>
-                    <th>Hora</th>
-                    <th>Total (Bs.)</th>
-                    <th>Motivo</th>
-                    <th>Supervisor</th>
+                    <th>Método de pago</th>
+                    <th className="ui-num">Operaciones</th>
+                    <th className="ui-num">Neto cobrado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {anuladas.anuladas.map((a) => (
-                    <tr key={a.numero_factura}>
-                      <td>{a.numero_factura}</td>
-                      <td>{new Date(a.hora).toLocaleTimeString()}</td>
-                      <td>{a.total.toFixed(2)}</td>
-                      <td>{a.motivo || '—'}</td>
-                      <td>{a.supervisor || '—'}</td>
+                  {Object.entries(reporte.totalesPorMetodo || {}).map(([metodo, totales]) => (
+                    <tr key={metodo}>
+                      <td>{metodo}</td>
+                      <td className="ui-num">{totales.operaciones} op.</td>
+                      <td className="ui-num">Bs. {totales.neto}</td>
                     </tr>
                   ))}
                 </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan={2}><strong>Total anulado</strong></td>
-                    <td><strong>{anuladas.montoAnulado.toFixed(2)}</strong></td>
-                    <td colSpan={2}></td>
-                  </tr>
-                </tfoot>
-              </table>
-            )}
+              </Tabla>
+              <div className="turno-total">
+                <span>Total recaudado</span>
+                <strong>Bs. {reporte.totalRecaudado}</strong>
+              </div>
+            </Tarjeta>
+
+            <Tarjeta>
+              <ResumenArqueo cantidades={cantidades} efectivoEsperado={efectivoEsperado} />
+            </Tarjeta>
           </div>
+
+          <Tarjeta titulo="Antes de cerrar">
+            <div className="turno-columna">
+              <dl className="turno-datos">
+                <div>
+                  <dt>Efectivo</dt>
+                  <dd>Bs. {reporte.totalesPorMetodo?.Efectivo?.neto ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Digital (Tarjeta + QR)</dt>
+                  <dd>Bs. {reporte.resumenVentas?.totalDigital ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Ventas</dt>
+                  <dd>{reporte.resumenVentas?.cantidadVentas ?? 0}</dd>
+                </div>
+                <div>
+                  <dt>Facturas anuladas</dt>
+                  <dd>{reporte.resumenVentas?.cantidadAnuladas ?? 0}</dd>
+                </div>
+              </dl>
+              {reporte.resumenVentas?.cantidadAnuladas > 0 && (
+                <>
+                  <Alerta tono="advertencia" titulo={`(Bs. ${reporte.resumenVentas.montoAnulado} anulados, no contados)`} />
+                  <Boton variante="contorno" ancho onClick={abrirAnuladas}>
+                    Ver anuladas
+                  </Boton>
+                </>
+              )}
+              <div className="turno-acciones">
+                <Boton variante="contorno" onClick={() => setPaso('ingreso')} disabled={cargando}>
+                  Volver
+                </Boton>
+                <Boton variante="peligro" onClick={manejarCerrarCaja} disabled={cargando}>
+                  {cargando ? 'Cerrando Turno...' : 'Cerrar caja y continuar'}
+                </Boton>
+              </div>
+            </div>
+          </Tarjeta>
         </div>
       )}
 
+      <Modal abierto={mostrandoAnuladas} titulo="Facturas anuladas del turno" onCerrar={cerrarAnuladas}>
+        {cargandoAnuladas && <EstadoCargando texto="Cargando..." />}
+
+        {!cargandoAnuladas && errorAnuladas && (
+          <Alerta tono="error" titulo={`No se pudo cargar la lista de anuladas: ${errorAnuladas}`} />
+        )}
+
+        {!cargandoAnuladas && !errorAnuladas && anuladas && (
+          <Tabla etiqueta="Facturas anuladas del turno">
+            <thead>
+              <tr>
+                <th>N° Factura</th>
+                <th>Hora</th>
+                <th className="ui-num">Total (Bs.)</th>
+                <th>Motivo</th>
+                <th>Supervisor</th>
+              </tr>
+            </thead>
+            <tbody>
+              {anuladas.anuladas.map((a) => (
+                <tr key={a.numero_factura}>
+                  <td>{a.numero_factura}</td>
+                  <td>{new Date(a.hora).toLocaleTimeString()}</td>
+                  <td className="ui-num">{a.total.toFixed(2)}</td>
+                  <td>{a.motivo || '—'}</td>
+                  <td>{a.supervisor || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={2}>
+                  <strong>Total anulado</strong>
+                </td>
+                <td className="ui-num">
+                  <strong>{anuladas.montoAnulado.toFixed(2)}</strong>
+                </td>
+                <td colSpan={2}></td>
+              </tr>
+            </tfoot>
+          </Tabla>
+        )}
+      </Modal>
+
       {paso === 'listo' && (
-        <div style={{ maxWidth: '520px', margin: 'auto', textAlign: 'center', padding: '2rem', border: '1px solid var(--border)', borderRadius: '8px', backgroundColor: 'var(--success-bg)' }}>
-          <h2 style={{ color: 'var(--success)' }}>Caja Cerrada Exitosamente</h2>
-          <p style={{ color: 'var(--success)', marginBottom: '1rem' }}>
-            El turno #{turnoActual.codigo ?? turnoId} ha sido cerrado. El reporte en PDF se abrió en una pestaña nueva.
-          </p>
-          <div style={{ textAlign: 'left', margin: '0 0 1.5rem' }}>
-            <ResumenArqueo cantidades={cantidades} efectivoEsperado={efectivoEsperado} />
-          </div>
-          <button type="button" className="btn" onClick={volverAIniciarSesion}>Volver al Inicio</button>
+        <div className="turno-columnas">
+          <Tarjeta titulo="Arqueo revisado">
+            <div className="turno-columna">
+              <p className="turno-arqueo-ayuda">
+                El turno #{codigoTurno} ha sido cerrado. El reporte en PDF se abrió en una pestaña nueva.
+              </p>
+              <ResumenArqueo cantidades={cantidades} efectivoEsperado={efectivoEsperado} />
+            </div>
+          </Tarjeta>
+          <Tarjeta>
+            <Boton ancho onClick={volverAIniciarSesion}>
+              Volver al Inicio
+            </Boton>
+          </Tarjeta>
         </div>
       )}
     </section>

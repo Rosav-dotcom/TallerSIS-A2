@@ -3,6 +3,8 @@ import { obtenerTurnoActual } from '../api/turnos.js'
 import { abrirTurno } from '../api/caja.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import CampoPassword from './CampoPassword.jsx'
+import { Alerta, Boton, CampoTexto, Modal } from './ui'
+import '../pages/turno.css'
 
 const FORM_INICIAL = { efectivoInicial: '', supervisorId: '', pin: '' }
 
@@ -75,87 +77,93 @@ function TurnoModal() {
 
   if (cerrado || estado === 'verificando') return null
 
+  const titulo =
+    estado === 'activo' ? 'Turno activo' : estado === 'inactivo' ? 'Turno inactivo' : 'Turno abierto correctamente'
+
   return (
-    <div className="modal-overlay">
-      <div className="modal-caja">
-        {estado === 'activo' && (
-          <>
-            <h2>Turno activo</h2>
-            <p>
-              La caja {cajero.caja} ya tiene un turno abierto ({turno.codigo}). Puedes continuar
-              normalmente.
-            </p>
-            <button type="button" className="btn" onClick={() => setCerrado(true)}>
-              Continuar
-            </button>
-          </>
-        )}
+    <Modal abierto titulo={titulo}>
+      {estado === 'activo' && (
+        <>
+          <p className="ui-estado-texto">
+            La caja {cajero.caja} ya tiene un turno abierto ({turno.codigo}). Puedes continuar normalmente.
+          </p>
+          <div className="ui-modal-acciones">
+            <Boton onClick={() => setCerrado(true)}>Continuar</Boton>
+          </div>
+        </>
+      )}
 
-        {estado === 'inactivo' && (
-          <>
-            <h2>Turno inactivo</h2>
-            <p>
-              La caja {cajero?.caja} no tiene un turno abierto. Para habilitarla, un supervisor de
-              caja debe ingresar su usuario y PIN aquí mismo.
-            </p>
-            <form onSubmit={abrir}>
-              <label className="campo">
-                Efectivo inicial (Bs.)
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={datos.efectivoInicial}
-                  onChange={(e) => actualizarCampo('efectivoInicial', e.target.value)}
-                />
-              </label>
+      {estado === 'inactivo' && (
+        <>
+          <p className="ui-estado-texto">
+            La caja {cajero?.caja} no tiene un turno abierto. Para habilitarla, un supervisor de caja debe ingresar su
+            usuario y PIN aquí mismo.
+          </p>
+          <form className="turno-columna" onSubmit={abrir}>
+            <CampoTexto
+              etiqueta="Efectivo inicial (Bs.)"
+              prefijo="Bs"
+              type="number"
+              step="0.01"
+              min="0"
+              value={datos.efectivoInicial}
+              onChange={(e) => actualizarCampo('efectivoInicial', e.target.value)}
+            />
 
-              <label className="campo">
-                Usuario del supervisor
-                <input
-                  type="text"
-                  autoComplete="off"
-                  value={datos.supervisorId}
-                  onChange={(e) => actualizarCampo('supervisorId', e.target.value)}
-                />
-              </label>
+            <CampoTexto
+              etiqueta="Usuario del supervisor"
+              type="text"
+              autoComplete="off"
+              value={datos.supervisorId}
+              onChange={(e) => actualizarCampo('supervisorId', e.target.value)}
+            />
 
-              <label className="campo">
-                PIN del supervisor
+            <label className="ui-campo">
+              <span className="ui-campo-etiqueta">PIN del supervisor</span>
+              <span className="ui-control">
                 <CampoPassword
                   inputMode="numeric"
                   autoComplete="new-password"
                   value={datos.pin}
                   onChange={(e) => actualizarCampo('pin', e.target.value)}
                 />
-              </label>
+              </span>
+            </label>
 
-              {error && <p className="error">{error}</p>}
+            {error && <Alerta tono="error" titulo={error} />}
 
-              <button type="submit" className="btn" disabled={enviando}>
-                {enviando ? 'Abriendo turno...' : 'Abrir turno'}
-              </button>
-            </form>
-          </>
-        )}
+            <Boton type="submit" ancho disabled={enviando}>
+              {enviando ? 'Abriendo turno...' : 'Abrir turno'}
+            </Boton>
+            <span className="ui-campo-ayuda">Esta autorización quedará registrada en la auditoría.</span>
+          </form>
+        </>
+      )}
 
-        {estado === 'abierto' && (
-          <>
-            <h2>Turno abierto correctamente</h2>
-            <ul>
-              <li>Turno: {turno.codigo}</li>
-              <li>Efectivo inicial: Bs. {turno.efectivo_inicial}</li>
-              <li>
-                Autorizó: {turno.autorizado_por_nombre} ({turno.autorizado_por})
-              </li>
-            </ul>
-            <button type="button" className="btn" onClick={() => setCerrado(true)}>
-              Continuar
-            </button>
-          </>
-        )}
-      </div>
-    </div>
+      {estado === 'abierto' && (
+        <>
+          <dl className="turno-datos">
+            <div>
+              <dt>Turno</dt>
+              <dd>{turno.codigo}</dd>
+            </div>
+            <div>
+              <dt>Efectivo inicial</dt>
+              <dd>Bs. {turno.efectivo_inicial}</dd>
+            </div>
+            <div>
+              <dt>Autorizó</dt>
+              <dd>
+                {turno.autorizado_por_nombre} ({turno.autorizado_por})
+              </dd>
+            </div>
+          </dl>
+          <div className="ui-modal-acciones">
+            <Boton onClick={() => setCerrado(true)}>Continuar</Boton>
+          </div>
+        </>
+      )}
+    </Modal>
   )
 }
 
