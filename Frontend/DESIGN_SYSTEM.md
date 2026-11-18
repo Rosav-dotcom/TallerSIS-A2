@@ -105,7 +105,7 @@ Hasta terminar la migración se mantienen las variables antiguas, apuntando a la
 ## 6. Componentes y pantallas
 
 - Componentes base (`src/components/ui/`): se documentan en `docs/COMPONENTES.md` (patch 0003).
-- Guías por pantalla: `docs/pantallas/<Pantalla>.md`, con su página de Figma, dónde va cada bloque, qué componentes usa y qué no se toca.
+- Guías por pantalla: `docs/pantallas/` (índice en `docs/pantallas/README.md`). Las del Sprint 4 están en `docs/pantallas/sprint4/`; cada una dice su página de Figma, dónde va cada bloque, qué componentes usa, sus subtareas de Jira, sus PA y el backend que necesita.
 
 ## 7. Revisión antes de cada Pull Request
 
