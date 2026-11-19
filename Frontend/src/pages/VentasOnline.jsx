@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { listarVentasOnline, reenviarAvisoMarketplace } from '../api/ventasOnline.js'
+import { Search } from 'lucide-react'
+import { Alerta, Boton, CampoTexto, Chip, EstadoVacio, Modal, Selector, Tabla } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const ESTADOS = [
   { valor: '', etiqueta: 'Todos' },
@@ -8,16 +12,16 @@ const ESTADOS = [
   { valor: 'Anulado', etiqueta: 'Anulado' },
 ]
 
-const CLASE_ESTADO = {
-  Pagado: 'badge-estado--emitida',
-  Anulado: '',
-  'Anulacion Pendiente': 'badge-estado--solicitada',
+const TONO_ESTADO = {
+  Pagado: 'exito',
+  Anulado: 'neutro',
+  'Anulacion Pendiente': 'advertencia',
 }
 
 // TDSI-51: estado del correo con la factura digital que se le manda al cliente final
 // (distinto del aviso al Marketplace, que solo avisa que ya se emitio el numero).
 const ETIQUETA_FACTURA_EMAIL = { ENVIADO: 'Enviado', SIMULADO: 'Simulado (sin SMTP)', ERROR: 'Error' }
-const CLASE_FACTURA_EMAIL = { ENVIADO: 'badge-estado--emitida', SIMULADO: '', ERROR: 'badge-comparacion--faltante' }
+const TONO_FACTURA_EMAIL = { ENVIADO: 'exito', SIMULADO: 'neutro', ERROR: 'error' }
 
 const bs = (v) => Number(v ?? 0).toFixed(2)
 const FILTROS_VACIOS = { desde: '', hasta: '', estado: '' }
@@ -102,200 +106,199 @@ function VentasOnline() {
   const hayFiltros = filtros.desde || filtros.hasta || filtros.estado
 
   return (
-    <section>
-      <h1>Ventas Online</h1>
-      <p className="resumen-turno-actual">
-        Órdenes recibidas del Marketplace y su factura, ya emitida. El aviso de vuelta al
-        Marketplace (y, si la orden trajo correo, el envío de la factura al cliente) queda
-        pendiente de tu aprobación en "Ver factura".
-      </p>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Ventas Online</h1>
+        <p>
+          Órdenes recibidas del Marketplace y su factura, ya emitida. El aviso de vuelta al Marketplace (y, si la orden
+          trajo correo, el envío de la factura al cliente) queda pendiente de tu aprobación en "Ver factura".
+        </p>
+      </div>
 
-      <form className="filtro-fechas" onSubmit={buscar}>
-        <label className="campo">
-          Desde
-          <input type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} />
-        </label>
-        <label className="campo">
-          Hasta
-          <input type="date" value={hasta} min={desde || undefined} onChange={(e) => setHasta(e.target.value)} />
-        </label>
-        <label className="campo campo-turno-dia">
-          Estado
-          <select value={estado} onChange={(e) => setEstado(e.target.value)}>
-            {ESTADOS.map((o) => (
-              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
-            ))}
-          </select>
-        </label>
-        <button type="submit" className="btn">Buscar</button>
+      <form className="adm-filtros" onSubmit={buscar}>
+        <CampoTexto
+          etiqueta="Desde"
+          type="date"
+          value={desde}
+          max={hasta || undefined}
+          onChange={(e) => setDesde(e.target.value)}
+        />
+        <CampoTexto
+          etiqueta="Hasta"
+          type="date"
+          value={hasta}
+          min={desde || undefined}
+          onChange={(e) => setHasta(e.target.value)}
+        />
+        <Selector etiqueta="Estado" value={estado} onChange={(e) => setEstado(e.target.value)}>
+          {ESTADOS.map((o) => (
+            <option key={o.valor} value={o.valor}>
+              {o.etiqueta}
+            </option>
+          ))}
+        </Selector>
+        <Boton type="submit" icono={Search}>
+          Buscar
+        </Boton>
         {hayFiltros && (
-          <button type="button" className="btn btn-secundario" onClick={limpiar}>Limpiar</button>
+          <Boton variante="contorno" onClick={limpiar}>
+            Limpiar
+          </Boton>
         )}
       </form>
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
 
       {!cargando && !error && ventas.length === 0 && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">
-          No hay ventas del Marketplace en este rango.
-        </p>
+        <EstadoVacio titulo="No hay ventas del Marketplace en este rango." />
       )}
 
       {!cargando && !error && ventas.length > 0 && (
-        <div className="reporte-tabla">
-          <table className="tabla-facturas">
+        <div className="adm-tabla-ajustada">
+          <Tabla etiqueta="Ventas online">
             <thead>
               <tr>
                 <th>N° Orden</th>
                 <th>Fecha</th>
                 <th>Cliente</th>
                 <th>Correo</th>
-                <th>Total (Bs.)</th>
+                <th className="ui-num">Total (Bs.)</th>
                 <th>Método</th>
                 <th>N° Factura</th>
                 <th>Aviso al Marketplace</th>
                 <th>Factura por correo</th>
                 <th>Estado</th>
-                <th></th>
+                <th aria-label="Acciones"></th>
               </tr>
             </thead>
             <tbody>
               {ventas.map((v) => (
                 <tr key={v.id}>
-                  <td className="celda-truncada" title={v.orden_id}>{v.orden_id}</td>
+                  <td className="adm-truncada" title={v.orden_id}>
+                    {v.orden_id}
+                  </td>
                   <td>{new Date(v.recibida_en).toLocaleString()}</td>
                   <td>{v.razon_social || v.cliente_id || 'Consumidor final'}</td>
-                  <td className="celda-truncada" title={v.email || ''}>{v.email || '—'}</td>
-                  <td>{bs(v.total)}</td>
+                  <td className="adm-truncada" title={v.email || ''}>
+                    {v.email || '—'}
+                  </td>
+                  <td className="ui-num">{bs(v.total)}</td>
                   <td>{v.metodo_pago}</td>
                   <td>
-                    {v.numero_factura || (
-                      <span className="error" style={{ fontSize: '0.8rem' }}>{v.factura_error ? 'Error al emitir' : 'Pendiente'}</span>
-                    )}
+                    {v.numero_factura || <Chip tono="error">{v.factura_error ? 'Error al emitir' : 'Pendiente'}</Chip>}
                   </td>
                   <td>
                     {v.aviso_marketplace_estado ? (
-                      <span className={`badge-estado ${v.aviso_marketplace_estado === 'Enviado' ? 'badge-estado--emitida' : ''}`}>
+                      <Chip tono={v.aviso_marketplace_estado === 'Enviado' ? 'exito' : 'neutro'}>
                         {v.aviso_marketplace_estado}
-                      </span>
+                      </Chip>
                     ) : v.numero_factura ? (
-                      <span className="badge-estado badge-estado--solicitada">Pendiente de aprobación</span>
+                      <Chip tono="advertencia">Pendiente de aprobación</Chip>
                     ) : (
                       '—'
                     )}
                   </td>
                   <td>
                     {v.factura_email_estado ? (
-                      <span className={`badge-estado ${CLASE_FACTURA_EMAIL[v.factura_email_estado] ?? ''}`}>
+                      <Chip tono={TONO_FACTURA_EMAIL[v.factura_email_estado]}>
                         {ETIQUETA_FACTURA_EMAIL[v.factura_email_estado] ?? v.factura_email_estado}
-                      </span>
+                      </Chip>
                     ) : (
                       '—'
                     )}
                   </td>
                   <td>
-                    <span className={`badge-estado ${CLASE_ESTADO[v.estado] ?? ''}`}>{v.estado}</span>
+                    <Chip tono={TONO_ESTADO[v.estado]}>{v.estado}</Chip>
                   </td>
                   <td>
-                    <button type="button" className="btn btn-azul" onClick={() => abrirFactura(v)}>
-                      Ver factura
-                    </button>
+                    <div className="adm-acciones">
+                      <Boton variante="fantasma" onClick={() => abrirFactura(v)}>
+                        Ver factura
+                      </Boton>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Tabla>
         </div>
       )}
 
       {ventaSeleccionada && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label={`Factura de la orden ${ventaSeleccionada.orden_id}`}>
-          <div className="rt-modal-facturas">
-            <button
-              type="button"
-              className="rt-modal-cerrar"
-              onClick={cerrarFactura}
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-
-            <h3 style={{ marginTop: 0 }}>
-              Factura {ventaSeleccionada.numero_factura || '(pendiente de emitir)'}
-            </h3>
-            <p className="resumen-turno-actual" style={{ marginTop: '-0.5rem' }}>
-              Orden {ventaSeleccionada.orden_id} · {new Date(ventaSeleccionada.recibida_en).toLocaleString()}
-            </p>
-            <p>
-              <strong>Cliente:</strong> {ventaSeleccionada.razon_social || ventaSeleccionada.cliente_id || 'Consumidor final'}
-              {ventaSeleccionada.nit && ` · ${ventaSeleccionada.tipo_documento || 'NIT'} ${ventaSeleccionada.nit}`}
-            </p>
+        <Modal
+          abierto
+          ancho
+          titulo={`Factura ${ventaSeleccionada.numero_factura || '(pendiente de emitir)'}`}
+          onCerrar={cerrarFactura}
+        >
+          <div className="adm-form">
+            <div>
+              <p className="adm-nota">
+                Orden {ventaSeleccionada.orden_id} · {new Date(ventaSeleccionada.recibida_en).toLocaleString()}
+              </p>
+              <p>
+                <strong>Cliente:</strong>{' '}
+                {ventaSeleccionada.razon_social || ventaSeleccionada.cliente_id || 'Consumidor final'}
+                {ventaSeleccionada.nit && ` · ${ventaSeleccionada.tipo_documento || 'NIT'} ${ventaSeleccionada.nit}`}
+              </p>
+            </div>
 
             {/* TDSI-51/957: el aviso Pub/Sub al Marketplace no sale solo -- recien se
                 publica cuando el Administrador revisa esta factura y la aprueba aca. */}
-            <div
-              style={{
-                margin: '0.75rem 0 1.25rem',
-                padding: '0.75rem 1rem',
-                borderRadius: '8px',
-                backgroundColor: 'var(--bone)',
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.75rem',
-                alignItems: 'center',
-              }}
-            >
-              <button
-                type="button"
-                className="btn"
+            <div className="adm-aprobacion">
+              <Boton
                 onClick={enviarAMarketplace}
-                disabled={!ventaSeleccionada.numero_factura || ventaSeleccionada.aviso_marketplace_estado === 'Enviado' || enviandoMarketplace}
+                disabled={
+                  !ventaSeleccionada.numero_factura ||
+                  ventaSeleccionada.aviso_marketplace_estado === 'Enviado' ||
+                  enviandoMarketplace
+                }
                 title={!ventaSeleccionada.numero_factura ? 'Todavía no tiene una factura emitida' : undefined}
               >
                 {enviandoMarketplace ? 'Enviando...' : 'Aprobar y enviar a Marketplace (Pub/Sub)'}
-              </button>
+              </Boton>
               {ventaSeleccionada.aviso_marketplace_estado ? (
-                <span className={`badge-estado ${ventaSeleccionada.aviso_marketplace_estado === 'Enviado' ? 'badge-estado--emitida' : ''}`}>
+                <Chip tono={ventaSeleccionada.aviso_marketplace_estado === 'Enviado' ? 'exito' : 'neutro'}>
                   {ventaSeleccionada.aviso_marketplace_estado}
-                </span>
+                </Chip>
               ) : ventaSeleccionada.numero_factura ? (
-                <span className="resumen-turno-actual" style={{ margin: 0 }}>
+                <span className="adm-nota">
                   Revisa la factura y aprueba para avisarle al Marketplace
                   {ventaSeleccionada.email ? ' y mandarle la factura al cliente por correo.' : '.'}
                 </span>
               ) : null}
             </div>
-            {errorMarketplace && <p className="error" style={{ marginTop: '-0.5rem' }}>{errorMarketplace}</p>}
+            {errorMarketplace && <Alerta tono="error" titulo={errorMarketplace} />}
 
-            <table className="tabla-facturas">
+            <Tabla etiqueta="Ítems de la orden">
               <thead>
                 <tr>
                   <th>Ítem</th>
-                  <th>Cantidad</th>
-                  <th>Precio unit. (Bs.)</th>
-                  <th>Subtotal (Bs.)</th>
+                  <th className="ui-num">Cantidad</th>
+                  <th className="ui-num">Precio unit. (Bs.)</th>
+                  <th className="ui-num">Subtotal (Bs.)</th>
                 </tr>
               </thead>
               <tbody>
                 {ventaSeleccionada.items.map((it, i) => (
                   <tr key={it.sku ?? i}>
                     <td>{it.descripcion || it.sku}</td>
-                    <td>{it.cantidad}</td>
-                    <td>{bs(it.precio_unitario)}</td>
-                    <td>{bs(it.subtotal)}</td>
+                    <td className="ui-num">{it.cantidad}</td>
+                    <td className="ui-num">{bs(it.precio_unitario)}</td>
+                    <td className="ui-num">{bs(it.subtotal)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={3}><strong>Total</strong></td>
-                  <td><strong>{bs(ventaSeleccionada.total)}</strong></td>
+                  <th colSpan={3}>Total</th>
+                  <td className="ui-num">{bs(ventaSeleccionada.total)}</td>
                 </tr>
               </tfoot>
-            </table>
+            </Tabla>
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )

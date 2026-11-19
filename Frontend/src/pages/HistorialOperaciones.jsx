@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import '../App.css'
+import {
+  Alerta,
+  Boton,
+  CampoTexto,
+  Chip,
+  EstadoCargando,
+  EstadoVacio,
+  Selector,
+  Tabla,
+  TarjetaKpi,
+} from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const BASE_URL = import.meta.env.VITE_GESTION_PAGOS_API_BASE_URL || 'http://localhost:4005'
 const CAJA_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4004'
@@ -65,15 +77,15 @@ const formatearFechaHora = (valor) => {
 
 // TDSI-62/960: etiqueta de color por tipo de operacion autorizada (apertura, cierre,
 // anulacion, aprobacion); el resto de los estados de venta sigue como antes.
-const claseEstado = (estado) => {
+const tonoEstado = (estado) => {
   const v = String(estado).toUpperCase()
-  if (!v) return 'ho-estado-neutro'
-  if (v === 'APERTURA') return 'ho-estado-ok'
-  if (v === 'CIERRE') return 'ho-estado-neutro'
-  if (v === 'OPERACION_ESPECIAL') return 'ho-estado-info'
-  if (/ANUL|RECHAZ|ERROR|FALL/.test(v)) return 'ho-estado-error'
-  if (/PEND/.test(v)) return 'ho-estado-pendiente'
-  return 'ho-estado-ok'
+  if (!v) return 'neutro'
+  if (v === 'APERTURA') return 'exito'
+  if (v === 'CIERRE') return 'neutro'
+  if (v === 'OPERACION_ESPECIAL') return 'info'
+  if (/ANUL|RECHAZ|ERROR|FALL/.test(v)) return 'error'
+  if (/PEND/.test(v)) return 'advertencia'
+  return 'exito'
 }
 
 const etiquetaEstado = (estado) => ETIQUETA_TIPO[estado] || estado
@@ -280,179 +292,187 @@ export default function HistorialOperaciones() {
   const hayFiltros = !rangoInvalido
 
   return (
-    <section className="historial-operaciones">
-      <header className="ho-header">
-        <div className="ho-icono" aria-hidden="true">≡</div>
-        <div>
-          <p className="ho-eyebrow">SUPERVISIÓN / CAJA</p>
-          <h1>Historial de operaciones</h1>
-          <p className="ho-descripcion">Consulta las operaciones de los cajeros en un rango de fechas.</p>
-        </div>
-      </header>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Historial de operaciones</h1>
+        <p>Consulta las operaciones de los cajeros en un rango de fechas.</p>
+      </div>
 
-      <section className="ho-panel" aria-labelledby="ho-filtros-titulo">
-        <h2 id="ho-filtros-titulo">Filtros</h2>
-        <div className="ho-filtros">
-          <label className="ho-campo">
-            Cajero
-            <select value={cajeroId} onChange={cambiarFiltro(setCajeroId)} disabled={cargandoCajeros}>
-              <option value="">{cargandoCajeros ? 'Cargando cajeros...' : 'Todos los cajeros'}</option>
-              {cajeros.map((c) => (
-                <option key={c.cajero_id} value={c.cajero_id}>{c.cajero}</option>
-              ))}
-            </select>
-          </label>
-          <label className="ho-campo">
-            Supervisor que autorizó
-            <input
-              type="text"
-              value={supervisorId}
-              onChange={cambiarFiltro(setSupervisorId)}
-              placeholder="Código del supervisor"
-            />
-          </label>
-          <label className="ho-campo">
-            Desde
-            <input type="date" value={desde} max={hasta || undefined} onChange={cambiarFiltro(setDesde)} required />
-          </label>
-          <label className="ho-campo">
-            Hasta
-            <input type="date" value={hasta} min={desde || undefined} onChange={cambiarFiltro(setHasta)} required />
-          </label>
+      <div>
+        <div className="adm-filtros">
+          <Selector etiqueta="Cajero" value={cajeroId} onChange={cambiarFiltro(setCajeroId)} disabled={cargandoCajeros}>
+            <option value="">{cargandoCajeros ? 'Cargando cajeros...' : 'Todos los cajeros'}</option>
+            {cajeros.map((c) => (
+              <option key={c.cajero_id} value={c.cajero_id}>
+                {c.cajero}
+              </option>
+            ))}
+          </Selector>
+          <CampoTexto
+            etiqueta="Supervisor que autorizó"
+            type="text"
+            value={supervisorId}
+            onChange={cambiarFiltro(setSupervisorId)}
+            placeholder="Código del supervisor"
+          />
+          <CampoTexto
+            etiqueta="Desde"
+            type="date"
+            value={desde}
+            max={hasta || undefined}
+            onChange={cambiarFiltro(setDesde)}
+            required
+          />
+          <CampoTexto
+            etiqueta="Hasta"
+            type="date"
+            value={hasta}
+            min={desde || undefined}
+            onChange={cambiarFiltro(setHasta)}
+            required
+          />
         </div>
-        {rangoInvalido && <p className="ho-error-linea" role="alert">La fecha "Desde" no puede ser posterior a "Hasta".</p>}
-        {errorCajeros && <p className="ho-error-linea" role="alert">No se pudieron cargar los cajeros: {errorCajeros}</p>}
-        {supervisorId.trim() && (
-          <p className="ho-error-linea" role="status" style={{ color: 'inherit' }}>
-            Solo las operaciones que necesitaron un supervisor (apertura, cierre, anulación o aprobación) tienen autorizante, así que este filtro solo muestra esas.
-          </p>
+        {(rangoInvalido || errorCajeros || supervisorId.trim() || avisoEventos) && (
+          <div className="adm-avisos">
+            {rangoInvalido && <Alerta tono="error" titulo='La fecha "Desde" no puede ser posterior a "Hasta".' />}
+            {errorCajeros && <Alerta tono="error" titulo={`No se pudieron cargar los cajeros: ${errorCajeros}`} />}
+            {supervisorId.trim() && (
+              <Alerta
+                tono="info"
+                titulo="Solo las operaciones que necesitaron un supervisor (apertura, cierre, anulación o aprobación) tienen autorizante, así que este filtro solo muestra esas."
+              />
+            )}
+            {avisoEventos && <Alerta tono="advertencia" titulo={avisoEventos} />}
+          </div>
         )}
-        {avisoEventos && <p className="ho-error-linea" role="status">{avisoEventos}</p>}
-      </section>
+      </div>
 
       {!hayFiltros && (
-        <div className="ho-vacio">
-          <strong>Ajusta las fechas</strong>
-          <p>Elige un rango de fechas válido para ver el historial.</p>
-        </div>
+        <EstadoVacio titulo="Ajusta las fechas" texto="Elige un rango de fechas válido para ver el historial." />
       )}
 
       {error && (
-        <div className="ho-alerta" role="alert">
-          <span aria-hidden="true">!</span>
-          <div>
-            <strong>No se pudo cargar el historial</strong>
-            <p>{error}</p>
-          </div>
-          <button className="btn btn-secundario btn-pequeno" type="button" onClick={cargarHistorial}>Reintentar</button>
+        <div className="adm-filtros">
+          <Alerta tono="error" titulo="No se pudo cargar el historial">
+            {error}
+          </Alerta>
+          <Boton variante="contorno" onClick={cargarHistorial}>
+            Reintentar
+          </Boton>
         </div>
       )}
 
-      {hayFiltros && cargando && (
-        <div aria-live="polite" aria-label="Cargando historial">
-          {[1, 2, 3, 4].map((i) => <div className="ho-skeleton" key={i} />)}
-        </div>
-      )}
+      {hayFiltros && cargando && <EstadoCargando lineas={4} texto="Cargando historial" />}
 
       {hayFiltros && !cargando && !error && operaciones.length === 0 && (
-        <div className="ho-vacio">
-          <strong>Sin historial de operaciones</strong>
-          <p>
-            No hay operaciones{nombreCajero ? ` de ${nombreCajero}` : ''} entre {formatearDia(desde)} y {formatearDia(hasta)}.
-          </p>
-        </div>
+        <EstadoVacio
+          titulo="Sin historial de operaciones"
+          texto={`No hay operaciones${nombreCajero ? ` de ${nombreCajero}` : ''} entre ${formatearDia(desde)} y ${formatearDia(hasta)}.`}
+        />
       )}
 
       {hayFiltros && !cargando && !error && operaciones.length > 0 && resumen && (
         <>
           {/* Resumen calculado por el backend */}
-          <section className="ho-panel" aria-labelledby="ho-resumen-titulo">
-            <h2 id="ho-resumen-titulo">Resumen por día</h2>
-            <div className="ho-totales">
-              <div className="ho-total ho-total-principal">
-                <span>Total recaudado</span>
-                <strong>{formatearMoneda(resumen.total)}</strong>
-              </div>
-              <div className="ho-total"><span>Ventas</span><strong>{resumen.cantidad_operaciones}</strong></div>
-              <div className="ho-total"><span>Días con actividad</span><strong>{resumen.por_dia?.length || 0}</strong></div>
-            </div>
-            <div className="ho-tabla-contenedor ho-tabla-resumen">
-              <table className="ho-tabla">
-                <thead>
-                  <tr>
-                    <th>Día</th>
-                    <th className="ho-derecha">Operaciones</th>
-                    <th className="ho-derecha">Total recaudado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {resumen.por_dia?.map((d) => (
-                    <tr key={d.fecha}>
-                      <td>{formatearDia(d.fecha)}</td>
-                      <td className="ho-derecha">{d.cantidad_operaciones}</td>
-                      <td className="ho-derecha ho-monto">{formatearMoneda(d.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
+          <h2 className="adm-subtitulo">Resumen por día</h2>
+          <div className="adm-kpis">
+            <TarjetaKpi titulo="Total recaudado" valor={formatearMoneda(resumen.total)} />
+            <TarjetaKpi titulo="Ventas" valor={resumen.cantidad_operaciones} />
+            <TarjetaKpi titulo="Días con actividad" valor={resumen.por_dia?.length || 0} />
+          </div>
+          <Tabla etiqueta="Resumen por día">
+            <thead>
+              <tr>
+                <th>Día</th>
+                <th className="ui-num">Operaciones</th>
+                <th className="ui-num">Total recaudado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {resumen.por_dia?.map((d) => (
+                <tr key={d.fecha}>
+                  <td>{formatearDia(d.fecha)}</td>
+                  <td className="ui-num">{d.cantidad_operaciones}</td>
+                  <td className="ui-num">{formatearMoneda(d.total)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Tabla>
 
-          <section className="ho-panel" aria-labelledby="ho-tabla-titulo">
-            <h2 id="ho-tabla-titulo">Operaciones</h2>
-            <div className="ho-tabla-contenedor">
-              <table className="ho-tabla">
-                <thead>
-                  <tr>
-                    <th aria-sort={orden === 'asc' ? 'ascending' : 'descending'}>
-                      <button
-                        className="ho-orden"
-                        type="button"
-                        onClick={() => {
-                          setOrden(orden === 'asc' ? 'desc' : 'asc')
-                        }}
-                      >
-                        Fecha y hora <span aria-hidden="true">{orden === 'asc' ? '↑' : '↓'}</span>
-                      </button>
-                    </th>
-                    <th>Método</th>
-                    <th className="ho-derecha">Monto</th>
-                    <th>Estado</th>
-                    <th>Pedido por</th>
-                    <th>Autorizado por</th>
+          <h2 className="adm-subtitulo">Operaciones</h2>
+          <div>
+            <Tabla etiqueta="Operaciones">
+              <thead>
+                <tr>
+                  <th aria-sort={orden === 'asc' ? 'ascending' : 'descending'}>
+                    <button
+                      className="adm-orden"
+                      type="button"
+                      onClick={() => {
+                        setOrden(orden === 'asc' ? 'desc' : 'asc')
+                      }}
+                    >
+                      Fecha y hora <span aria-hidden="true">{orden === 'asc' ? '↑' : '↓'}</span>
+                    </button>
+                  </th>
+                  <th>Método</th>
+                  <th className="ui-num">Monto</th>
+                  <th>Estado</th>
+                  <th>Pedido por</th>
+                  <th>Autorizado por</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibles.map((op) => (
+                  <tr key={op.key}>
+                    <td>{formatearFechaHora(op.fecha)}</td>
+                    <td>{Array.isArray(op.metodos) ? op.metodos.join(', ') : op.metodos}</td>
+                    <td className="ui-num">{op.total == null ? '—' : formatearMoneda(op.total)}</td>
+                    <td>
+                      <Chip tono={tonoEstado(op.estado)}>{etiquetaEstado(op.estado)}</Chip>
+                    </td>
+                    <td>{op.pedido_por || '—'}</td>
+                    <td
+                      title={
+                        TIPOS_CON_AUTORIZACION.has(op.estado)
+                          ? `Autorizado el ${formatearFechaHora(op.fecha)}`
+                          : undefined
+                      }
+                    >
+                      {autorizadoPorMostrar(op)}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {visibles.map((op) => (
-                    <tr key={op.key}>
-                      <td className="ho-fecha">{formatearFechaHora(op.fecha)}</td>
-                      <td className="ho-metodo">{Array.isArray(op.metodos) ? op.metodos.join(', ') : op.metodos}</td>
-                      <td className="ho-derecha ho-monto">{op.total == null ? '—' : formatearMoneda(op.total)}</td>
-                      <td>
-                        <span className={`ho-estado ${claseEstado(op.estado)}`}><span aria-hidden="true" />{etiquetaEstado(op.estado)}</span>
-                      </td>
-                      <td>{op.pedido_por || '—'}</td>
-                      <td title={TIPOS_CON_AUTORIZACION.has(op.estado) ? `Autorizado el ${formatearFechaHora(op.fecha)}` : undefined}>
-                        {autorizadoPorMostrar(op)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </Tabla>
 
-            <nav className="ho-paginacion" aria-label="Paginación">
+            <nav className="adm-paginacion adm-paginacion--tabla" aria-label="Paginación">
               <span>
                 {paginacion.total_registros === 0 ? 0 : (paginacion.pagina - 1) * paginacion.por_pagina + 1}–
-                {Math.min(paginacion.pagina * paginacion.por_pagina, paginacion.total_registros)} de {paginacion.total_registros}
+                {Math.min(paginacion.pagina * paginacion.por_pagina, paginacion.total_registros)} de{' '}
+                {paginacion.total_registros}
               </span>
               <div>
-                <button className="btn btn-secundario btn-pequeno" type="button" onClick={() => setPagina(paginacion.pagina - 1)} disabled={paginacion.pagina <= 1}>Anterior</button>
-                <span className="ho-pagina">Página {paginacion.pagina} de {paginacion.total_paginas}</span>
-                <button className="btn btn-secundario btn-pequeno" type="button" onClick={() => setPagina(paginacion.pagina + 1)} disabled={paginacion.pagina >= paginacion.total_paginas}>Siguiente</button>
+                <Boton
+                  variante="contorno"
+                  onClick={() => setPagina(paginacion.pagina - 1)}
+                  disabled={paginacion.pagina <= 1}
+                >
+                  Anterior
+                </Boton>
+                <span>
+                  Página {paginacion.pagina} de {paginacion.total_paginas}
+                </span>
+                <Boton
+                  variante="contorno"
+                  onClick={() => setPagina(paginacion.pagina + 1)}
+                  disabled={paginacion.pagina >= paginacion.total_paginas}
+                >
+                  Siguiente
+                </Boton>
               </div>
             </nav>
-          </section>
+          </div>
         </>
       )}
     </section>

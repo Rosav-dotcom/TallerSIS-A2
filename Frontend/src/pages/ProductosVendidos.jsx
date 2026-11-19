@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { obtenerProductosVendidos, enviarProductosACompras } from '../api/productosVendidos.js'
+import { Send } from 'lucide-react'
+import { Alerta, Boton, CampoTexto, Chip, EstadoVacio, Modal, Tabla } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 function hoyLocal() {
   const d = new Date()
@@ -11,7 +15,7 @@ function hoyLocal() {
 const bs = (v) => Number(v ?? 0).toFixed(2)
 
 const ETIQUETA_ENVIO = { Enviado: 'Enviado', Recibido: 'Recibido por Compras', Error: 'Error' }
-const CLASE_ENVIO = { Enviado: 'badge-estado', Recibido: 'badge-estado--emitida', Error: 'badge-comparacion--faltante' }
+const TONO_ENVIO = { Enviado: 'info', Recibido: 'exito', Error: 'error' }
 
 // TDSI-186/712-715: pantalla "Productos Vendidos" del Administrador -- productos del
 // dia (solo ventas del Marketplace, que son las unicas con desglose por item) y el
@@ -66,96 +70,101 @@ function ProductosVendidos() {
   }
 
   return (
-    <section>
-      <h1>Productos Vendidos</h1>
-      <p className="resumen-turno-actual">
-        Productos vendidos en el día (ventas del Marketplace) y el envío del reporte diario a Compras.
-      </p>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Productos Vendidos</h1>
+        <p>Productos vendidos en el día (ventas del Marketplace) y el envío del reporte diario a Compras.</p>
+      </div>
 
-      <div className="filtro-fechas">
-        <label className="campo">
-          Fecha
-          <input type="date" value={fecha} max={hoyLocal()} onChange={(e) => setFecha(e.target.value)} />
-        </label>
-        <button type="button" className="btn" onClick={() => setConfirmando(true)} disabled={!puedeEnviar}>
+      <div className="adm-filtros">
+        <CampoTexto
+          etiqueta="Fecha"
+          type="date"
+          value={fecha}
+          max={hoyLocal()}
+          onChange={(e) => setFecha(e.target.value)}
+        />
+        <Boton icono={Send} onClick={() => setConfirmando(true)} disabled={!puedeEnviar}>
           Enviar a Compras
-        </button>
+        </Boton>
         {datos?.envio && (
-          <span className={`badge-estado ${CLASE_ENVIO[datos.envio.estado] ?? ''}`}>
-            {ETIQUETA_ENVIO[datos.envio.estado] ?? datos.envio.estado}
+          <span className="adm-dato">
+            <Chip tono={TONO_ENVIO[datos.envio.estado]}>
+              {ETIQUETA_ENVIO[datos.envio.estado] ?? datos.envio.estado}
+            </Chip>
           </span>
         )}
       </div>
 
       {datos?.envio?.estado === 'Error' && (
-        <p className="error">No se pudo enviar el reporte: {datos.envio.ultimoError}</p>
+        <Alerta tono="error" titulo={`No se pudo enviar el reporte: ${datos.envio.ultimoError}`} />
       )}
       {datos?.envio?.enviadoEn && (
-        <p className="resumen-turno-actual" style={{ marginTop: '-0.5rem' }}>
+        <p className="adm-nota">
           Enviado el {new Date(datos.envio.enviadoEn).toLocaleString()}
           {datos.envio.recibidoEn && ` · Recibido el ${new Date(datos.envio.recibidoEn).toLocaleString()}`}
         </p>
       )}
 
-      {mensaje && <p className="mensaje-exito">{mensaje}</p>}
+      {mensaje && <Alerta tono="exito" titulo={mensaje} />}
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
 
-      {!cargando && !error && !hayProductos && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">No hubo ventas en esta fecha.</p>
-      )}
+      {!cargando && !error && !hayProductos && <EstadoVacio titulo="No hubo ventas en esta fecha." />}
 
       {!cargando && !error && hayProductos && (
-        <div className="reporte-tabla">
-          <table className="tabla-facturas">
-            <thead>
-              <tr>
-                <th>Producto</th>
-                <th>Cantidad</th>
-                <th>Monto (Bs.)</th>
+        <Tabla etiqueta="Productos vendidos">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th className="ui-num">Cantidad</th>
+              <th className="ui-num">Monto (Bs.)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {datos.productos.map((p) => (
+              <tr key={p.sku}>
+                <td>{p.descripcion || p.sku}</td>
+                <td className="ui-num">{p.cantidad}</td>
+                <td className="ui-num">{bs(p.monto)}</td>
               </tr>
-            </thead>
-            <tbody>
-              {datos.productos.map((p) => (
-                <tr key={p.sku}>
-                  <td>{p.descripcion || p.sku}</td>
-                  <td>{p.cantidad}</td>
-                  <td>{bs(p.monto)}</td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <td><strong>Total</strong></td>
-                <td><strong>{totalUnidades}</strong></td>
-                <td><strong>{bs(totalMonto)}</strong></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th>Total</th>
+              <td className="ui-num">{totalUnidades}</td>
+              <td className="ui-num">{bs(totalMonto)}</td>
+            </tr>
+          </tfoot>
+        </Tabla>
       )}
 
       {confirmando && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Confirmar envío a Compras">
-          <div className="modal-caja">
-            <h2>¿Enviar a Compras?</h2>
-            <p>
-              Se va a enviar el reporte de productos vendidos del {fecha} ({totalUnidades} unidades, Bs. {bs(totalMonto)}) a Compras.
-            </p>
-
-            {errorEnvio && <p className="error">{errorEnvio}</p>}
-
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={() => setConfirmando(false)} disabled={enviando}>
+        <Modal
+          abierto
+          titulo="¿Enviar a Compras?"
+          onCerrar={enviando ? undefined : () => setConfirmando(false)}
+          acciones={
+            <>
+              <Boton variante="contorno" onClick={() => setConfirmando(false)} disabled={enviando}>
                 Cancelar
-              </button>
-              <button type="button" className="btn" onClick={confirmarEnvio} disabled={enviando}>
+              </Boton>
+              <Boton onClick={confirmarEnvio} disabled={enviando}>
                 {enviando ? 'Enviando...' : 'Sí, enviar'}
-              </button>
-            </div>
+              </Boton>
+            </>
+          }
+        >
+          <div className="adm-form">
+            <p>
+              Se va a enviar el reporte de productos vendidos del {fecha} ({totalUnidades} unidades, Bs.{' '}
+              {bs(totalMonto)}) a Compras.
+            </p>
+            {errorEnvio && <Alerta tono="error" titulo={errorEnvio} />}
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )

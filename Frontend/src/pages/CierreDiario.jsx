@@ -1,5 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
-import '../App.css'
+import { RefreshCw } from 'lucide-react'
+import {
+  Alerta,
+  Boton,
+  CampoTexto,
+  Chip,
+  EstadoCargando,
+  EstadoVacio,
+  Modal,
+  Tabla,
+  Tarjeta,
+  TarjetaKpi,
+} from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const BASE_URL = import.meta.env.VITE_PAGOS_PROVEEDORES_API_BASE_URL || 'http://localhost:4006'
 const API_URL = `${BASE_URL}/api/lotes-cierre`
@@ -189,29 +203,18 @@ export default function CierreDiario() {
   const estado = (lote?.estado || 'GENERADO').toUpperCase()
 
   return (
-    <section className="cierre-diario">
-      <header className="cierre-diario-header">
-        <div className="cierre-diario-icono" aria-hidden="true">↻</div>
-        <div>
-          <p className="cierre-diario-eyebrow">ADMINISTRACIÓN / ENLACE ERP</p>
-          <h1>Cierre diario</h1>
-          <p className="cierre-diario-descripcion">Consolida los movimientos financieros del día y genera el lote para su integración con el ERP.</p>
-        </div>
-      </header>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Cierre diario</h1>
+        <p>Consolida los movimientos financieros del día y genera el lote para su integración con el ERP.</p>
+      </div>
 
-      <section className="cierre-diario-panel" aria-labelledby="generar-lote-titulo">
-        <div className="cierre-diario-panel-titulo">
-          <div>
-            <h2 id="generar-lote-titulo">Generación de lote</h2>
-            <p>Selecciona la fecha contable que deseas procesar.</p>
-          </div>
-          <span className="cierre-diario-etiqueta">CIERRE DIARIO</span>
-        </div>
-
-        <form className="cierre-diario-form" onSubmit={generarLote}>
-          <label className="campo cierre-diario-fecha">
-            Fecha del cierre
-            <input
+      <Tarjeta titulo="Generación de lote">
+        <div className="adm-form">
+          <p className="adm-nota">Selecciona la fecha contable que deseas procesar.</p>
+          <form className="adm-filtros" onSubmit={generarLote}>
+            <CampoTexto
+              etiqueta="Fecha del cierre"
               type="date"
               value={fecha}
               onChange={(event) => {
@@ -223,151 +226,112 @@ export default function CierreDiario() {
               required
               aria-label="Fecha del cierre diario"
             />
-          </label>
-          <button className="btn cierre-diario-generar" type="submit" disabled={isLoading || !fecha}>
-            {isLoading ? <><span className="cierre-diario-spinner" aria-hidden="true" /> Procesando...</> : 'Generar lote'}
-          </button>
-        </form>
-      </section>
+            <Boton type="submit" disabled={isLoading || !fecha}>
+              {isLoading ? 'Procesando...' : 'Generar lote'}
+            </Boton>
+          </form>
+        </div>
+      </Tarjeta>
 
-      {isLoading && (
-        <section className="cierre-diario-panel" aria-live="polite" aria-label="Cargando lote">
-          <div className="cierre-diario-skeleton cierre-diario-skeleton-titulo" />
-          <div className="cierre-diario-metricas">
-            {[1, 2, 3, 4].map((item) => <div className="cierre-diario-skeleton cierre-diario-skeleton-card" key={item} />)}
-          </div>
-          <p className="cierre-diario-ayuda">Consultando información del cierre...</p>
-        </section>
-      )}
+      {isLoading && <EstadoCargando texto="Consultando información del cierre..." />}
 
       {error && (
-        <div className="cierre-diario-alerta cierre-diario-alerta-error" role="alert">
-          <span className="cierre-diario-alerta-icono" aria-hidden="true">!</span>
-          <div>
-            <strong>{error}</strong>
-            {error === 'Periodo contable cerrado' && (
-              <p>La generación fue bloqueada. Selecciona otra fecha con periodo contable abierto o contacta a Contabilidad.</p>
-            )}
-            {error === 'Contabilidad no disponible' && (
-              <p>No se generó ningún lote. Inténtalo más tarde o contacta al equipo de soporte.</p>
-            )}
-          </div>
-        </div>
+        <Alerta tono="error" titulo={error}>
+          {error === 'Periodo contable cerrado' &&
+            'La generación fue bloqueada. Selecciona otra fecha con periodo contable abierto o contacta a Contabilidad.'}
+          {error === 'Contabilidad no disponible' &&
+            'No se generó ningún lote. Inténtalo más tarde o contacta al equipo de soporte.'}
+        </Alerta>
       )}
 
-      {exito && (
-        <div className="cierre-diario-alerta cierre-diario-alerta-exito" role="status">
-          <span aria-hidden="true">✓</span><strong>{exito}</strong>
-        </div>
-      )}
+      {exito && <Alerta tono="exito" titulo={exito} />}
 
       {lote && !isLoading && (
-        <section className="cierre-diario-panel cierre-diario-resultado" aria-labelledby="resumen-lote-titulo">
-          <div className="cierre-diario-panel-titulo cierre-diario-resumen-titulo">
-            <div>
-              <p className="cierre-diario-eyebrow">RESULTADO DEL PROCESO</p>
-              <h2 id="resumen-lote-titulo">Resumen financiero</h2>
-              <p>Detalle consolidado del lote de cierre diario.</p>
-            </div>
-            <span className={`cierre-diario-estado ${estado === 'GENERADO' ? 'cierre-diario-estado-ok' : ''}`}>
-              <span />{estado}
-            </span>
-          </div>
+        <Tarjeta
+          titulo="Resumen financiero"
+          acciones={<Chip tono={estado === 'GENERADO' ? 'exito' : 'neutro'}>{estado}</Chip>}
+        >
+          <div className="adm-form">
+            <p className="adm-nota">Detalle consolidado del lote de cierre diario.</p>
 
-          <div className="cierre-diario-metadatos">
-            <div><span>Fecha del lote</span><strong>{lote.fecha || fecha}</strong></div>
-            <div><span>Identificador del lote</span><strong>{lote.id != null || lote.id_lote != null ? `#${lote.id ?? lote.id_lote}` : 'No informado'}</strong></div>
-          </div>
+            <dl className="adm-datos">
+              <div>
+                <dt>Fecha del lote</dt>
+                <dd>{lote.fecha || fecha}</dd>
+              </div>
+              <div>
+                <dt>Identificador del lote</dt>
+                <dd>{lote.id != null || lote.id_lote != null ? `#${lote.id ?? lote.id_lote}` : 'No informado'}</dd>
+              </div>
+            </dl>
 
-          <div className="cierre-diario-metricas">
-            <article className="cierre-diario-metrica metrica-ingresos">
-              <span className="cierre-diario-metrica-icono" aria-hidden="true">↗</span>
-              <span className="cierre-diario-metrica-label">Total ingresos</span>
-              <strong>{dinero(lote.ingresos ?? lote.total_ingresos)}</strong>
-              <small>Entradas consolidadas</small>
-            </article>
-            <article className="cierre-diario-metrica metrica-egresos">
-              <span className="cierre-diario-metrica-icono" aria-hidden="true">↘</span>
-              <span className="cierre-diario-metrica-label">Total egresos</span>
-              <strong>{dinero(lote.egresos ?? lote.total_egresos)}</strong>
-              <small>Salidas consolidadas</small>
-            </article>
-            <article className="cierre-diario-metrica metrica-impuestos">
-              <span className="cierre-diario-metrica-icono" aria-hidden="true">%</span>
-              <span className="cierre-diario-metrica-label">Total impuestos</span>
-              <strong>{dinero(lote.impuestos ?? lote.total_impuestos)}</strong>
-              <small>Impuestos del periodo</small>
-            </article>
-            <article className="cierre-diario-metrica metrica-neto">
-              <span className="cierre-diario-metrica-icono" aria-hidden="true">＝</span>
-              <span className="cierre-diario-metrica-label">Total neto</span>
-              <strong>
-                {dinero(
+            <div className="adm-kpis">
+              <TarjetaKpi titulo="Total ingresos" valor={dinero(lote.ingresos ?? lote.total_ingresos)}>
+                <span className="adm-kpi-detalle">Entradas consolidadas</span>
+              </TarjetaKpi>
+              <TarjetaKpi titulo="Total egresos" valor={dinero(lote.egresos ?? lote.total_egresos)}>
+                <span className="adm-kpi-detalle">Salidas consolidadas</span>
+              </TarjetaKpi>
+              <TarjetaKpi titulo="Total impuestos" valor={dinero(lote.impuestos ?? lote.total_impuestos)}>
+                <span className="adm-kpi-detalle">Impuestos del periodo</span>
+              </TarjetaKpi>
+              <TarjetaKpi
+                titulo="Total neto"
+                valor={dinero(
                   lote.neto ??
-                  lote.total_neto ??
-                  ((Number(lote.ingresos ?? lote.total_ingresos) || 0) - (Number(lote.egresos ?? lote.total_egresos) || 0))
+                    lote.total_neto ??
+                    (Number(lote.ingresos ?? lote.total_ingresos) || 0) -
+                      (Number(lote.egresos ?? lote.total_egresos) || 0),
                 )}
-              </strong>
-              <small>Ingresos menos egresos</small>
-            </article>
+              >
+                <span className="adm-kpi-detalle">Ingresos menos egresos</span>
+              </TarjetaKpi>
+            </div>
+            <p className="adm-nota">Los importes se muestran en bolivianos (BOB).</p>
           </div>
-          <p className="cierre-diario-nota"><span aria-hidden="true">i</span> Los importes se muestran en bolivianos (BOB).</p>
-        </section>
+        </Tarjeta>
       )}
 
       {/* TDSI-22: Envíos a Contabilidad */}
-      <section className="cierre-diario-panel" aria-labelledby="envios-titulo">
-        <div className="cierre-diario-panel-titulo">
-          <div>
-            <h2 id="envios-titulo">Envíos a Contabilidad</h2>
-            <p>Reportes de ingresos, egresos e impuestos enviados para la creación de asientos contables.</p>
-          </div>
-          <button
-            className="btn btn-secundario btn-pequeno"
-            type="button"
+      <Tarjeta
+        titulo="Envíos a Contabilidad"
+        acciones={
+          <Boton
+            variante="contorno"
+            icono={RefreshCw}
             onClick={() => cargarEnvios()}
             disabled={cargandoEnvios || reenviandoId != null}
           >
             {cargandoEnvios ? 'Actualizando...' : 'Actualizar'}
-          </button>
-        </div>
+          </Boton>
+        }
+      >
+        <div className="adm-form">
+          <p className="adm-nota">
+            Reportes de ingresos, egresos e impuestos enviados para la creación de asientos contables.
+          </p>
 
-        {mensajeEnvio && (
-          <div
-            className={`cierre-diario-alerta ${mensajeEnvio.tipo === 'exito' ? 'cierre-diario-alerta-exito' : 'cierre-diario-alerta-error'}`}
-            role={mensajeEnvio.tipo === 'exito' ? 'status' : 'alert'}
-          >
-            <span aria-hidden="true">{mensajeEnvio.tipo === 'exito' ? '✓' : '!'}</span>
-            <strong>{mensajeEnvio.texto}</strong>
-          </div>
-        )}
+          {mensajeEnvio && (
+            <Alerta tono={mensajeEnvio.tipo === 'exito' ? 'exito' : 'error'} titulo={mensajeEnvio.texto} />
+          )}
 
-        {cargandoEnvios && envios.length === 0 && (
-          <div aria-live="polite" aria-label="Cargando envíos">
-            {[1, 2, 3].map((item) => <div className="cierre-diario-skeleton cierre-envios-skeleton" key={item} />)}
-          </div>
-        )}
+          {cargandoEnvios && envios.length === 0 && <EstadoCargando texto="Cargando envíos..." />}
 
-        {errorEnvios && (
-          <div className="cierre-diario-alerta cierre-diario-alerta-error" role="alert">
-            <span className="cierre-diario-alerta-icono" aria-hidden="true">!</span>
-            <div>
-              <strong>No se pudieron cargar los envíos</strong>
-              <p>{errorEnvios}</p>
-            </div>
-          </div>
-        )}
+          {errorEnvios && (
+            <Alerta tono="error" titulo="No se pudieron cargar los envíos">
+              {errorEnvios}
+            </Alerta>
+          )}
 
-        {!cargandoEnvios && !errorEnvios && envios.length === 0 && (
-          <div className="cierre-envios-vacio">
-            <strong>Sin envíos registrados</strong>
-            <p>Cuando se genere un lote de cierre, su envío a Contabilidad aparecerá aquí.</p>
-          </div>
-        )}
+          {!cargandoEnvios && !errorEnvios && envios.length === 0 && (
+            <EstadoVacio
+              titulo="Sin envíos registrados"
+              texto="Cuando se genere un lote de cierre, su envío a Contabilidad aparecerá aquí."
+            />
+          )}
 
-        {envios.length > 0 && (
-          <div className="cierre-envios-tabla-contenedor">
-            <table className="cierre-envios-tabla">
+          {envios.length > 0 && (
+            <Tabla etiqueta="Envíos a Contabilidad">
               <thead>
                 <tr>
                   <th>Envío</th>
@@ -381,7 +345,7 @@ export default function CierreDiario() {
                 {envios.map((envio, indice) => {
                   const id = idEnvio(envio)
                   const clave = normalizarEstadoEnvio(envio.estado)
-                  const { etiqueta, clase } = ESTADOS_ENVIO[clave]
+                  const { etiqueta } = ESTADOS_ENVIO[clave]
                   const idLote = envio.id_lote ?? envio.lote_id
                   const fechaEnvio = envio.fecha ?? envio.fecha_lote ?? envio.fecha_envio
                   const reenviando = reenviandoId === id
@@ -392,48 +356,55 @@ export default function CierreDiario() {
                       <td>{idLote != null ? `#${idLote}` : '—'}</td>
                       <td>{fechaEnvio ? String(fechaEnvio).slice(0, 10) : '—'}</td>
                       <td>
-                        <span className={`envio-estado ${clase}`}>
-                          <span aria-hidden="true" />{etiqueta}
-                        </span>
+                        <Chip tono={clave === 'ENVIADO' ? 'exito' : clave === 'ERROR' ? 'error' : 'advertencia'}>
+                          {etiqueta}
+                        </Chip>
                         {clave === 'ERROR' && (envio.mensaje_error ?? envio.ultimo_error) && (
-                          <small className="envio-detalle-error">{envio.mensaje_error ?? envio.ultimo_error}</small>
+                          <span className="adm-detalle adm-accion--peligro">
+                            {envio.mensaje_error ?? envio.ultimo_error}
+                          </span>
                         )}
                       </td>
-                      <td className="cierre-envios-acciones">
+                      <td>
                         {clave === 'ERROR' && (
-                          <button
-                            className="btn btn-secundario btn-pequeno"
-                            type="button"
-                            onClick={() => reenviarEnvio(envio)}
-                            disabled={reenviandoId != null}
-                          >
-                            {reenviando ? 'Reenviando...' : 'Reenviar'}
-                          </button>
+                          <div className="adm-acciones">
+                            <Boton
+                              variante="fantasma"
+                              onClick={() => reenviarEnvio(envio)}
+                              disabled={reenviandoId != null}
+                            >
+                              {reenviando ? 'Reenviando...' : 'Reenviar'}
+                            </Boton>
+                          </div>
                         )}
                       </td>
                     </tr>
                   )
                 })}
               </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+            </Tabla>
+          )}
+        </div>
+      </Tarjeta>
 
       {modalExistente && (
-        <div className="cierre-diario-modal-fondo" role="presentation">
-          <section className="cierre-diario-modal" role="dialog" aria-modal="true" aria-labelledby="lote-existente-titulo">
-            <div className="cierre-diario-modal-icono" aria-hidden="true">i</div>
-            <h2 id="lote-existente-titulo">Ya existe un lote generado para esta fecha</h2>
-            <p>La fecha seleccionada ya fue procesada. Puedes consultar el lote registrado sin generar uno nuevo.</p>
-            <div className="cierre-diario-modal-acciones">
-              <button className="btn btn-secundario" type="button" onClick={() => setModalExistente(false)}>Cancelar</button>
-              <button className="btn" type="button" onClick={() => verLoteExistente(loteExistente)} disabled={isLoading}>
+        <Modal
+          abierto
+          titulo="Ya existe un lote generado para esta fecha"
+          onCerrar={() => setModalExistente(false)}
+          acciones={
+            <>
+              <Boton variante="contorno" onClick={() => setModalExistente(false)}>
+                Cancelar
+              </Boton>
+              <Boton onClick={() => verLoteExistente(loteExistente)} disabled={isLoading}>
                 {isLoading ? 'Consultando...' : 'Ver lote existente'}
-              </button>
-            </div>
-          </section>
-        </div>
+              </Boton>
+            </>
+          }
+        >
+          <p>La fecha seleccionada ya fue procesada. Puedes consultar el lote registrado sin generar uno nuevo.</p>
+        </Modal>
       )}
     </section>
   )

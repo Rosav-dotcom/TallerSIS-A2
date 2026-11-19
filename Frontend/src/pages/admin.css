@@ -247,3 +247,122 @@ a.ui-boton {
 .ui-modal--ancho:has(.adm-sin-cortes) {
   max-width: min(1040px, 100%);
 }
+/* Variación contra el mes anterior */
+.adm-variacion--sube {
+  color: var(--success);
+}
+.adm-variacion--baja {
+  color: var(--error);
+}
+.adm-variacion--igual {
+  color: var(--muted);
+}
+/* Fichas (una por caja) */
+.adm-rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--espacio-4);
+}
+.adm-ficha {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  background: var(--surface);
+}
+.adm-ficha-codigo {
+  display: block;
+  font: var(--texto-subtitulo);
+  color: var(--text);
+}
+.adm-dato {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alto-tactil);
+}
+
+/* Barra de avance de la meta */
+.adm-avance {
+  height: 8px;
+  overflow: hidden;
+  border-radius: var(--radio-control);
+  background: var(--border);
+}
+.adm-avance-barra {
+  height: 100%;
+}
+.adm-avance-porcentaje {
+  display: block;
+  margin-top: var(--espacio-1);
+  font-variant-numeric: tabular-nums;
+}
+/* Celdas largas (N° de orden, correo): se cortan con "…" y el texto completo va en el title. */
+.adm-pagina .ui-tabla .adm-truncada {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Aprobación del aviso al Marketplace */
+.adm-aprobacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-control);
+  background: var(--bone);
+}
+/* Monto de una diferencia de caja */
+.adm-diferencia--faltante {
+  color: var(--error);
+}
+.adm-diferencia--sobrante {
+  color: var(--warning);
+}
+.adm-reenviar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  margin-top: var(--espacio-1);
+}
+.adm-reenviar .ui-boton {
+  min-height: 32px;
+  padding: 0 var(--espacio-2);
+}
+.adm-avisos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin-top: var(--espacio-3);
+}
+.adm-paginacion--tabla {
+  padding-top: var(--espacio-3);
+}
+/* Encabezado de columna que ordena (Fecha y hora) */
+.adm-orden {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+/* Tablas con muchas columnas (Ventas online): los títulos y los chips pueden ir en dos líneas
+   para que la tabla entre en la pantalla sin esconder "Ver factura". */
+.adm-tabla-ajustada .ui-tabla th,
+.adm-tabla-ajustada .ui-tabla .ui-chip {
+  white-space: normal;
+}
+.adm-tabla-ajustada .ui-tabla .adm-truncada {
+  max-width: 130px;
+}
+.adm-tabla-ajustada .ui-tabla th,
+.adm-tabla-ajustada .ui-tabla td {
+  padding-left: var(--espacio-2);
+  padding-right: var(--espacio-2);
+}

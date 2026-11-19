@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
 import { obtenerComparativoMensual } from '../api/tablero.js'
+import { Alerta, CampoTexto, Selector, Tabla, TarjetaKpi } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const MESES = [
   { valor: 1, etiqueta: 'Enero' }, { valor: 2, etiqueta: 'Febrero' }, { valor: 3, etiqueta: 'Marzo' },
@@ -14,11 +17,16 @@ const bs = (v) => Number(v ?? 0).toFixed(2)
 
 function Variacion({ valor }) {
   if (valor === null || valor === undefined) {
-    return <span className="resumen-turno-actual" style={{ fontSize: '0.85rem' }}>Sin datos del mes anterior</span>
+    return <span className="adm-detalle">Sin datos del mes anterior</span>
   }
-  const color = valor > 0 ? 'var(--success)' : valor < 0 ? 'var(--error)' : 'var(--muted)'
+  const clase = valor > 0 ? 'adm-variacion--sube' : valor < 0 ? 'adm-variacion--baja' : 'adm-variacion--igual'
   const signo = valor > 0 ? '+' : ''
-  return <strong style={{ color }}>{signo}{valor.toFixed(2)}%</strong>
+  return (
+    <strong className={clase}>
+      {signo}
+      {valor.toFixed(2)}%
+    </strong>
+  )
 }
 
 // TDSI-190/738-741: pantalla "Comparativo mensual" del Administrador -- total del mes
@@ -45,96 +53,98 @@ function ComparativoMensual() {
   }, [mes, anio])
 
   return (
-    <section>
-      <h1>Comparativo mensual</h1>
-      <p className="resumen-turno-actual">
-        Total vendido del mes elegido contra el mes anterior, por caja y por método de pago.
-      </p>
-
-      <div className="filtro-fechas">
-        <label className="campo campo-turno-dia">
-          Mes
-          <select value={mes} onChange={(e) => setMes(Number(e.target.value))}>
-            {MESES.map((m) => (
-              <option key={m.valor} value={m.valor}>{m.etiqueta}</option>
-            ))}
-          </select>
-        </label>
-        <label className="campo campo-turno-dia">
-          Año
-          <input type="number" min="2000" max="2100" value={anio} onChange={(e) => setAnio(Number(e.target.value))} />
-        </label>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Comparativo mensual</h1>
+        <p>Total vendido del mes elegido contra el mes anterior, por caja y por método de pago.</p>
       </div>
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      <div className="adm-filtros">
+        <Selector etiqueta="Mes" value={mes} onChange={(e) => setMes(Number(e.target.value))}>
+          {MESES.map((m) => (
+            <option key={m.valor} value={m.valor}>
+              {m.etiqueta}
+            </option>
+          ))}
+        </Selector>
+        <CampoTexto
+          etiqueta="Año"
+          type="number"
+          min="2000"
+          max="2100"
+          value={anio}
+          onChange={(e) => setAnio(Number(e.target.value))}
+        />
+      </div>
+
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
 
       {!cargando && !error && datos && (
         <>
           {datos.comparadoPorMismosDias && (
-            <p className="resumen-turno-actual">
-              Como es el mes en curso, se compara contra los mismos días de {NOMBRE_MES[datos.mesAnterior]}.
-            </p>
+            <Alerta
+              tono="info"
+              titulo={`Como es el mes en curso, se compara contra los mismos días de ${NOMBRE_MES[datos.mesAnterior]}.`}
+            />
           )}
 
-          <div className="resumen-cards">
-            <div className="resumen-card">
-              <span className="resumen-card-metodo">{NOMBRE_MES[datos.mes]} {datos.anio}</span>
-              <span className="resumen-card-total">Bs. {bs(datos.total.actual)}</span>
-            </div>
-            <div className="resumen-card">
-              <span className="resumen-card-metodo">{NOMBRE_MES[datos.mesAnterior]} {datos.anioAnterior}</span>
-              <span className="resumen-card-total">Bs. {bs(datos.total.anterior)}</span>
-            </div>
-            <div className="resumen-card">
-              <span className="resumen-card-metodo">Variación</span>
-              <span className="resumen-card-total"><Variacion valor={datos.total.variacion} /></span>
-            </div>
+          <div className="adm-kpis">
+            <TarjetaKpi titulo={`${NOMBRE_MES[datos.mes]} ${datos.anio}`} valor={`Bs. ${bs(datos.total.actual)}`} />
+            <TarjetaKpi
+              titulo={`${NOMBRE_MES[datos.mesAnterior]} ${datos.anioAnterior}`}
+              valor={`Bs. ${bs(datos.total.anterior)}`}
+            />
+            <TarjetaKpi titulo="Variación" valor={<Variacion valor={datos.total.variacion} />} />
           </div>
 
-          <h2 className="reporte-seccion">Por caja</h2>
-          <table className="tabla-facturas">
+          <h2 className="adm-subtitulo">Por caja</h2>
+          <Tabla etiqueta="Comparativo por caja">
             <thead>
               <tr>
                 <th>Caja</th>
-                <th>{NOMBRE_MES[datos.mes]} (Bs.)</th>
-                <th>{NOMBRE_MES[datos.mesAnterior]} (Bs.)</th>
-                <th>Variación</th>
+                <th className="ui-num">{NOMBRE_MES[datos.mes]} (Bs.)</th>
+                <th className="ui-num">{NOMBRE_MES[datos.mesAnterior]} (Bs.)</th>
+                <th className="ui-num">Variación</th>
               </tr>
             </thead>
             <tbody>
               {datos.porCaja.map((c) => (
                 <tr key={c.caja_id}>
                   <td>{c.caja_id}</td>
-                  <td>{bs(c.actual)}</td>
-                  <td>{bs(c.anterior)}</td>
-                  <td><Variacion valor={c.variacion} /></td>
+                  <td className="ui-num">{bs(c.actual)}</td>
+                  <td className="ui-num">{bs(c.anterior)}</td>
+                  <td className="ui-num">
+                    <Variacion valor={c.variacion} />
+                  </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Tabla>
 
-          <h2 className="reporte-seccion">Por método de pago</h2>
-          <table className="tabla-facturas">
+          <h2 className="adm-subtitulo">Por método de pago</h2>
+          <Tabla etiqueta="Comparativo por método de pago">
             <thead>
               <tr>
                 <th>Método</th>
-                <th>{NOMBRE_MES[datos.mes]} (Bs.)</th>
-                <th>{NOMBRE_MES[datos.mesAnterior]} (Bs.)</th>
-                <th>Variación</th>
+                <th className="ui-num">{NOMBRE_MES[datos.mes]} (Bs.)</th>
+                <th className="ui-num">{NOMBRE_MES[datos.mesAnterior]} (Bs.)</th>
+                <th className="ui-num">Variación</th>
               </tr>
             </thead>
             <tbody>
               {datos.porMetodo.map((m) => (
                 <tr key={m.metodo}>
                   <td>{m.metodo}</td>
-                  <td>{bs(m.actual)}</td>
-                  <td>{bs(m.anterior)}</td>
-                  <td><Variacion valor={m.variacion} /></td>
+                  <td className="ui-num">{bs(m.actual)}</td>
+                  <td className="ui-num">{bs(m.anterior)}</td>
+                  <td className="ui-num">
+                    <Variacion valor={m.variacion} />
+                  </td>
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Tabla>
         </>
       )}
     </section>

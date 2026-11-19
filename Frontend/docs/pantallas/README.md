@@ -17,6 +17,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | [`pagos.md`](pagos.md) | 0010 · Cobrar: efectivo, dólares, pago mixto, QR, confirmación, pago registrado y sus modales |
 | [`tablero.md`](tablero.md) | 0011 · Tablero de ingresos: pestañas y sus 8 paneles |
 | [`admin-personas.md`](admin-personas.md) | 0012 · Administrador: Cajeros, Clientes, Supervisores, Usuarios y Libro de Ventas |
+| [`admin-operacion-analisis.md`](admin-operacion-analisis.md) | 0013 · Administrador: Cierre diario, Historial, Diferencias, Comparativo, Horas pico, Metas, Productos y Ventas online |
 
 ## Antes de empezar una pantalla del Sprint 4
 

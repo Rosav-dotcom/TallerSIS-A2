@@ -3,6 +3,9 @@ import { obtenerHorasPico } from '../api/tablero.js'
 import { listarCajas } from '../api/caja.js'
 import GraficoBarras from '../components/GraficoBarras.jsx'
 import { COLOR } from '../styles/colores.js'
+import { Alerta, CampoTexto, EstadoVacio, Selector, Tarjeta } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const HORA_INICIO = 7
 const HORA_FIN = 23
@@ -70,45 +73,47 @@ function HorasPico() {
   const hayVentas = (datos?.horas ?? []).length > 0
 
   return (
-    <section>
-      <h1>Horas pico</h1>
-      <p className="resumen-turno-actual">
-        Cantidad de ventas por hora del día (07:00 a 23:00), con las 3 horas de mayor venta resaltadas.
-      </p>
-
-      <div className="filtro-fechas">
-        <label className="campo">
-          Desde
-          <input type="date" value={desde} max={hasta || undefined} onChange={(e) => setDesde(e.target.value)} />
-        </label>
-        <label className="campo">
-          Hasta
-          <input type="date" value={hasta} min={desde || undefined} max={hoyLocal()} onChange={(e) => setHasta(e.target.value)} />
-        </label>
-        <label className="campo campo-turno-dia">
-          Caja
-          <select value={caja} onChange={(e) => setCaja(e.target.value)}>
-            <option value="">Todas</option>
-            {cajas.map((c) => (
-              <option key={c.codigo} value={c.codigo}>
-                {c.nombre ? `${c.codigo} · ${c.nombre}` : c.codigo}
-              </option>
-            ))}
-          </select>
-        </label>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Horas pico</h1>
+        <p>Cantidad de ventas por hora del día (07:00 a 23:00), con las 3 horas de mayor venta resaltadas.</p>
       </div>
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      <div className="adm-filtros">
+        <CampoTexto
+          etiqueta="Desde"
+          type="date"
+          value={desde}
+          max={hasta || undefined}
+          onChange={(e) => setDesde(e.target.value)}
+        />
+        <CampoTexto
+          etiqueta="Hasta"
+          type="date"
+          value={hasta}
+          min={desde || undefined}
+          max={hoyLocal()}
+          onChange={(e) => setHasta(e.target.value)}
+        />
+        <Selector etiqueta="Caja" value={caja} onChange={(e) => setCaja(e.target.value)}>
+          <option value="">Todas</option>
+          {cajas.map((c) => (
+            <option key={c.codigo} value={c.codigo}>
+              {c.nombre ? `${c.codigo} · ${c.nombre}` : c.codigo}
+            </option>
+          ))}
+        </Selector>
+      </div>
 
-      {!cargando && !error && !hayVentas && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">Sin ventas en este rango.</p>
-      )}
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
+
+      {!cargando && !error && !hayVentas && <EstadoVacio titulo="Sin ventas en este rango." />}
 
       {!cargando && !error && hayVentas && (
-        <div className="tablero-grafico">
+        <Tarjeta titulo="Ventas por hora">
           <GraficoBarras items={items} formatoValor={(v) => `${v} ${v === 1 ? 'venta' : 'ventas'}`} />
-        </div>
+        </Tarjeta>
       )}
     </section>
   )

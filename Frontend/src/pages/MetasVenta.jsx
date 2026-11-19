@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { obtenerAvanceMetas, definirMeta } from '../api/metas.js'
 import { useAdminAuth } from '../context/AdminAuthContext.jsx'
+import { Alerta, Boton, CampoTexto, EstadoVacio, Modal } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 function hoyLocal() {
   const d = new Date()
@@ -83,65 +86,69 @@ function MetasVenta() {
   const montoValido = Number(monto) > 0
 
   return (
-    <section>
-      <h1>Metas de venta</h1>
-      <p className="resumen-turno-actual">Meta de venta diaria de cada caja y el avance del día.</p>
-
-      <div className="filtro-fechas">
-        <label className="campo">
-          Fecha
-          <input type="date" value={fecha} max={hoyLocal()} onChange={(e) => setFecha(e.target.value)} />
-        </label>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Metas de venta</h1>
+        <p>Meta de venta diaria de cada caja y el avance del día.</p>
       </div>
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      <div className="adm-filtros">
+        <CampoTexto
+          etiqueta="Fecha"
+          type="date"
+          value={fecha}
+          max={hoyLocal()}
+          onChange={(e) => setFecha(e.target.value)}
+        />
+      </div>
 
-      {!cargando && !error && cajas.length === 0 && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">No hay cajas registradas.</p>
-      )}
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
+
+      {!cargando && !error && cajas.length === 0 && <EstadoVacio titulo="No hay cajas registradas." />}
 
       {!cargando && !error && cajas.length > 0 && (
-        <div className="cajas-grid">
+        <div className="adm-rejilla">
           {cajas.map((c) => {
             const sinMeta = c.meta === 'sin meta'
             const porcentaje = sinMeta ? 0 : c.porcentaje
             return (
-              <article key={c.caja_id} className="caja-card">
-                <div className="caja-card-encabezado">
-                  <span className="caja-card-codigo">{c.caja_id}</span>
-                  <span className="caja-card-nombre">{c.caja_nombre || 'Sin nombre'}</span>
+              <article key={c.caja_id} className="adm-ficha">
+                <div>
+                  <span className="adm-ficha-codigo">{c.caja_id}</span>
+                  <span className="adm-detalle">{c.caja_nombre || 'Sin nombre'}</span>
                 </div>
 
-                <p className="caja-card-detalle">{etiquetaVendido(fecha)}: Bs. {bs(c.vendido)}</p>
+                <dl className="adm-datos">
+                  <div>
+                    <dt>{etiquetaVendido(fecha)}</dt>
+                    <dd>Bs. {bs(c.vendido)}</dd>
+                  </div>
+                  <div>
+                    <dt>Meta</dt>
+                    <dd>{sinMeta ? 'Sin meta' : `Bs. ${bs(c.meta)}`}</dd>
+                  </div>
+                </dl>
 
-                {sinMeta ? (
-                  <>
-                    <p className="caja-card-detalle">Sin meta</p>
-                    <button type="button" className="btn btn-secundario" onClick={() => abrirEditar(c)}>
-                      Definir meta
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="caja-card-detalle">Meta: Bs. {bs(c.meta)}</p>
-                    <div style={{ background: 'var(--border)', borderRadius: '999px', overflow: 'hidden', height: '10px', margin: '0.5rem 0' }}>
+                {!sinMeta && (
+                  <div>
+                    <div className="adm-avance" role="presentation">
                       <div
-                        style={{
-                          width: `${Math.min(porcentaje, 100)}%`,
-                          height: '100%',
-                          backgroundColor: colorAvance(porcentaje),
-                        }}
+                        className="adm-avance-barra"
+                        style={{ width: `${Math.min(porcentaje, 100)}%`, backgroundColor: colorAvance(porcentaje) }}
                       />
                     </div>
-                    <p className="caja-card-detalle" style={{ color: colorAvance(porcentaje), fontWeight: 600 }}>
+                    <strong className="adm-avance-porcentaje" style={{ color: colorAvance(porcentaje) }}>
                       {porcentaje.toFixed(1)}%
-                    </p>
-                    <button type="button" className="btn btn-secundario" onClick={() => abrirEditar(c)}>
-                      Editar meta
-                    </button>
-                  </>
+                    </strong>
+                  </div>
                 )}
+
+                <div>
+                  <Boton variante="contorno" onClick={() => abrirEditar(c)}>
+                    {sinMeta ? 'Definir meta' : 'Editar meta'}
+                  </Boton>
+                </div>
               </article>
             )
           })}
@@ -149,38 +156,42 @@ function MetasVenta() {
       )}
 
       {editando && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Editar meta">
-          <form className="modal-caja" onSubmit={confirmarEditar}>
-            <h2>{editando.meta === 'sin meta' ? 'Definir meta' : 'Editar meta'}</h2>
-            <p>{editando.caja_id} {editando.caja_nombre ? `· ${editando.caja_nombre}` : ''}</p>
+        <Modal
+          abierto
+          titulo={editando.meta === 'sin meta' ? 'Definir meta' : 'Editar meta'}
+          onCerrar={guardando ? undefined : () => setEditando(null)}
+        >
+          <form className="adm-form" onSubmit={confirmarEditar}>
+            <p className="adm-nota">
+              {editando.caja_id} {editando.caja_nombre ? `· ${editando.caja_nombre}` : ''}
+            </p>
 
-            <label className="campo">
-              Meta de venta diaria (Bs.)
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                value={monto}
-                onChange={(e) => {
-                  setMonto(e.target.value)
-                  setErrorEditar(null)
-                }}
-                autoFocus
-              />
-            </label>
+            <CampoTexto
+              etiqueta="Meta de venta diaria"
+              prefijo="Bs"
+              type="number"
+              step="0.01"
+              min="0"
+              value={monto}
+              onChange={(e) => {
+                setMonto(e.target.value)
+                setErrorEditar(null)
+              }}
+              autoFocus
+            />
 
-            {errorEditar && <p className="error">{errorEditar}</p>}
+            {errorEditar && <Alerta tono="error" titulo={errorEditar} />}
 
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={() => setEditando(null)} disabled={guardando}>
+            <div className="ui-modal-acciones">
+              <Boton variante="contorno" onClick={() => setEditando(null)} disabled={guardando}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn" disabled={guardando || !montoValido}>
+              </Boton>
+              <Boton type="submit" disabled={guardando || !montoValido}>
                 {guardando ? 'Guardando...' : 'Guardar'}
-              </button>
+              </Boton>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
     </section>
   )
