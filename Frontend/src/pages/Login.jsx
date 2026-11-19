@@ -5,7 +5,8 @@ import { loginAdministrador } from '../api/authAdministrador.js'
 import { listarCajas } from '../api/caja.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import { useAdminAuth } from '../context/AdminAuthContext.jsx'
-import { ChevronDown, Eye, EyeOff } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
+import fotoSupermercado from '../assets/login-supermercado.webp'
 import { Alerta, Boton, Icono } from '../components/ui'
 import '../components/navegacion.css'
 import './acceso.css'
@@ -156,6 +157,7 @@ function Login() {
         <span className="nav-logo">
           R<span className="nav-logo-punto">e</span>Pay
         </span>
+
         <div className="acceso-hero-centro">
           <span className="acceso-etiqueta">Gestión financiera</span>
           <span className="acceso-linea" aria-hidden="true" />
@@ -164,12 +166,22 @@ function Login() {
             <br />
             del supermercado
           </h1>
-          <p>
+          <p className="acceso-lema">
             Cada movimiento en orden.
             <br />
             Cada jornada, con tranquilidad.
           </p>
+          <p>Un espacio de trabajo para quienes gestionan el supermercado cada día.</p>
         </div>
+
+        <img
+          className="acceso-foto"
+          src={fotoSupermercado}
+          alt="Cajero atendiendo en una caja del supermercado con RePay"
+          width="1026"
+          height="598"
+        />
+
         <div className="acceso-hero-pie">
           <strong>RePay / Bolivia</strong>
           <span>Acceso seguro al ERP del supermercado</span>
@@ -177,17 +189,17 @@ function Login() {
       </aside>
 
       <div className="acceso-panel">
-        <section className="ui-tarjeta acceso-tarjeta">
+        <div className="acceso-contenido">
           <div className="acceso-encabezado">
-            <h2 className="acceso-titulo">Bienvenido a RePay</h2>
-            <p className="acceso-subtitulo">Ingresa con el perfil asignado a tu cuenta.</p>
+            <h2 className="acceso-titulo">Hola de nuevo.</h2>
+            <p className="acceso-subtitulo">Ingresa con la cuenta que te asignó el supermercado.</p>
           </div>
 
           <SelectorModo modo={modo} onCambiar={cambiarModo} />
 
           <form className="acceso-form" onSubmit={handleSubmit} autoComplete="off">
             <label className="ui-campo">
-              <span className="ui-campo-etiqueta">Usuario (correo)</span>
+              <span className="ui-campo-etiqueta">Correo electrónico</span>
               <span className="ui-control">
                 <input
                   ref={emailRef}
@@ -212,12 +224,12 @@ function Login() {
                 />
                 <button
                   type="button"
-                  className="campo-password-boton"
+                  className="acceso-mostrar"
                   onClick={() => setMostrarPassword((v) => !v)}
                   aria-label={mostrarPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                   tabIndex={-1}
                 >
-                  <Icono icono={mostrarPassword ? EyeOff : Eye} />
+                  {mostrarPassword ? 'Ocultar' : 'Mostrar'}
                 </button>
               </span>
             </label>
@@ -243,10 +255,7 @@ function Login() {
                 <span className="ui-campo-ayuda">La caja seleccionada se asignará a tu turno al ingresar.</span>
               </label>
             ) : (
-              <div className="acceso-encabezado">
-                <p className="acceso-ayuda">Acceso a la administración y al análisis de la operación.</p>
-                <span className="ui-campo-ayuda">La selección de caja está disponible únicamente para Cajero.</span>
-              </div>
+              <p className="acceso-ayuda">Acceso a la administración y al análisis de la operación.</p>
             )}
 
             {errorValidacion && <Alerta tono="error" titulo={errorValidacion} />}
@@ -258,8 +267,17 @@ function Login() {
               {enviando ? 'Ingresando...' : 'Ingresar'}
             </Boton>
           </form>
-        </section>
-        <p className="acceso-nota">Usa tus credenciales personales. No compartas tu contraseña.</p>
+
+          <p className="acceso-ayuda">
+            <strong>¿Olvidaste tu contraseña?</strong> Pídele al administrador que te asigne una nueva.
+          </p>
+
+          <p className="acceso-nota">
+            {esAdmin
+              ? 'Usa un equipo de confianza y cierra sesión al terminar. No compartas tu contraseña.'
+              : 'Usa tu propia cuenta y cierra sesión al terminar el turno. Si la caja queda 5 minutos sin uso, la pantalla se bloquea sola.'}
+          </p>
+        </div>
       </div>
     </div>
   )

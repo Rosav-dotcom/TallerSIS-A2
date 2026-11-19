@@ -284,3 +284,35 @@
     flex-wrap: wrap;
   }
 }
+
+/* Propuesta: íconos solo en los grupos; las pantallas van sin ícono, alineadas con el texto del grupo. */
+.nav-lateral-menu {
+  gap: 2px;
+  padding: 0 var(--espacio-3) var(--espacio-5);
+}
+.nav-grupo-boton {
+  padding: 0 var(--espacio-3);
+  border-left: 0;
+  border-radius: var(--radio-control);
+  font-weight: 500;
+}
+.nav-lateral-menu a.nav-subitem {
+  min-height: 40px;
+  padding: 0 var(--espacio-3) 0 44px;
+  border-left: 3px solid transparent;
+  border-radius: var(--radio-control);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 14px;
+}
+.nav-lateral-menu a.nav-subitem:hover {
+  color: var(--surface);
+}
+.nav-lateral-menu a.nav-subitem.active {
+  border-left-color: var(--gold);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--surface);
+  font-weight: 600;
+}
+.nav-lateral-marca {
+  padding-left: var(--espacio-5);
+}

@@ -16,7 +16,7 @@
 
 ## Administrador (barra lateral y barra superior)
 
-- **Barra lateral navy** con las secciones de la p.8, que se abren o cierran por separado. Al entrar a una pantalla se abre sola la sección que la contiene, y la pantalla activa lleva una línea dorada a la izquierda.
+- **Barra lateral navy** con las secciones de la p.8, que se abren o cierran por separado. Al entrar a una pantalla se abre sola la sección que la contiene, y la pantalla activa lleva una línea dorada a la izquierda. Desde la fase 0014, **el ícono va solo en el nombre de la sección**; las pantallas van sin ícono, alineadas con el texto de la sección, en un tono más suave, y la activa se ve en blanco y negrita con un fondo apenas más claro.
 
 | Sección | Pantallas |
 |---|---|

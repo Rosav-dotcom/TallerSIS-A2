@@ -110,8 +110,7 @@ function AdminNavbar() {
               </button>
               {abiertos[g.id] &&
                 g.items.map((item) => (
-                  <NavLink key={item.to} to={item.to}>
-                    <Icono icono={g.icono} />
+                  <NavLink key={item.to} to={item.to} className="nav-subitem">
                     {item.etiqueta}
                   </NavLink>
                 ))}

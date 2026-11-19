@@ -3,71 +3,108 @@
 /* ---------- Login ---------- */
 .acceso {
   display: grid;
-  grid-template-columns: minmax(320px, 38%) 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   min-height: 100vh;
 }
 .acceso-hero {
+  position: relative;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
   gap: var(--espacio-6);
-  padding: var(--espacio-7) var(--espacio-7) var(--espacio-6);
+  padding: 56px 80px 40px;
+  overflow: hidden;
   background: var(--navy);
   color: var(--surface);
 }
+/* Hoja decorativa muy tenue abajo a la derecha, como en la referencia */
+.acceso-hero::after {
+  content: '';
+  position: absolute;
+  right: -120px;
+  bottom: -160px;
+  width: 360px;
+  height: 480px;
+  border-radius: 50% 0;
+  background: rgba(255, 255, 255, 0.04);
+  transform: rotate(-20deg);
+  pointer-events: none;
+}
+.acceso-hero > * {
+  position: relative;
+  z-index: 1;
+}
 .acceso-hero .nav-logo {
-  font-size: 40px;
+  font-size: 44px;
 }
 .acceso-hero-centro {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-5);
+  gap: var(--espacio-4);
+  max-width: 560px;
 }
 .acceso-etiqueta {
   font: var(--texto-etiqueta);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
 }
 .acceso-linea {
-  width: 64px;
+  width: 160px;
   height: 2px;
   background: var(--gold);
 }
 .acceso-hero h1 {
-  margin: 0;
-  font: 600 32px/44px var(--font-titulo);
+  margin: var(--espacio-2) 0 0;
+  font: 600 52px/58px var(--font-titulo);
 }
 .acceso-hero p {
   margin: 0;
-  color: rgba(255, 255, 255, 0.85);
+  max-width: 500px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.8);
+}
+.acceso-hero .acceso-lema {
+  font-size: 19px;
+  color: var(--surface);
+}
+.acceso-foto {
+  display: block;
+  width: 100%;
+  max-width: 560px;
+  height: auto;
+  aspect-ratio: 1026 / 598;
+  object-fit: cover;
+  border-radius: 12px 80px 12px 12px;
 }
 .acceso-hero-pie {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-2);
+  gap: var(--espacio-1);
+  margin-top: auto;
   font: var(--texto-etiqueta);
   font-weight: 400;
+  color: rgba(255, 255, 255, 0.75);
 }
 .acceso-hero-pie strong {
   font-weight: 500;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--surface);
 }
+
 .acceso-panel {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--espacio-5);
-  padding: var(--espacio-6) var(--espacio-5);
+  padding: 64px var(--espacio-6);
+  background: var(--surface);
 }
-.acceso-tarjeta {
+.acceso-contenido {
   display: flex;
   flex-direction: column;
   gap: var(--espacio-5);
   width: 100%;
-  max-width: 600px;
-  padding: var(--espacio-6) var(--espacio-6) var(--espacio-6);
+  max-width: 460px;
 }
 .acceso-encabezado {
   display: flex;
@@ -76,32 +113,45 @@
 }
 .acceso-titulo {
   margin: 0;
-  font: var(--texto-titulo-1);
+  font: 600 48px/56px var(--font-titulo);
   color: var(--navy);
 }
 .acceso-subtitulo {
   margin: 0;
+  font-size: 16px;
+  line-height: 1.6;
   color: var(--muted);
 }
 .acceso-form {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-5);
+  gap: var(--espacio-4);
+}
+.acceso-form .ui-control {
+  min-height: 52px;
+}
+.acceso-form .ui-boton {
+  min-height: 52px;
+  font-size: 15px;
 }
 .acceso-ayuda {
   margin: 0;
   color: var(--muted);
 }
+.acceso-ayuda strong {
+  font-weight: 500;
+  color: var(--text);
+}
 .acceso-nota {
-  width: 100%;
-  max-width: 600px;
   margin: 0;
-  font: var(--texto-etiqueta);
-  font-weight: 400;
-  color: var(--muted);
+  padding: var(--espacio-4) var(--espacio-5);
+  border-radius: var(--radio-tarjeta);
+  background: var(--bone);
+  color: var(--text);
+  line-height: 1.6;
 }
 
-/* Pestañas de perfil de acceso */
+/* Perfil de acceso: Cajero / Administrador */
 .acceso-perfiles {
   display: flex;
   flex-direction: column;
@@ -109,32 +159,45 @@
 }
 .acceso-perfiles-lista {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: var(--espacio-2);
+  grid-template-columns: 1fr 1fr;
+  padding: 4px;
+  border-radius: var(--radio-control);
+  background: var(--bone);
 }
 .acceso-perfil {
-  min-height: 52px;
-  padding: var(--espacio-2) var(--espacio-3);
+  min-height: 40px;
   border: 0;
-  border-bottom: 3px solid transparent;
-  border-radius: var(--radio-control) var(--radio-control) 0 0;
+  border-radius: 6px;
   background: transparent;
   color: var(--muted);
   font: var(--texto-cuerpo);
   cursor: pointer;
 }
 .acceso-perfil:hover {
-  background: var(--bone);
+  color: var(--text);
 }
 .acceso-perfil--activo {
-  border-bottom-color: var(--olive);
-  background: color-mix(in srgb, var(--border) 60%, var(--surface));
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(20, 33, 61, 0.12);
   color: var(--text);
   font-weight: 500;
 }
 
-/* El campo de contraseña conserva su botón de mostrar u ocultar */
-.acceso-form .ui-control .campo-password-boton,
+/* Mostrar / Ocultar contraseña, como texto */
+.acceso-mostrar {
+  flex-shrink: 0;
+  padding: 0 var(--espacio-1);
+  border: 0;
+  background: transparent;
+  color: var(--navy);
+  font: var(--texto-etiqueta);
+  cursor: pointer;
+}
+.acceso-mostrar:hover {
+  text-decoration: underline;
+}
+
+/* El campo de contraseña de la pantalla de bloqueo conserva su botón de ojo */
 .bloqueo .ui-control .campo-password-boton {
   position: static;
   display: inline-flex;
@@ -150,15 +213,36 @@
   cursor: pointer;
 }
 
+@media (max-width: 1100px) {
+  .acceso-hero {
+    padding: 48px;
+  }
+  .acceso-hero h1 {
+    font-size: 42px;
+    line-height: 48px;
+  }
+}
 @media (max-width: 900px) {
   .acceso {
     grid-template-columns: 1fr;
   }
   .acceso-hero {
+    gap: var(--espacio-5);
     padding: var(--espacio-6) var(--espacio-5);
   }
-  .acceso-tarjeta {
-    padding: var(--espacio-5);
+  .acceso-hero h1 {
+    font-size: 34px;
+    line-height: 40px;
+  }
+  .acceso-foto {
+    max-width: 420px;
+  }
+  .acceso-panel {
+    padding: var(--espacio-6) var(--espacio-5);
+  }
+  .acceso-titulo {
+    font-size: 36px;
+    line-height: 44px;
   }
 }
 

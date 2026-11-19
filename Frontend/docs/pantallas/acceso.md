@@ -10,12 +10,16 @@
 
 ## Login (`/login`)
 
-- **Izquierda, panel navy:** logo RePay; "GESTIÓN FINANCIERA" con la línea dorada; título "Cobros y facturación del supermercado"; "Cada movimiento en orden. Cada jornada, con tranquilidad."; abajo, "RePay / Bolivia · Acceso seguro al ERP del supermercado".
-- **Derecha, tarjeta:** "Bienvenido a RePay" y "Ingresa con el perfil asignado a tu cuenta.".
-- **Perfil de acceso:** pestañas Cajero y Administrador; la elegida lleva una línea olive. Cada pestaña elige su perfil (antes era un solo interruptor que alternaba). Los perfiles Encargado de Devoluciones y Usuario de Soporte se agregan en el Sprint 4 (TDSI-993).
-- **Campos:** Usuario (correo), Contraseña con el ojo para mostrar u ocultar y, solo para Cajero, **Caja** con la ayuda "La caja seleccionada se asignará a tu turno al ingresar.". Para Administrador: "Acceso a la administración y al análisis de la operación." y "La selección de caja está disponible únicamente para Cajero.".
+> Actualizado en la fase 0014 (login con foto, al estilo de la referencia aprobada).
+
+- **Izquierda, panel navy (mitad de la pantalla):** logo RePay; "GESTIÓN FINANCIERA" con la línea dorada; título "Cobros y facturación del supermercado" en dos líneas; "Cada movimiento en orden. Cada jornada, con tranquilidad."; "Un espacio de trabajo para quienes gestionan el supermercado cada día."; la foto del supermercado con la esquina superior derecha bien redondeada; abajo, "RePay / Bolivia · Acceso seguro al ERP del supermercado". Una forma muy tenue decora la esquina inferior derecha.
+- **La foto** está en `src/assets/login-supermercado.webp` (dentro del proyecto, sin depender de internet). Para cambiarla, se reemplaza ese archivo por otra imagen horizontal (proporción aproximada 1026 × 598) con el mismo nombre.
+- **Derecha, sin tarjeta:** "Hola de nuevo." y "Ingresa con la cuenta que te asignó el supermercado.".
+- **Perfil de acceso:** Cajero y Administrador en un selector de dos opciones. Los perfiles Encargado de Devoluciones y Usuario de Soporte se agregan en el Sprint 4 (TDSI-993).
+- **Campos:** Correo electrónico, Contraseña con el botón de texto **Mostrar / Ocultar** y, solo para Cajero, **Caja** con la ayuda "La caja seleccionada se asignará a tu turno al ingresar.". Para Administrador: "Acceso a la administración y al análisis de la operación.".
 - **Errores:** alerta roja con ícono, con los mismos mensajes de antes ("Complete el usuario, la contraseña y la caja.", "Error: Credenciales invalidas.", "Demasiados intentos fallidos. Inicie sesión nuevamente.").
-- **Pie:** "Usa tus credenciales personales. No compartas tu contraseña.".
+- **Debajo del botón:** "¿Olvidaste tu contraseña? Pídele al administrador que te asigne una nueva." y un recuadro de seguridad: para Cajero, que la pantalla se bloquea sola tras 5 minutos sin uso; para Administrador, "Usa un equipo de confianza y cierra sesión al terminar. No compartas tu contraseña.".
+- **En celular:** el panel navy (con la foto más chica) queda arriba y el formulario abajo.
 
 Los `<input>` del login se mantienen como elementos nativos con las clases `ui-campo` y `ui-control` (no `CampoTexto`), porque la limpieza forzada necesita sus referencias.
 
