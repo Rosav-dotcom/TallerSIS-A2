@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { historialCliente, urlFacturaPdf } from '../api/pagos.js'
+import { Search } from 'lucide-react'
+import { Alerta, Boton, CampoTexto, Chip, Tabla, TarjetaKpi } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const TIPOS_DOCUMENTO = [
   { id: 'NIT', etiqueta: 'NIT' },
@@ -38,76 +42,75 @@ function Clientes() {
   }
 
   return (
-    <section>
-      <h1>Buscar cliente</h1>
-      <p>Busque un cliente por NIT o CI para ver cuántas veces vino y lo que ha facturado.</p>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Buscar cliente</h1>
+        <p>Busque un cliente por NIT o CI para ver cuántas veces vino y lo que ha facturado.</p>
+      </div>
 
-      <form onSubmit={buscar} style={{ display: 'flex', gap: '0.75rem', alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
-        <div className="tipo-venta-opciones">
-          {TIPOS_DOCUMENTO.map((tipo) => (
-            <button
-              key={tipo.id}
-              type="button"
-              className={`tipo-venta-opcion${tipoDocumento === tipo.id ? ' activa' : ''}`}
-              onClick={() => setTipoDocumento(tipo.id)}
-            >
-              {tipo.etiqueta}
-            </button>
-          ))}
+      <form onSubmit={buscar} className="adm-filtros">
+        <div className="ui-campo">
+          <span className="ui-campo-etiqueta">Documento</span>
+          <div className="adm-segmento" role="group" aria-label="Tipo de documento">
+            {TIPOS_DOCUMENTO.map((tipo) => (
+              <button
+                key={tipo.id}
+                type="button"
+                className={tipoDocumento === tipo.id ? 'adm-segmento--activa' : ''}
+                aria-pressed={tipoDocumento === tipo.id}
+                onClick={() => setTipoDocumento(tipo.id)}
+              >
+                {tipo.etiqueta}
+              </button>
+            ))}
+          </div>
         </div>
 
-        <label className="campo" style={{ marginBottom: 0 }}>
-          Número de {tipoDocumento}
-          <input
-            type="text"
-            inputMode="numeric"
-            maxLength={tipoDocumento === 'NIT' ? 10 : 8}
-            value={numero}
-            onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
-          />
-        </label>
+        <CampoTexto
+          etiqueta={`Número de ${tipoDocumento}`}
+          type="text"
+          inputMode="numeric"
+          maxLength={tipoDocumento === 'NIT' ? 10 : 8}
+          value={numero}
+          onChange={(e) => setNumero(e.target.value.replace(/\D/g, ''))}
+        />
 
-        <button type="submit" className="btn" disabled={cargando}>
+        <Boton type="submit" icono={Search} disabled={cargando}>
           {cargando ? 'Buscando...' : 'Buscar'}
-        </button>
+        </Boton>
       </form>
 
-      {error && <p className="error">{error}</p>}
+      {error && <Alerta tono="error" titulo={error} />}
 
       {buscado && !cargando && !error && cliente && (
-        <div className="cliente-resumen">
-          <h2>{cliente.razon_social || 'Cliente'}</h2>
-          <p style={{ color: 'var(--muted)', marginTop: '-0.5rem' }}>
-            {cliente.tipo_documento}: {cliente.numero}
-          </p>
+        <>
+          <div>
+            <h2 className="adm-subtitulo">{cliente.razon_social || 'Cliente'}</h2>
+            <p className="adm-nota">
+              {cliente.tipo_documento}: {cliente.numero}
+            </p>
+          </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', margin: '1rem 0' }}>
-            <div style={{ padding: '1rem', backgroundColor: 'var(--success-bg)', borderRadius: '8px', border: '1px solid var(--success)' }}>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--success)' }}>Veces que vino</p>
-              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--success)' }}>{cliente.cantidadCompras}</p>
-            </div>
-            <div style={{ padding: '1rem', backgroundColor: 'var(--info-bg)', borderRadius: '8px', border: '1px solid var(--info)' }}>
-              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--info)' }}>Total gastado</p>
-              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--info)' }}>Bs. {cliente.totalGastado.toFixed(2)}</p>
-            </div>
+          <div className="adm-kpis">
+            <TarjetaKpi titulo="Veces que vino" valor={cliente.cantidadCompras} />
+            <TarjetaKpi titulo="Total gastado" valor={`Bs. ${cliente.totalGastado.toFixed(2)}`} />
             {cliente.cantidadAnuladas > 0 && (
-              <div style={{ padding: '1rem', backgroundColor: 'var(--error-bg)', borderRadius: '8px', border: '1px solid var(--error)' }}>
-                <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--error)' }}>Facturas anuladas</p>
-                <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: 'var(--error)' }}>{cliente.cantidadAnuladas}</p>
+              <div className="adm-kpi--error">
+                <TarjetaKpi titulo="Facturas anuladas" valor={cliente.cantidadAnuladas} />
               </div>
             )}
           </div>
 
-          <table className="tabla-facturas">
+          <Tabla etiqueta="Facturas del cliente">
             <thead>
               <tr>
                 <th>Número</th>
                 <th>Fecha</th>
                 <th>Método(s)</th>
-                <th>Total (Bs.)</th>
+                <th className="ui-num">Total (Bs.)</th>
                 <th>Cajero</th>
                 <th>Estado</th>
-                <th></th>
+                <th aria-label="Acciones"></th>
               </tr>
             </thead>
             <tbody>
@@ -116,23 +119,30 @@ function Clientes() {
                   <td>{f.id_transaccion}</td>
                   <td>{new Date(f.fecha).toLocaleString()}</td>
                   <td>{f.metodos.join(' + ')}</td>
-                  <td>{f.total.toFixed(2)}</td>
+                  <td className="ui-num">{f.total.toFixed(2)}</td>
                   <td>{f.cajero || '-'}</td>
                   <td>
-                    <span className={`badge-estado ${f.estado === 'Registrado' ? 'badge-estado--emitida' : ''}`}>
+                    <Chip tono={f.estado === 'Registrado' ? 'exito' : 'neutro'}>
                       {f.estado === 'Registrado' ? 'Emitida' : 'Anulada'}
-                    </span>
+                    </Chip>
                   </td>
                   <td>
-                    <a href={urlFacturaPdf(f.id_transaccion)} target="_blank" rel="noopener noreferrer" className="btn btn-azul">
-                      Ver
-                    </a>
+                    <div className="adm-acciones">
+                      <a
+                        href={urlFacturaPdf(f.id_transaccion)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="ui-boton ui-boton--fantasma"
+                      >
+                        Ver
+                      </a>
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
+          </Tabla>
+        </>
       )}
     </section>
   )

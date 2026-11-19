@@ -3,7 +3,7 @@
 Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué componentes usa, sus subtareas de Jira, sus PA y el backend que necesita.
 
 - **Sprint 4 (pantallas nuevas):** carpeta `sprint4/`.
-- **Pantallas existentes (migración del Sprint 3):** se agregan en cada fase de la migración (0005 a 0013).
+- **Pantallas existentes (migración del Sprint 3):** se agregan en cada fase de la migración (0005 a 0014).
 
 ## Pantallas existentes ya migradas
 
@@ -16,6 +16,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | [`pagos-estructura.md`](pagos-estructura.md) | 0009 · Pagos dividido en componentes (sin cambios visibles) |
 | [`pagos.md`](pagos.md) | 0010 · Cobrar: efectivo, dólares, pago mixto, QR, confirmación, pago registrado y sus modales |
 | [`tablero.md`](tablero.md) | 0011 · Tablero de ingresos: pestañas y sus 8 paneles |
+| [`admin-personas.md`](admin-personas.md) | 0012 · Administrador: Cajeros, Clientes, Supervisores, Usuarios y Libro de Ventas |
 
 ## Antes de empezar una pantalla del Sprint 4
 

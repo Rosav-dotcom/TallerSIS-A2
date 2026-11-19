@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react'
 import { obtenerLibroVentas, descargarLibroVentasExcel } from '../api/libroVentas.js'
+import { Download } from 'lucide-react'
+import { Alerta, Boton, CampoTexto, Chip, EstadoVacio, Selector, Tabla } from '../components/ui'
+import './turno.css'
+import './admin.css'
 
 const MESES = [
   { valor: 1, etiqueta: 'Enero' },
@@ -71,93 +75,86 @@ function LibroVentas() {
   const hayFilas = libro && libro.filas.length > 0
 
   return (
-    <section>
-      <h1>Libro de Ventas</h1>
-      <p className="resumen-turno-actual">
-        IVA del mes elegido: importe base y débito fiscal (13%) de cada factura emitida.
-      </p>
-
-      <div className="filtro-fechas">
-        <label className="campo campo-turno-dia">
-          Mes
-          <select value={mes} onChange={(e) => setMes(Number(e.target.value))}>
-            {MESES.map((m) => (
-              <option key={m.valor} value={m.valor}>{m.etiqueta}</option>
-            ))}
-          </select>
-        </label>
-        <label className="campo campo-turno-dia">
-          Año
-          <input
-            type="number"
-            min="2000"
-            max="2100"
-            value={anio}
-            onChange={(e) => setAnio(Number(e.target.value))}
-          />
-        </label>
-        <button type="button" className="btn btn-azul" onClick={descargarExcel} disabled={descargando || !hayFilas}>
-          {descargando ? 'Descargando...' : 'Descargar Libro de Ventas'}
-        </button>
+    <section className="adm-pagina">
+      <div className="turno-encabezado">
+        <h1>Libro de Ventas</h1>
+        <p>IVA del mes elegido: importe base y débito fiscal (13%) de cada factura emitida.</p>
       </div>
 
-      {errorDescarga && <p className="error">No se pudo descargar el Excel: {errorDescarga}</p>}
+      <div className="adm-filtros">
+        <Selector etiqueta="Mes" value={mes} onChange={(e) => setMes(Number(e.target.value))}>
+          {MESES.map((m) => (
+            <option key={m.valor} value={m.valor}>
+              {m.etiqueta}
+            </option>
+          ))}
+        </Selector>
+        <CampoTexto
+          etiqueta="Año"
+          type="number"
+          min="2000"
+          max="2100"
+          value={anio}
+          onChange={(e) => setAnio(Number(e.target.value))}
+        />
+        <Boton icono={Download} onClick={descargarExcel} disabled={descargando || !hayFilas}>
+          {descargando ? 'Descargando...' : 'Descargar Libro de Ventas'}
+        </Boton>
+      </div>
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      {errorDescarga && <Alerta tono="error" titulo={`No se pudo descargar el Excel: ${errorDescarga}`} />}
 
-      {!cargando && !error && !hayFilas && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">No hay facturas en este mes.</p>
-      )}
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
+
+      {!cargando && !error && !hayFilas && <EstadoVacio titulo="No hay facturas en este mes." />}
 
       {!cargando && !error && hayFilas && (
-        <div className="reporte-tabla">
-          <table className="tabla-facturas">
+        <div className="adm-sin-cortes">
+          <Tabla etiqueta="Libro de Ventas">
             <thead>
               <tr>
-                <th>N°</th>
+                <th className="ui-num">N°</th>
                 <th>Fecha</th>
                 <th>N° Factura</th>
                 <th>NIT/CI</th>
                 <th>Razón social</th>
-                <th>Total (Bs.)</th>
-                <th>Descuento (Bs.)</th>
-                <th>Importe base (Bs.)</th>
-                <th>Débito fiscal (Bs.)</th>
+                <th className="ui-num">Total (Bs.)</th>
+                <th className="ui-num">Descuento (Bs.)</th>
+                <th className="ui-num">Importe base (Bs.)</th>
+                <th className="ui-num">Débito fiscal (Bs.)</th>
                 <th>Estado</th>
               </tr>
             </thead>
             <tbody>
               {libro.filas.map((f) => (
-                <tr key={f.numero_factura} className={f.estado === 'A' ? 'fila-anulada' : ''}>
-                  <td>{f.numero}</td>
+                <tr key={f.numero_factura} className={f.estado === 'A' ? 'adm-fila-anulada' : ''}>
+                  <td className="ui-num">{f.numero}</td>
                   <td>{new Date(f.fecha).toLocaleDateString()}</td>
                   <td>{f.numero_factura}</td>
                   <td>{f.nit_ci || '—'}</td>
                   <td>{f.razon_social}</td>
-                  <td>{bs(f.total)}</td>
-                  <td>{bs(f.descuento)}</td>
-                  <td>{bs(f.importe_base)}</td>
-                  <td>{bs(f.debito_fiscal)}</td>
+                  <td className="ui-num">{bs(f.total)}</td>
+                  <td className="ui-num">{bs(f.descuento)}</td>
+                  <td className="ui-num">{bs(f.importe_base)}</td>
+                  <td className="ui-num">{bs(f.debito_fiscal)}</td>
                   <td>
-                    <span className={`badge-estado ${f.estado === 'A' ? '' : 'badge-estado--emitida'}`}>
-                      {ETIQUETA_ESTADO[f.estado] ?? f.estado}
-                    </span>
+                    <Chip tono={f.estado === 'A' ? 'neutro' : 'exito'}>{ETIQUETA_ESTADO[f.estado] ?? f.estado}</Chip>
                   </td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={5}><strong>Totales del mes</strong></td>
-                <td><strong>{bs(libro.totales.total)}</strong></td>
-                <td><strong>{bs(libro.totales.descuento)}</strong></td>
-                <td><strong>{bs(libro.totales.importe_base)}</strong></td>
-                <td><strong>{bs(libro.totales.debito_fiscal)}</strong></td>
+                <th colSpan={5}>Totales del mes</th>
+                <td className="ui-num">{bs(libro.totales.total)}</td>
+                <td className="ui-num">{bs(libro.totales.descuento)}</td>
+                <td className="ui-num">{bs(libro.totales.importe_base)}</td>
+                <td className="ui-num">{bs(libro.totales.debito_fiscal)}</td>
                 <td></td>
               </tr>
             </tfoot>
-          </table>
+          </Tabla>
         </div>
       )}
     </section>

@@ -1,0 +1,249 @@
+/* Páginas del administrador (Figma p.75 y el sistema de diseño). Solo variables de index.css.
+   Clases comunes con prefijo adm-; cada página se envuelve en .adm-pagina. */
+
+.adm-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.adm-pagina > .turno-encabezado {
+  margin-bottom: 0;
+}
+
+/* Encabezado con acciones a la derecha */
+.adm-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+.adm-cabecera .turno-encabezado {
+  margin-bottom: 0;
+}
+.adm-subtitulo {
+  margin: 0;
+  font: var(--texto-titulo-3);
+  color: var(--text);
+}
+
+/* Filtros y formularios en fila */
+.adm-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-4);
+}
+.adm-filtros .ui-campo {
+  min-width: 170px;
+}
+.adm-filtros .adm-crecer {
+  flex: 1;
+  min-width: 240px;
+}
+
+/* Formularios en columna */
+.adm-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.adm-rejilla-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--espacio-4);
+  align-items: start;
+}
+
+/* KPI */
+.adm-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--espacio-4);
+}
+.adm-kpis > div > .ui-kpi {
+  height: 100%;
+}
+.adm-pagina .ui-kpi-valor {
+  font-size: 24px;
+  line-height: 32px;
+  white-space: nowrap;
+}
+.adm-kpi--exito .ui-kpi-valor {
+  color: var(--success);
+}
+.adm-kpi--advertencia .ui-kpi-valor {
+  color: var(--warning);
+}
+.adm-kpi--error .ui-kpi-valor {
+  color: var(--error);
+}
+.adm-kpi-detalle {
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Dos columnas */
+.adm-dos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-5);
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .adm-dos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Textos */
+.adm-nota {
+  margin: 0;
+  color: var(--muted);
+}
+.adm-detalle {
+  display: block;
+  font: var(--texto-etiqueta);
+  font-weight: 400;
+  color: var(--muted);
+}
+
+/* Acciones de una fila de tabla */
+.adm-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--espacio-1);
+}
+.adm-acciones .ui-boton {
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
+  white-space: nowrap;
+}
+.adm-accion--peligro {
+  color: var(--error);
+}
+a.ui-boton {
+  text-decoration: none;
+}
+
+/* Opciones segmentadas (NIT / CI, filtros de estado) */
+.adm-segmento {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.adm-segmento button {
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: var(--surface);
+  color: var(--text);
+  font: var(--texto-cuerpo);
+  cursor: pointer;
+}
+.adm-segmento button:hover {
+  background: var(--bone);
+}
+.adm-segmento .adm-segmento--activa,
+.adm-segmento .adm-segmento--activa:hover {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: var(--surface);
+}
+
+/* Filas etiqueta / valor */
+.adm-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.adm-datos > li,
+.adm-datos > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-2) 0;
+  border-bottom: 1px solid var(--border);
+}
+.adm-datos > li:last-child,
+.adm-datos > div:last-child {
+  border-bottom: none;
+}
+.adm-datos dt {
+  color: var(--muted);
+}
+.adm-datos dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paginación */
+.adm-paginacion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  color: var(--muted);
+}
+.adm-paginacion > div {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+/* Opciones con radio (Sí / No, motivos) */
+.adm-opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+.adm-opciones legend {
+  margin-bottom: var(--espacio-2);
+  font: var(--texto-etiqueta);
+  color: var(--text);
+}
+.adm-opcion {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  cursor: pointer;
+}
+.adm-opcion--activa {
+  border-color: var(--navy);
+}
+.adm-opcion input {
+  accent-color: var(--navy);
+}
+
+.adm-pagina .ui-tabla td .ui-chip + .adm-detalle {
+  margin-top: var(--espacio-1);
+}
+/* Facturas anuladas en el Libro de Ventas */
+.adm-fila-anulada td {
+  color: var(--muted);
+}
+/* Tablas de muchas columnas: sin cortar números ni fechas; la tabla se desplaza si no entra. */
+.adm-sin-cortes .ui-tabla td,
+.adm-sin-cortes .ui-tabla th {
+  white-space: nowrap;
+}
+/* Ventanas con una tabla larga (facturas de un cajero): hasta 1040 px. */
+.ui-modal--ancho:has(.adm-sin-cortes) {
+  max-width: min(1040px, 100%);
+}

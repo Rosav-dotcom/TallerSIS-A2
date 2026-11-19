@@ -1,9 +1,22 @@
 import { useEffect, useState } from 'react'
 import { listarUsuarios, crearCajero, editarUsuario, cambiarPasswordCajero, cambiarEstadoUsuario } from '../api/usuarios.js'
 import { useAdminAuth } from '../context/AdminAuthContext.jsx'
-import CampoPassword from '../components/CampoPassword.jsx'
+import { Plus } from 'lucide-react'
+import {
+  Alerta,
+  Boton,
+  CampoContrasena,
+  CampoTexto,
+  Chip,
+  EstadoVacio,
+  Modal,
+  Selector,
+  Tabla,
+} from '../components/ui'
+import './turno.css'
+import './admin.css'
 
-const CLASE_ESTADO = { Activo: 'badge-estado--emitida', Inactivo: '', Bloqueado: 'badge-comparacion--faltante' }
+const TONO_ESTADO = { Activo: 'exito', Inactivo: 'neutro', Bloqueado: 'error' }
 const FILTROS_ROL = [
   { valor: '', etiqueta: 'Todos' },
   { valor: 'Cajero', etiqueta: 'Cajeros' },
@@ -159,42 +172,45 @@ function Usuarios() {
   }
 
   return (
-    <section>
-      <h1>Usuarios</h1>
-      <p className="resumen-turno-actual">Cuentas de cajeros y supervisores que usan el sistema.</p>
-
-      <div className="filtro-fechas">
-        <label className="campo campo-turno-dia">
-          Rol
-          <select value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
-            {FILTROS_ROL.map((o) => (
-              <option key={o.valor} value={o.valor}>{o.etiqueta}</option>
-            ))}
-          </select>
-        </label>
-        <button type="button" className="btn" onClick={abrirNuevo}>
+    <section className="adm-pagina">
+      <div className="adm-cabecera">
+        <div className="turno-encabezado">
+          <h1>Usuarios</h1>
+          <p>Cuentas de cajeros y supervisores que usan el sistema.</p>
+        </div>
+        <Boton icono={Plus} onClick={abrirNuevo}>
           Nuevo cajero
-        </button>
+        </Boton>
       </div>
 
-      {mensaje && <p className={mensaje.ok ? 'mensaje-exito' : 'error'}>{mensaje.texto}</p>}
+      <div className="adm-filtros">
+        <Selector etiqueta="Rol" value={filtroRol} onChange={(e) => setFiltroRol(e.target.value)}>
+          {FILTROS_ROL.map((o) => (
+            <option key={o.valor} value={o.valor}>
+              {o.etiqueta}
+            </option>
+          ))}
+        </Selector>
+      </div>
 
-      {cargando && <p>Cargando...</p>}
-      {!cargando && error && <p className="error">Error: {error}</p>}
+      {mensaje && <Alerta tono={mensaje.ok ? 'exito' : 'error'} titulo={mensaje.texto} />}
+
+      {cargando && <p className="adm-nota">Cargando...</p>}
+      {!cargando && error && <Alerta tono="error" titulo={`Error: ${error}`} />}
 
       {!cargando && !error && usuariosFiltrados.length === 0 && (
-        <p className="orden-mensaje orden-mensaje-pendiente cajas-mensaje">No hay usuarios que coincidan con el filtro.</p>
+        <EstadoVacio titulo="No hay usuarios que coincidan con el filtro." />
       )}
 
       {!cargando && !error && usuariosFiltrados.length > 0 && (
-        <table className="tabla-facturas">
+        <Tabla etiqueta="Usuarios">
           <thead>
             <tr>
               <th>Usuario</th>
               <th>Nombre</th>
               <th>Rol</th>
               <th>Estado</th>
-              <th></th>
+              <th aria-label="Acciones"></th>
             </tr>
           </thead>
           <tbody>
@@ -204,178 +220,169 @@ function Usuarios() {
                 <td>{u.nombre}</td>
                 <td>{u.rol}</td>
                 <td>
-                  <span className={`badge-estado ${CLASE_ESTADO[u.estado] ?? ''}`}>{u.estado}</span>
+                  <Chip tono={TONO_ESTADO[u.estado]}>{u.estado}</Chip>
                 </td>
-                <td style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-secundario" onClick={() => abrirEditar(u)}>
-                    Editar
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn ${u.estado === 'Activo' ? 'btn-secundario' : ''}`}
-                    onClick={() => pedirCambioEstado(u)}
-                  >
-                    {u.estado === 'Activo' ? 'Desactivar' : 'Activar'}
-                  </button>
+                <td>
+                  <div className="adm-acciones">
+                    <Boton variante="fantasma" onClick={() => abrirEditar(u)}>
+                      Editar
+                    </Boton>
+                    <Boton
+                      variante="fantasma"
+                      className={u.estado === 'Activo' ? 'adm-accion--peligro' : ''}
+                      onClick={() => pedirCambioEstado(u)}
+                    >
+                      {u.estado === 'Activo' ? 'Desactivar' : 'Activar'}
+                    </Boton>
+                  </div>
                 </td>
               </tr>
             ))}
           </tbody>
-        </table>
+        </Tabla>
       )}
 
       {mostrandoNuevo && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Nuevo cajero">
-          <form className="modal-caja" onSubmit={confirmarNuevo}>
-            <h2>Nuevo cajero</h2>
+        <Modal abierto titulo="Nuevo cajero" onCerrar={creando ? undefined : () => setMostrandoNuevo(false)}>
+          <form className="adm-form" onSubmit={confirmarNuevo}>
+            <CampoTexto
+              etiqueta="Usuario (correo)"
+              type="email"
+              autoComplete="off"
+              value={nuevo.usuario}
+              onChange={(e) => setNuevo((prev) => ({ ...prev, usuario: e.target.value }))}
+              autoFocus
+            />
+            <CampoTexto
+              etiqueta="Nombre"
+              type="text"
+              value={nuevo.nombre}
+              onChange={(e) => setNuevo((prev) => ({ ...prev, nombre: e.target.value }))}
+            />
+            <CampoContrasena
+              etiqueta="Contraseña (mínimo 6 caracteres)"
+              autoComplete="new-password"
+              value={nuevo.password}
+              onChange={(e) => setNuevo((prev) => ({ ...prev, password: e.target.value }))}
+            />
+            <CampoContrasena
+              etiqueta="Confirmar contraseña"
+              autoComplete="new-password"
+              value={nuevo.confirmarPassword}
+              onChange={(e) => setNuevo((prev) => ({ ...prev, confirmarPassword: e.target.value }))}
+            />
 
-            <label className="campo">
-              Usuario (correo)
-              <input
-                type="email"
-                autoComplete="off"
-                value={nuevo.usuario}
-                onChange={(e) => setNuevo((prev) => ({ ...prev, usuario: e.target.value }))}
-                autoFocus
-              />
-            </label>
+            {errorNuevo && <Alerta tono="error" titulo={errorNuevo} />}
 
-            <label className="campo">
-              Nombre
-              <input
-                type="text"
-                value={nuevo.nombre}
-                onChange={(e) => setNuevo((prev) => ({ ...prev, nombre: e.target.value }))}
-              />
-            </label>
-
-            <label className="campo">
-              Contraseña (mínimo 6 caracteres)
-              <CampoPassword
-                autoComplete="new-password"
-                value={nuevo.password}
-                onChange={(e) => setNuevo((prev) => ({ ...prev, password: e.target.value }))}
-              />
-            </label>
-
-            <label className="campo">
-              Confirmar contraseña
-              <CampoPassword
-                autoComplete="new-password"
-                value={nuevo.confirmarPassword}
-                onChange={(e) => setNuevo((prev) => ({ ...prev, confirmarPassword: e.target.value }))}
-              />
-            </label>
-
-            {errorNuevo && <p className="error">{errorNuevo}</p>}
-
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={() => setMostrandoNuevo(false)} disabled={creando}>
+            <div className="ui-modal-acciones">
+              <Boton variante="contorno" onClick={() => setMostrandoNuevo(false)} disabled={creando}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn" disabled={creando}>
+              </Boton>
+              <Boton type="submit" disabled={creando}>
                 {creando ? 'Guardando...' : 'Guardar'}
-              </button>
+              </Boton>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {editando && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Editar usuario">
-          <form className="modal-caja" onSubmit={confirmarEditar}>
-            <h2>Editar {editando.rol.toLowerCase()}</h2>
-
-            <label className="campo">
-              Usuario
-              <input
-                type="text"
-                autoComplete="off"
-                value={formEditar.usuario}
-                onChange={(e) => setFormEditar((prev) => ({ ...prev, usuario: e.target.value }))}
-                autoFocus
-              />
-            </label>
-
-            <label className="campo">
-              Nombre
-              <input
-                type="text"
-                value={formEditar.nombre}
-                onChange={(e) => setFormEditar((prev) => ({ ...prev, nombre: e.target.value }))}
-              />
-            </label>
+        <Modal
+          abierto
+          titulo={`Editar ${editando.rol.toLowerCase()}`}
+          onCerrar={guardandoEdicion ? undefined : () => setEditando(null)}
+        >
+          <form className="adm-form" onSubmit={confirmarEditar}>
+            <CampoTexto
+              etiqueta="Usuario"
+              type="text"
+              autoComplete="off"
+              value={formEditar.usuario}
+              onChange={(e) => setFormEditar((prev) => ({ ...prev, usuario: e.target.value }))}
+              autoFocus
+            />
+            <CampoTexto
+              etiqueta="Nombre"
+              type="text"
+              value={formEditar.nombre}
+              onChange={(e) => setFormEditar((prev) => ({ ...prev, nombre: e.target.value }))}
+            />
 
             {editando.rol === 'Cajero' && (
               <>
-                <div className="factura-correo-acciones" style={{ marginBottom: cambiarPassword ? '1rem' : 0 }}>
-                  <button
-                    type="button"
-                    className={`btn${cambiarPassword ? '' : ' btn-secundario'}`}
+                <div>
+                  <Boton
+                    variante={cambiarPassword ? 'primario' : 'contorno'}
+                    aria-pressed={cambiarPassword}
                     onClick={() => setCambiarPassword((v) => !v)}
                   >
                     Cambiar contraseña
-                  </button>
+                  </Boton>
                 </div>
 
                 {cambiarPassword && (
                   <>
-                    <label className="campo">
-                      Contraseña nueva (mínimo 6 caracteres)
-                      <CampoPassword
-                        autoComplete="new-password"
-                        value={passwordNueva}
-                        onChange={(e) => setPasswordNueva(e.target.value)}
-                      />
-                    </label>
-                    <label className="campo">
-                      Confirmar contraseña
-                      <CampoPassword
-                        autoComplete="new-password"
-                        value={passwordConfirmar}
-                        onChange={(e) => setPasswordConfirmar(e.target.value)}
-                      />
-                    </label>
+                    <CampoContrasena
+                      etiqueta="Contraseña nueva (mínimo 6 caracteres)"
+                      autoComplete="new-password"
+                      value={passwordNueva}
+                      onChange={(e) => setPasswordNueva(e.target.value)}
+                    />
+                    <CampoContrasena
+                      etiqueta="Confirmar contraseña"
+                      autoComplete="new-password"
+                      value={passwordConfirmar}
+                      onChange={(e) => setPasswordConfirmar(e.target.value)}
+                    />
                   </>
                 )}
               </>
             )}
 
-            {errorEditar && <p className="error">{errorEditar}</p>}
+            {errorEditar && <Alerta tono="error" titulo={errorEditar} />}
 
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={() => setEditando(null)} disabled={guardandoEdicion}>
+            <div className="ui-modal-acciones">
+              <Boton variante="contorno" onClick={() => setEditando(null)} disabled={guardandoEdicion}>
                 Cancelar
-              </button>
-              <button type="submit" className="btn" disabled={guardandoEdicion}>
+              </Boton>
+              <Boton type="submit" disabled={guardandoEdicion}>
                 {guardandoEdicion ? 'Guardando...' : 'Guardar'}
-              </button>
+              </Boton>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {cambiandoEstadoDe && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Confirmar cambio de estado">
-          <div className="modal-caja">
-            <h2>{cambiandoEstadoDe.estado === 'Activo' ? 'Desactivar' : 'Activar'} usuario</h2>
-            <p>
-              ¿Desea {cambiandoEstadoDe.estado === 'Activo' ? 'desactivar' : 'activar'} a <strong>{cambiandoEstadoDe.usuario}</strong> ({cambiandoEstadoDe.nombre})?
-              {cambiandoEstadoDe.estado === 'Activo' && ' Mientras esté desactivado no va a poder iniciar sesión ni autorizar nada.'}
-            </p>
-
-            {errorEstado && <p className="error">{errorEstado}</p>}
-
-            <div className="pago-exito-acciones">
-              <button type="button" className="btn btn-secundario" onClick={() => setCambiandoEstadoDe(null)} disabled={guardandoEstado}>
+        <Modal
+          abierto
+          titulo={`${cambiandoEstadoDe.estado === 'Activo' ? 'Desactivar' : 'Activar'} usuario`}
+          onCerrar={guardandoEstado ? undefined : () => setCambiandoEstadoDe(null)}
+          acciones={
+            <>
+              <Boton variante="contorno" onClick={() => setCambiandoEstadoDe(null)} disabled={guardandoEstado}>
                 Cancelar
-              </button>
-              <button type="button" className="btn" onClick={confirmarCambioEstado} disabled={guardandoEstado}>
+              </Boton>
+              <Boton
+                variante={cambiandoEstadoDe.estado === 'Activo' ? 'peligro' : 'primario'}
+                onClick={confirmarCambioEstado}
+                disabled={guardandoEstado}
+              >
                 {guardandoEstado ? 'Guardando...' : 'Sí, confirmar'}
-              </button>
-            </div>
+              </Boton>
+            </>
+          }
+        >
+          <div className="adm-form">
+            <p>
+              ¿Desea {cambiandoEstadoDe.estado === 'Activo' ? 'desactivar' : 'activar'} a{' '}
+              <strong>{cambiandoEstadoDe.usuario}</strong> ({cambiandoEstadoDe.nombre})?
+              {cambiandoEstadoDe.estado === 'Activo' &&
+                ' Mientras esté desactivado no va a poder iniciar sesión ni autorizar nada.'}
+            </p>
+            {errorEstado && <Alerta tono="error" titulo={errorEstado} />}
           </div>
-        </div>
+        </Modal>
       )}
     </section>
   )
