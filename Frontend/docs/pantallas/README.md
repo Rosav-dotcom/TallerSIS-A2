@@ -34,7 +34,8 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | Carpeta | Equipo | Microservicio |
 |---|---|---|
 | `src/modules/devoluciones/` | Equipo 1 (Aylen) | `devoluciones_reembolsos` |
-| `src/modules/kpis/SeccionCaja.jsx` | Equipo 1 (Aylen) | `gestion_caja`, `facturacion` |
+| `src/modules/kpis/SeccionCaja.jsx` | Equipo 1 (Aylen) | `gestion_caja` |
+| `src/modules/kpis/SeccionDevolucionesSoporte.jsx` | Equipo 1 (Aylen) | `devoluciones_reembolsos`, `soporte` |
 | `src/modules/soporte/` | Equipo 2 (Orias) | `soporte` |
 | `src/modules/pagos/` (vales, comprobante de reembolso) | Equipo 2 (Orias) | `gestion_pagos` |
 | `src/modules/kpis/SeccionVentas.jsx` | Equipo 2 (Orias) | `gestion_pagos` |
@@ -56,4 +57,4 @@ Cada módulo tiene su `api.js` y su variable en `.env.example` (por ejemplo `VIT
 | [`soporte-historial-y-reportes.md`](sprint4/soporte-historial-y-reportes.md) | Soporte: historial por usuario y reportes | Sebastián Orias (Equipo 2) | TDSI-66, TDSI-67 |
 | [`soporte-incidentes-escalados-admin.md`](sprint4/soporte-incidentes-escalados-admin.md) | Administrador: incidentes escalados | Sebastián Orias (Equipo 2) | TDSI-65 |
 | [`tablero-pestana-devoluciones.md`](sprint4/tablero-pestana-devoluciones.md) | Tablero de ingresos: pestaña Devoluciones y chip Revertido | Aylen Claros (Equipo 1) · chip Revertido: Sebastián Orias (Equipo 2) | TDSI-80, TDSI-74 |
-| [`tablero-kpis.md`](sprint4/tablero-kpis.md) | Tablero de KPIs | Sección Ventas: Sebastián Orias (Equipo 2) · Sección Caja e integración: Aylen Claros (Equipo 1) | TDSI-640, TDSI-639 |
+| [`tablero-kpis.md`](sprint4/tablero-kpis.md) | Tablero de KPIs (10 KPIs en 3 pestañas) | Pestaña Ventas: Sebastián Orias (Equipo 2) · Pestañas Caja y Devoluciones y soporte: Aylen Claros (Equipo 1) | TDSI-640, TDSI-639 |
