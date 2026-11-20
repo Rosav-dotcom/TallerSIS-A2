@@ -91,16 +91,7 @@ Uso: `font: var(--texto-titulo-2);`
 
 ## 5. Variables anteriores
 
-Hasta terminar la migración se mantienen las variables antiguas, apuntando a las nuevas, para que nada se rompa:
-
-| Variable anterior | Ahora apunta a |
-|---|---|
-| `--color-brand-dark` | `--navy` |
-| `--color-brand-olive` | `--olive` |
-| `--color-brand-mint` | `--border` |
-| `--color-brand-green` | `--success-bg` |
-
-**No usarlas en código nuevo.** Se eliminan en la última fase de la migración.
+Las variables antiguas (`--color-brand-dark`, `--color-brand-olive`, `--color-brand-mint` y `--color-brand-green`) se eliminaron en la fase 0015, al terminar la migración. Usar siempre las de la sección 1 (`--navy`, `--olive`, `--border`, `--success-bg`…).
 
 ## 6. Componentes y pantallas
 

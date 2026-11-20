@@ -37,22 +37,12 @@
 .adm-filtros .ui-campo {
   min-width: 170px;
 }
-.adm-filtros .adm-crecer {
-  flex: 1;
-  min-width: 240px;
-}
 
 /* Formularios en columna */
 .adm-form {
   display: flex;
   flex-direction: column;
   gap: var(--espacio-4);
-}
-.adm-rejilla-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--espacio-4);
-  align-items: start;
 }
 
 /* KPI */
@@ -69,12 +59,6 @@
   line-height: 32px;
   white-space: nowrap;
 }
-.adm-kpi--exito .ui-kpi-valor {
-  color: var(--success);
-}
-.adm-kpi--advertencia .ui-kpi-valor {
-  color: var(--warning);
-}
 .adm-kpi--error .ui-kpi-valor {
   color: var(--error);
 }
@@ -85,17 +69,6 @@
 }
 
 /* Dos columnas */
-.adm-dos {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--espacio-5);
-  align-items: start;
-}
-@media (max-width: 1000px) {
-  .adm-dos {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 
 /* Textos */
 .adm-nota {
@@ -200,36 +173,6 @@ a.ui-boton {
 }
 
 /* Opciones con radio (Sí / No, motivos) */
-.adm-opciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espacio-2);
-  margin: 0;
-  padding: 0;
-  border: none;
-}
-.adm-opciones legend {
-  margin-bottom: var(--espacio-2);
-  font: var(--texto-etiqueta);
-  color: var(--text);
-}
-.adm-opcion {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: var(--alto-tactil);
-  padding: 0 var(--espacio-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radio-control);
-  cursor: pointer;
-}
-.adm-opcion--activa {
-  border-color: var(--navy);
-}
-.adm-opcion input {
-  accent-color: var(--navy);
-}
 
 .adm-pagina .ui-tabla td .ui-chip + .adm-detalle {
   margin-top: var(--espacio-1);

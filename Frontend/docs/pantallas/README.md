@@ -19,6 +19,7 @@ Una guía por pantalla, con su página de Figma, dónde va cada bloque, qué com
 | [`admin-personas.md`](admin-personas.md) | 0012 · Administrador: Cajeros, Clientes, Supervisores, Usuarios y Libro de Ventas |
 | [`admin-operacion-analisis.md`](admin-operacion-analisis.md) | 0013 · Administrador: Cierre diario, Historial, Diferencias, Comparativo, Horas pico, Metas, Productos y Ventas online |
 | [`acceso.md`](acceso.md) y [`menus.md`](menus.md) | 0014 · Login con foto y menú lateral con íconos solo en las secciones |
+| [`menus.md`](menus.md) | 0015 · Limpieza final: CSS y componentes sin uso, variables antiguas y barra del cajero en celular |
 
 ## Antes de empezar una pantalla del Sprint 4
 

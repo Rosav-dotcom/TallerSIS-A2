@@ -285,7 +285,7 @@
   }
 }
 
-/* Propuesta: íconos solo en los grupos; las pantallas van sin ícono, alineadas con el texto del grupo. */
+/* Menú lateral: íconos solo en las secciones; las pantallas van sin ícono, alineadas con el texto de la sección. */
 .nav-lateral-menu {
   gap: 2px;
   padding: 0 var(--espacio-3) var(--espacio-5);
@@ -315,4 +315,59 @@
 }
 .nav-lateral-marca {
   padding-left: var(--espacio-5);
+}
+
+/* ---------- Barra del cajero en celular ----------
+   Arriba: logo, caja, usuario y Bloquear. Abajo: Inicio, Cobrar y Facturas a todo el ancho. */
+@media (max-width: 700px) {
+  .nav-cajero {
+    min-height: 0;
+  }
+  .nav-cajero-marca {
+    min-height: 56px;
+    padding: 0 var(--espacio-4);
+  }
+  .nav-cajero .nav-logo {
+    font-size: 26px;
+  }
+  .nav-cajero-derecha {
+    flex: 1;
+    justify-content: flex-end;
+    gap: var(--espacio-2);
+    min-width: 0;
+    padding: 0 var(--espacio-3);
+  }
+  .nav-caja {
+    min-width: 0;
+  }
+  .nav-caja-nombre {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 14px;
+  }
+  .nav-cajero .nav-usuario-texto {
+    display: none;
+  }
+  .nav-cajero-derecha .ui-boton {
+    padding: 0 var(--espacio-3);
+  }
+  .nav-cajero-pestanas {
+    order: 3;
+    width: 100%;
+    gap: 0;
+    padding: 0;
+    border-top: 1px solid var(--border);
+  }
+  .nav-cajero-pestanas a {
+    flex: 1;
+    justify-content: center;
+    min-height: 48px;
+    padding: 0;
+  }
+}
+@media (max-width: 420px) {
+  .nav-caja-codigo {
+    display: none;
+  }
 }

@@ -14,6 +14,8 @@
 - **Pestañas:** Inicio (`/`) · Cobrar (`/pagos`) · Facturas (`/facturas`). La activa lleva una línea olive debajo.
 - **Derecha:** nombre y código de la caja · usuario con su avatar y el menú **Cerrar caja / Cerrar sesión** · botón contorno **Bloquear** con candado (TDSI-855).
 
+- **En celular (hasta 700 px):** arriba el logo, la caja, el usuario (solo el avatar) y "Bloquear"; abajo, Inicio, Cobrar y Facturas a todo el ancho. Desde 420 px se oculta el código de la caja. Así la barra ya no se sale de la pantalla (fase 0015).
+
 ## Administrador (barra lateral y barra superior)
 
 - **Barra lateral navy** con las secciones de la p.8, que se abren o cierran por separado. Al entrar a una pantalla se abre sola la sección que la contiene, y la pantalla activa lleva una línea dorada a la izquierda. Desde la fase 0014, **el ícono va solo en el nombre de la sección**; las pantallas van sin ícono, alineadas con el texto de la sección, en un tono más suave, y la activa se ve en blanco y negrita con un fondo apenas más claro.
