@@ -79,7 +79,7 @@ Lo que falta lo arma el backend en estas subtareas (los nombres en Jira se actua
 - **TDSI-643** (TDSI-639): KPI-3 Exactitud de arqueo por cajero en `gestion_caja` (turnos de TDSI-31 y TDSI-60).
 - **TDSI-1090** (TDSI-639): KPI-4 Tiempo de autorización con `caja.autorizaciones`.
 - **TDSI-644** (TDSI-639): KPI-7 Monto de diferencias de caja con `caja.diferencias_resolucion` (reemplaza al antiguo "éxito de envíos a Contabilidad", que ya no es un KPI).
-- **KPI-9 y KPI-10:** se calculan con los datos de Devoluciones (TDSI-70, TDSI-71, TDSI-82) y de Soporte (TDSI-64, TDSI-971), dentro de TDSI-639.
+- **TDSI-1130** (TDSI-639): KPI-9 Tasa de devoluciones con los datos de Devoluciones (TDSI-70, TDSI-71, TDSI-82), KPI-10 Tiempo de resolución de soporte con los datos de Soporte (TDSI-64, TDSI-971), y los tests de los KPIs de la historia (KPI-3, 4, 7, 9 y 10).
 
 ## Subtareas de Jira (Frontend)
 
