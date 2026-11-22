@@ -93,6 +93,8 @@ La pantalla tiene que cumplir estas PA. Los mensajes que aparecen entre comillas
 
 ## Backend que necesita
 
+> **Acuerdo de equipo (un dato, un dueño):** en el paso 4 (Reembolso) y en la confirmación, la **reversión con tarjeta**, el **vale** y el **correo del comprobante** los hace **`gestion_pagos`** (TDSI-74, TDSI-75 y TDSI-79). Devoluciones llama a esos endpoints y solo guarda la referencia que devuelven (`reversion_id`, `vale_codigo`, `envio_id`); el monto, el saldo y el estado se consultan siempre en `gestion_pagos`. Las tablas `vales_compra`, `envios_pasarela` y `envios_comprobante` de `script_devoluciones.sql` se retiran o se reducen a esa referencia en TDSI-217. El contrato está en TDSI-1027.
+
 Endpoints a cargo del equipo de backend. La pantalla no inventa datos: si un endpoint aún no existe, la sección queda oculta con su interruptor en `src/config/features.js`.
 
 - TDSI-213 (TDSI-68): Configurar el microservicio devoluciones_reembolsos (Express, PostgreSQL, .env.example) y agregarlo a docker-compose

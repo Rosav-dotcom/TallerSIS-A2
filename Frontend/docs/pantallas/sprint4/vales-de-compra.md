@@ -45,6 +45,8 @@ La pantalla tiene que cumplir estas PA. Los mensajes que aparecen entre comillas
 
 ## Backend que necesita
 
+> **Acuerdo de equipo (un dato, un dueño):** los vales, la reversión con tarjeta y el correo del comprobante los hace **`gestion_pagos`**. No usar las tablas `devoluciones.vales_compra`, `devoluciones.envios_pasarela` ni `devoluciones.envios_comprobante`: Devoluciones solo guarda la referencia (código del vale, id de la reversión o del envío) y se retiran en TDSI-217. El contrato entre los dos servicios está en TDSI-1027.
+
 Endpoints a cargo del equipo de backend. La pantalla no inventa datos: si un endpoint aún no existe, la sección queda oculta con su interruptor en `src/config/features.js`.
 
 - TDSI-227 (TDSI-75): Crear la tabla de vales (código, monto, saldo, expiración, estado)
