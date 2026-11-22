@@ -46,6 +46,21 @@ npm test
 |---|---|---|---|
 | GET | `/api/soporte/facturas/:numero` | Consulta una factura en Facturación (`GET /api/facturas/:numero`) y la devuelve con cliente, totales, ítems y métodos de pago. 400 si el número es inválido, 404 si no existe, 503 si Facturación no responde. | TDSI-1064 |
 | GET | `/api/soporte/transacciones/:id` | Consulta una transacción en Gestión de pagos (`GET /transacciones/:id` y `/historial`, con token) y devuelve métodos, montos, total, cliente, caja, estado e historial. | TDSI-1066 |
+| GET | `/api/soporte/comparacion?factura=F-000123&transaccion=TX-1` | Compara la factura con su transacción y marca las diferencias (`coincide`, `diferencias`, `avisos`). `transaccion` es opcional: si falta se usa la de la factura (`venta_id`). | TDSI-972 |
+
+### Qué compara (TDSI-972)
+
+| Campo | Diferencia cuando… |
+|---|---|
+| `transaccion` | La transacción no existe en Gestión de pagos |
+| `referencia` | La factura apunta a otra transacción |
+| `total` | El total facturado y el cobrado difieren en 1 centavo o más |
+| `metodo_pago.<Método>` | Un método está solo en un lado o su monto no coincide (el pago mixto se suma por método) |
+| `cliente.nit` / `cliente.razon_social` | El NIT/CI o la razón social no coinciden (sin distinguir mayúsculas, tildes ni espacios) |
+| `estado` | Factura Emitida con pago Anulado, o factura Anulada con pago Registrado |
+| `estado_pago` | Factura Emitida con pago PENDIENTE o RECHAZADA |
+
+En `avisos` van los casos que no son error pero conviene revisar: factura sin métodos de pago, en borrador o con anulación solicitada. La regla está en `src/domain/compararFacturaYTransaccion.js` (función pura, sin base de datos).
 
 ### Credenciales para Gestión de pagos (TDSI-1066)
 

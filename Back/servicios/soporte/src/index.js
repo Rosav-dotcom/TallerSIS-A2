@@ -7,6 +7,7 @@ const { crearFacturacionClient } = require("./clients/facturacionClient");
 const { crearFacturasService } = require("./services/facturasService");
 const { crearGestionPagosClient } = require("./clients/gestionPagosClient");
 const { crearTransaccionesService } = require("./services/transaccionesService");
+const { crearComparacionService } = require("./services/comparacionService");
 const { crearSoporteRoutes } = require("./routes/soporteRoutes");
 
 // TDSI-203: microservicio de Soporte (Sprint 4, Equipo 2). Atiende los reclamos de
@@ -30,7 +31,8 @@ app.get("/health", async (req, res) => {
 // Dependencias armadas aquí para poder reemplazarlas en los tests
 const facturasService = crearFacturasService({ facturacionClient: crearFacturacionClient() });
 const transaccionesService = crearTransaccionesService({ gestionPagosClient: crearGestionPagosClient() });
-app.use("/api/soporte", crearSoporteRoutes({ facturasService, transaccionesService }));
+const comparacionService = crearComparacionService({ facturasService, transaccionesService });
+app.use("/api/soporte", crearSoporteRoutes({ facturasService, transaccionesService, comparacionService }));
 
 app.use(errorHandler);
 
