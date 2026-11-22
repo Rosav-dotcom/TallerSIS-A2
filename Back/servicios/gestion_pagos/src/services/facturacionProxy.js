@@ -3,14 +3,18 @@
 // nunca inventa su propio numero de factura. Mismo patron que clientesProxy.js.
 const FACTURACION_URL = process.env.FACTURACION_URL || "http://localhost:4002";
 
-/** Devuelve la factura creada ({ numero, id, ... }); lanza un Error con un mensaje claro si falla. */
-async function emitirFactura({ nit, razon_social, items }) {
+/**
+ * Devuelve la factura creada ({ numero, id, ... }); lanza un Error con un mensaje claro si falla.
+ * TDSI-68/991: metodos ([{ metodo, monto }]) y canal quedan guardados en la factura, para que
+ * Devoluciones muestre como se pago el comprobante.
+ */
+async function emitirFactura({ nit, razon_social, items, metodos, canal }) {
   let respuesta;
   try {
     respuesta = await fetch(`${FACTURACION_URL}/api/facturas`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ nit, razon_social, items }),
+      body: JSON.stringify({ nit, razon_social, items, metodos, canal }),
     });
   } catch (e) {
     throw new Error("No se pudo contactar a facturacion para emitir la factura.");

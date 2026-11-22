@@ -8,7 +8,7 @@ const { query, withTransaction } = require("../config/db");
  * (leer el ultimo numero + insertar) entre transacciones concurrentes, sin bloquear
  * el resto de la tabla.
  */
-async function crearFactura({ cliente_nit, cliente_nombre, items, subtotal, descuento, impuesto, total }) {
+async function crearFactura({ cliente_nit, cliente_nombre, items, metodos = [], canal, subtotal, descuento, impuesto, total }) {
   return withTransaction(async (client) => {
     await client.query(`SELECT pg_advisory_xact_lock(hashtext('facturacion.facturas.numero'))`);
 
@@ -21,10 +21,10 @@ async function crearFactura({ cliente_nit, cliente_nombre, items, subtotal, desc
 
     const { rows } = await client.query(
       `INSERT INTO facturacion.facturas
-         (numero, cliente_nit, cliente_nombre, subtotal, descuento, impuesto, total)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)
+         (numero, cliente_nit, cliente_nombre, subtotal, descuento, impuesto, total, canal)
+       VALUES ($1,$2,$3,$4,$5,$6,$7, COALESCE($8, 'Presencial'))
        RETURNING *`,
-      [numero, cliente_nit, cliente_nombre, subtotal, descuento, impuesto, total]
+      [numero, cliente_nit, cliente_nombre, subtotal, descuento, impuesto, total, canal || null]
     );
     const factura = rows[0];
 
@@ -33,6 +33,14 @@ async function crearFactura({ cliente_nit, cliente_nombre, items, subtotal, desc
         `INSERT INTO facturacion.factura_items (factura_id, descripcion, cantidad, precio_unitario, subtotal)
          VALUES ($1,$2,$3,$4,$5)`,
         [factura.id, item.descripcion, item.cantidad, item.precio_unitario, item.subtotal]
+      );
+    }
+
+    // TDSI-68/991: como se pago (lo lee Devoluciones para mostrar el metodo del comprobante)
+    for (const m of metodos) {
+      await client.query(
+        `INSERT INTO facturacion.factura_metodos_pago (factura_id, metodo, monto) VALUES ($1,$2,$3)`,
+        [factura.id, m.metodo, m.monto]
       );
     }
 
@@ -59,7 +67,50 @@ async function obtenerFacturaCompleta(numero) {
     [factura.id]
   );
 
-  return { ...factura, items, metodosPago };
+  // TDSI-68/991: el codigo de barras del ticket es el N° de factura (Code 128)
+  return { ...factura, codigo_barras: codigoBarras(factura.numero), items, metodosPago };
+}
+
+/** TDSI-68/991: valor que lleva el codigo de barras impreso en la factura. */
+const codigoBarras = (numero) => numero;
+
+// TDSI-68/991: busqueda de facturas (sin items) para el Encargado de Devoluciones.
+const COLUMNAS_BUSQUEDA = `numero, fecha, cliente_nit, cliente_nombre, canal, total, estado`;
+const LIMITE_BUSQUEDA = 50;
+const CON_TILDE = "ÁÀÄÂÉÈËÊÍÌÏÎÓÒÖÔÚÙÜÛÑáàäâéèëêíìïîóòöôúùüûñ";
+const SIN_TILDE = "aaaaeeeeiiiioooouuuunaaaaeeeeiiiioooouuuun";
+const aFila = (r) => ({ ...r, total: Number(r.total) });
+
+/** "123" / "000123" -> F-000123 (se compara sin ceros a la izquierda, como TDSI-46). */
+async function buscarPorNumero(digitos) {
+  const { rows } = await query(
+    `SELECT ${COLUMNAS_BUSQUEDA} FROM facturacion.facturas
+      WHERE COALESCE(NULLIF(ltrim(substring(numero from '(\\d+)$'), '0'), ''), '0') = $1
+      ORDER BY id DESC LIMIT ${LIMITE_BUSQUEDA}`,
+    [String(digitos).replace(/^0+/, "") || "0"]
+  );
+  return rows.map(aFila);
+}
+
+async function buscarPorNit(nit) {
+  const { rows } = await query(
+    `SELECT ${COLUMNAS_BUSQUEDA} FROM facturacion.facturas
+      WHERE cliente_nit = $1
+      ORDER BY fecha DESC, id DESC LIMIT ${LIMITE_BUSQUEDA}`,
+    [nit]
+  );
+  return rows.map(aFila);
+}
+
+async function buscarPorCliente(texto) {
+  const normalizado = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\\%_]/g, "\\$&");
+  const { rows } = await query(
+    `SELECT ${COLUMNAS_BUSQUEDA} FROM facturacion.facturas
+      WHERE translate(lower(cliente_nombre), '${CON_TILDE}', '${SIN_TILDE}') LIKE $1
+      ORDER BY fecha DESC, id DESC LIMIT ${LIMITE_BUSQUEDA}`,
+    [`%${normalizado}%`]
+  );
+  return rows.map(aFila);
 }
 
 async function listarFacturas() {
@@ -112,6 +163,10 @@ async function listarImpresiones(numero) {
 }
 
 module.exports = {
+  buscarPorNumero,
+  buscarPorNit,
+  buscarPorCliente,
+  codigoBarras,
   crearFactura,
   obtenerFacturaCompleta,
   listarFacturas,

@@ -1,6 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
+const bwipjs = require("bwip-js");
 const facturasRepo = require("../data/facturasRepo");
 const documentosRepo = require("../data/documentosRepo");
 
@@ -8,7 +9,20 @@ const CARPETA_STORAGE = path.join(__dirname, "..", "..", "storage", "facturas");
 const TIPOS_VALIDOS = ["pdf", "xml"];
 const CONTENT_TYPES = { pdf: "application/pdf", xml: "application/xml" };
 
-function generarPdfBuffer(factura) {
+/**
+ * TDSI-68/991: codigo de barras Code 128 con el N° de factura, para buscar el ticket con el
+ * lector. Fondo blanco y margen a los costados (zona de silencio): sin eso el lector no lo lee.
+ */
+function codigoBarrasPng(valor) {
+  return bwipjs.toBuffer({
+    bcid: "code128", text: valor, scale: 3, height: 12,
+    includetext: true, textxalign: "center",
+    paddingwidth: 10, paddingheight: 4, backgroundcolor: "FFFFFF",
+  });
+}
+
+async function generarPdfBuffer(factura) {
+  const barras = await codigoBarrasPng(factura.codigo_barras || factura.numero);
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 50 });
     const chunks = [];
@@ -43,6 +57,9 @@ function generarPdfBuffer(factura) {
     }
     doc.text(`IVA: ${Number(factura.impuesto).toFixed(2)}`, { align: "right" });
     doc.fontSize(12).text(`TOTAL Bs: ${Number(factura.total).toFixed(2)}`, { align: "right" });
+
+    doc.moveDown(2);
+    doc.image(barras, (doc.page.width - 200) / 2, doc.y, { width: 200 });
 
     doc.end();
   });
@@ -167,4 +184,4 @@ async function obtenerEstadoDocumentos(numero) {
   return { numero: factura.numero, documentos };
 }
 
-module.exports = { generarDocumentosFactura, obtenerArchivoParaEntrega, obtenerEstadoDocumentos };
+module.exports = { generarPdfBuffer, generarDocumentosFactura, obtenerArchivoParaEntrega, obtenerEstadoDocumentos };

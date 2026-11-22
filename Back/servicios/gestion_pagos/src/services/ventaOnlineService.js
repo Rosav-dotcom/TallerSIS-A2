@@ -99,6 +99,9 @@ async function recibirVenta(json) {
       nit: venta.nit,
       razon_social: venta.razon_social || venta.cliente_id,
       items: itemsProcesados.map((it) => ({ descripcion: it.descripcion, cantidad: it.cantidad, precio_unitario: it.precioUnitario })),
+      // TDSI-68/991: un solo metodo por venta online; el monto lo completa facturacion con el total
+      metodos: [{ metodo: metodoPago }],
+      canal: "Online",
     });
     numeroFactura = factura.numero;
     await repo.guardarNumeroFactura(venta.id, numeroFactura);

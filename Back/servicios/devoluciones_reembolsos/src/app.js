@@ -31,6 +31,8 @@ app.get("/health", async (req, res) => {
   }
 });
 
+app.use("/api/devoluciones/comprobantes", require("./routes/comprobantesRoutes")); // TDSI-68/991
+
 app.use(errorHandler);
 
 module.exports = app;

@@ -12,6 +12,12 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(nex
 
 router.get("/", wrap(async (req, res) => res.json({ ok: true, data: await facturasRepo.listarFacturas() })));
 
+// TDSI-68/991: busqueda por N° de factura (o codigo de barras), NIT/CI o nombre del cliente
+// para el Encargado de Devoluciones (antes de "/:numero" para que no lo tome como numero).
+router.get("/buscar", wrap(async (req, res) => {
+  res.json({ ok: true, data: await facturasService.buscarFacturas(req.query.q) });
+}));
+
 // TDSI-22: al emitir la factura se publica su mensaje 'venta' para Contabilidad (Grupo D).
 router.post("/", wrap(async (req, res) => {
   const factura = await facturasService.crearFactura(req.body);

@@ -4,7 +4,7 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "test": "node --test src/tests/tirilla.test.js src/tests/impresora.test.js src/tests/clientes.test.js src/tests/contabilidadFacturas.test.js src/tests/respuestasContabilidad.test.js src/tests/respuestasAnulacion.test.js src/tests/supervisores.test.js",
+    "test": "node --test src/tests/tirilla.test.js src/tests/impresora.test.js src/tests/clientes.test.js src/tests/contabilidadFacturas.test.js src/tests/respuestasContabilidad.test.js src/tests/respuestasAnulacion.test.js src/tests/supervisores.test.js src/tests/busquedaFacturas.test.js",
     "test:supervisores": "node --test src/tests/supervisores.test.js",
     "pubsub:prueba": "node scripts/publicarPruebaContabilidad.js",
     "contabilidad:respuestas": "node scripts/verRespuestasContabilidad.js",
@@ -14,6 +14,7 @@
   "type": "commonjs",
   "dependencies": {
     "@google-cloud/pubsub": "^4.11.0",
+    "bwip-js": "^4.11.4",
     "cors": "^2.8.5",
     "dotenv": "^18.0.0",
     "express": "^5.2.1",
