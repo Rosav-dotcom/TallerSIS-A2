@@ -50,6 +50,20 @@ services:
     networks:
       - app-network
 
+  # TDSI-68/213: Devoluciones y reembolsos (Equipo 1). Consulta los comprobantes a facturacion.
+  devoluciones_reembolsos:
+    build: ./servicios/devoluciones_reembolsos
+    ports:
+      - "4008:4008"
+    environment:
+      - NODE_ENV=development
+      - PORT=4008
+      - FACTURACION_URL=http://facturacion:4002
+    env_file:
+      - ./servicios/devoluciones_reembolsos/.env
+    networks:
+      - app-network
+
   pagos_proveedores:
     build: ./servicios/pagos_proveedores
     ports:
