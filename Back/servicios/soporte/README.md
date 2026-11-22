@@ -39,3 +39,9 @@ Comprobar: `GET http://localhost:4007/health` → `{ "ok": true, "servicio": "so
 ```bash
 npm test
 ```
+
+## Endpoints (solo lectura)
+
+| Método | Ruta | Qué hace | Subtarea |
+|---|---|---|---|
+| GET | `/api/soporte/facturas/:numero` | Consulta una factura en Facturación (`GET /api/facturas/:numero`) y la devuelve con cliente, totales, ítems y métodos de pago. 400 si el número es inválido, 404 si no existe, 503 si Facturación no responde. | TDSI-1064 |
