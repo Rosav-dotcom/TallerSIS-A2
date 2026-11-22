@@ -34,6 +34,10 @@ O con todo el backend: `docker compose up --build` desde `Back/`.
 
 Comprobar: `GET http://localhost:4007/health` → `{ "ok": true, "servicio": "soporte", "db": "up" }`.
 
+## Documentación
+
+- Diagrama de clases (TDSI-974): [`docs/diagrama-clases.md`](docs/diagrama-clases.md)
+
 ## Tests
 
 ```bash
