@@ -6,7 +6,7 @@ Sprint 4 · Equipo 2. Historias TDSI-63 a TDSI-67 (perfil **Usuario de Soporte**
 |---|---|
 | **Puerto** | 4007 |
 | **Esquema de base de datos** | `soporte` (`sql/script_soporte.sql`) |
-| **Lee de** | Facturación (`FACTURACION_URL`) y Gestión de pagos (`GESTION_PAGOS_URL`), solo lectura |
+| **Lee de** | Facturación (`FACTURACION_URL`) y Gestión de pagos (`GESTION_PAGOS_URL`, con token), solo lectura |
 
 ## Base de datos
 
@@ -45,3 +45,22 @@ npm test
 | Método | Ruta | Qué hace | Subtarea |
 |---|---|---|---|
 | GET | `/api/soporte/facturas/:numero` | Consulta una factura en Facturación (`GET /api/facturas/:numero`) y la devuelve con cliente, totales, ítems y métodos de pago. 400 si el número es inválido, 404 si no existe, 503 si Facturación no responde. | TDSI-1064 |
+| GET | `/api/soporte/transacciones/:id` | Consulta una transacción en Gestión de pagos (`GET /transacciones/:id` y `/historial`, con token) y devuelve métodos, montos, total, cliente, caja, estado e historial. | TDSI-1066 |
+
+### Credenciales para Gestión de pagos (TDSI-1066)
+
+Las rutas de transacciones de `gestion_pagos` piden el token del Sistema Cliente. Soporte se registra una sola vez como cliente:
+
+```bash
+cd ../gestion_pagos
+npm run crear-cliente -- soporte "Soporte"
+```
+
+Copiar el `client_secret` que muestra (no se puede recuperar después) al `.env` de soporte:
+
+```
+GESTION_PAGOS_CLIENT_ID=soporte
+GESTION_PAGOS_CLIENT_SECRET=<el secreto>
+```
+
+Soporte pide el token con `POST /auth/token`, lo guarda en memoria y lo renueva antes de que venza.

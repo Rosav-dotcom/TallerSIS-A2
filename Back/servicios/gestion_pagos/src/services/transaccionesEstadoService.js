@@ -79,4 +79,31 @@ async function consultarHistorial(id) {
   return repo.obtenerHistorial(txId);
 }
 
-module.exports = { consultarEstado, actualizarEstado, consultarHistorial };
+/**
+ * TDSI-1066: detalle de solo lectura (metodos y montos) para Soporte.
+ * Junta las filas del pago mixto en una sola transaccion con su total.
+ */
+async function consultarDetalle(id) {
+  const txId = validarId(id);
+  const filas = await repo.obtenerDetalle(txId);
+  if (filas.length === 0) throw new AppError("Transacción no encontrada", 404, { id: txId });
+
+  const p = filas[0];
+  const metodos = filas.map((f) => ({ metodo: f.metodo, monto: Number(f.monto) }));
+  const total = Math.round(metodos.reduce((s, m) => s + m.monto, 0) * 100) / 100;
+  return {
+    id_transaccion: p.id_transaccion,
+    fecha: p.fecha,
+    tipo_pago: p.tipo_pago,
+    estado: p.estado,
+    estado_pago: p.estado_pago,
+    total,
+    metodos,
+    cliente: { nit: p.nit, razon_social: p.razon_social, tipo_documento: p.tipo_documento },
+    caja_id: p.caja_id,
+    cajero: p.cajero,
+    actualizado_en: p.actualizado_en,
+  };
+}
+
+module.exports = { consultarEstado, actualizarEstado, consultarHistorial, consultarDetalle };
