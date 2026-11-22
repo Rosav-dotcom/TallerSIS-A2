@@ -1,5 +1,7 @@
 const { AppError } = require("../utils/AppError");
 const cajerosRepo = require("../data/cajerosRepo");
+const administradoresRepo = require("../data/administradoresRepo");
+const { ROLES_PERSONAL, normalizarRol, nombreRol } = require("../utils/roles");
 const { listarSupervisores, editarSupervisor, cambiarEstadoSupervisor } = require("./supervisorProxy");
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -69,6 +71,34 @@ function aPublico(cajero) {
   };
 }
 
+/** TDSI-68/992: fila de la pantalla "Usuarios" para un Encargado de Devoluciones o un Usuario de Soporte. */
+function personalAPublico(cuenta) {
+  return {
+    id: cuenta.cajero_id,
+    cajero_id: cuenta.cajero_id,
+    usuario: cuenta.usuario,
+    nombre: cuenta.nombre,
+    rol: nombreRol(cuenta.rol),
+    rol_codigo: cuenta.rol,
+    estado: cuenta.activo ? "Activo" : "Inactivo",
+  };
+}
+
+/** Una cuenta de caja.administradores de los roles nuevos (no un Administrador). */
+async function buscarPersonal(cajero_id) {
+  const cuenta = await administradoresRepo.buscarPorCajeroId(cajero_id);
+  return cuenta && ROLES_PERSONAL.includes(cuenta.rol) ? cuenta : null;
+}
+
+/** Un usuario (correo) no se puede repetir entre cajeros y cuentas del login de administracion. */
+async function usuarioRegistrado(email) {
+  const [cajero, cuenta] = await Promise.all([
+    cajerosRepo.buscarPorUsuario(email),
+    administradoresRepo.buscarPorUsuario(email),
+  ]);
+  return Boolean(cajero || cuenta);
+}
+
 /**
  * TDSI-47/171: el Administrador registra un cajero nuevo. "usuario" es el
  * correo con el que va a iniciar sesion (igual que hoy); la contrasena la
@@ -89,8 +119,7 @@ async function crearCajero({ usuario, password, nombre }) {
 
   const email = String(usuario).trim().toLowerCase();
 
-  const yaExiste = await cajerosRepo.buscarPorUsuario(email);
-  if (yaExiste) {
+  if (await usuarioRegistrado(email)) {
     throw new AppError("Ese usuario ya esta registrado.", 409, { usuario: email });
   }
 
@@ -100,14 +129,48 @@ async function crearCajero({ usuario, password, nombre }) {
 }
 
 /**
+ * TDSI-68/992: el Administrador registra un Encargado de Devoluciones o un Usuario de
+ * Soporte. Igual que un cajero: la cuenta (usuario/contrasena) vive en Supabase Auth y
+ * aqui se guarda el perfil, en caja.administradores con su rol, para que entre por el
+ * login de administracion con la pestana de su perfil.
+ */
+async function crearPersonal({ usuario, password, nombre, rol } = {}) {
+  const codigo = normalizarRol(rol);
+  if (!codigo || !ROLES_PERSONAL.includes(codigo)) {
+    throw new AppError(`El rol debe ser ${ROLES_PERSONAL.map(nombreRol).join(" o ")}.`, 400, { rol });
+  }
+  if (!usuario || !EMAIL_REGEX.test(String(usuario).trim())) {
+    throw new AppError("El usuario debe ser un correo valido.", 400);
+  }
+  if (!password || String(password).length < 6) {
+    throw new AppError("La contrasena debe tener al menos 6 caracteres.", 400);
+  }
+  if (!nombre || !String(nombre).trim()) {
+    throw new AppError("El nombre es obligatorio.", 400);
+  }
+
+  const email = String(usuario).trim().toLowerCase();
+  if (await usuarioRegistrado(email)) {
+    throw new AppError("Ese usuario ya esta registrado.", 409, { usuario: email });
+  }
+
+  const cuenta = await crearCuentaSupabase({ email, password });
+  const creada = await administradoresRepo.crear({
+    cajero_id: cuenta.id, usuario: email, nombre: String(nombre).trim(), rol: codigo,
+  });
+  return personalAPublico(creada);
+}
+
+/**
  * TDSI-47/916: lista unificada para la pantalla "Usuarios" -- cajeros (perfil local
  * en caja.cajeros) y supervisores (vía proxy a facturacion), sin contrasenas ni PIN.
  * El filtro por rol lo hace el Front sobre esta misma lista.
  */
 async function listarUsuarios() {
-  const [cajeros, supervisores] = await Promise.all([
+  const [cajeros, supervisores, personal] = await Promise.all([
     cajerosRepo.listar(),
     listarSupervisores(),
+    administradoresRepo.listarPorRoles(ROLES_PERSONAL), // TDSI-68/992
   ]);
 
   const filasCajeros = cajeros.map((c) => ({
@@ -125,7 +188,7 @@ async function listarUsuarios() {
     estado: s.estado,
   }));
 
-  return [...filasCajeros, ...filasSupervisores];
+  return [...filasCajeros, ...filasSupervisores, ...personal.map(personalAPublico)];
 }
 
 /**
@@ -146,8 +209,7 @@ async function editarUsuario(id, { usuario, nombre } = {}) {
 
     const email = String(usuario).trim().toLowerCase();
     if (email !== cajero.usuario) {
-      const yaExiste = await cajerosRepo.buscarPorUsuario(email);
-      if (yaExiste) throw new AppError("Ese usuario ya esta registrado.", 409, { usuario: email });
+      if (await usuarioRegistrado(email)) throw new AppError("Ese usuario ya esta registrado.", 409, { usuario: email });
       await actualizarCuentaSupabase(id, { email });
     }
 
@@ -155,20 +217,44 @@ async function editarUsuario(id, { usuario, nombre } = {}) {
     return aPublico(actualizado);
   }
 
+  // TDSI-68/992: Encargado de Devoluciones o Usuario de Soporte (mismas reglas que un cajero)
+  const personal = await buscarPersonal(id);
+  if (personal) {
+    if (!usuario || !EMAIL_REGEX.test(String(usuario).trim())) {
+      throw new AppError("El usuario debe ser un correo valido.", 400);
+    }
+    if (!nombre || !String(nombre).trim()) {
+      throw new AppError("El nombre es obligatorio.", 400);
+    }
+
+    const email = String(usuario).trim().toLowerCase();
+    if (email !== personal.usuario) {
+      if (await usuarioRegistrado(email)) throw new AppError("Ese usuario ya esta registrado.", 409, { usuario: email });
+      await actualizarCuentaSupabase(id, { email });
+    }
+
+    const actualizado = await administradoresRepo.actualizar(id, { usuario: email, nombre: String(nombre).trim() });
+    return personalAPublico(actualizado);
+  }
+
   return editarSupervisor(id, { usuario, nombre });
 }
 
-/** TDSI-47/917: "Cambiar contrasena" -- solo existe para cajeros (login con Supabase Auth). */
+/**
+ * TDSI-47/917: "Cambiar contrasena" -- para las cuentas con login de Supabase Auth: cajeros
+ * y (TDSI-68/992) Encargados de Devoluciones y Usuarios de Soporte. Los supervisores usan PIN.
+ */
 async function cambiarPasswordCajero(cajero_id, { password } = {}) {
   if (!password || String(password).length < 6) {
     throw new AppError("La contrasena debe tener al menos 6 caracteres.", 400);
   }
 
   const cajero = await cajerosRepo.buscarPorCajeroId(cajero_id);
-  if (!cajero) throw new AppError("Cajero no encontrado.", 404);
+  const personal = cajero ? null : await buscarPersonal(cajero_id);
+  if (!cajero && !personal) throw new AppError("Usuario no encontrado.", 404);
 
   await actualizarCuentaSupabase(cajero_id, { password });
-  return aPublico(cajero);
+  return cajero ? aPublico(cajero) : personalAPublico(personal);
 }
 
 /**
@@ -187,7 +273,26 @@ async function cambiarEstadoUsuario(id, { activo } = {}) {
     return aPublico(actualizado);
   }
 
+  // TDSI-68/992: un Encargado o Usuario de Soporte desactivado ya no entra por el login
+  if (await buscarPersonal(id)) {
+    const actualizado = await administradoresRepo.cambiarEstado(id, activo);
+    return personalAPublico(actualizado);
+  }
+
   return cambiarEstadoSupervisor(id, activo);
 }
 
-module.exports = { crearCajero, listarUsuarios, editarUsuario, cambiarPasswordCajero, cambiarEstadoUsuario };
+/** TDSI-68/992: roles que puede elegir el Administrador en "Nuevo usuario" (sin Cajero ni Supervisor). */
+function listarRolesPersonal() {
+  return ROLES_PERSONAL.map((codigo) => ({ codigo, nombre: nombreRol(codigo) }));
+}
+
+module.exports = {
+  crearCajero,
+  crearPersonal,
+  listarUsuarios,
+  listarRolesPersonal,
+  editarUsuario,
+  cambiarPasswordCajero,
+  cambiarEstadoUsuario,
+};

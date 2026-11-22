@@ -347,3 +347,23 @@ CREATE TABLE IF NOT EXISTS caja.cajeros (
 );
 
 ALTER TABLE caja.cajeros ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================================================
+-- TDSI-68/992: roles del login de administracion
+-- --------------------------------------------------------------------------
+-- caja.administradores pasa a guardar el ROL de cada cuenta que entra por
+-- /api/auth/login-administrador: ADMINISTRADOR (las filas que ya existian),
+-- ENCARGADO_DEVOLUCIONES o USUARIO_SOPORTE. "usuario" es el correo con el que
+-- inicia sesion, para mostrarlo en la pantalla "Usuarios" (las filas viejas
+-- quedan en NULL). Idempotente.
+-- ==========================================================================
+ALTER TABLE caja.administradores
+  ADD COLUMN IF NOT EXISTS rol     VARCHAR(30)  NOT NULL DEFAULT 'ADMINISTRADOR',
+  ADD COLUMN IF NOT EXISTS usuario VARCHAR(255);
+
+ALTER TABLE caja.administradores DROP CONSTRAINT IF EXISTS administradores_rol_check;
+ALTER TABLE caja.administradores ADD CONSTRAINT administradores_rol_check
+  CHECK (rol IN ('ADMINISTRADOR', 'ENCARGADO_DEVOLUCIONES', 'USUARIO_SOPORTE'));
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_administradores_usuario
+    ON caja.administradores (usuario) WHERE usuario IS NOT NULL;
