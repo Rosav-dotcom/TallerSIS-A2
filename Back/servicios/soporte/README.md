@@ -40,6 +40,15 @@ Comprobar: `GET http://localhost:4007/health` → `{ "ok": true, "servicio": "so
 npm test
 ```
 
+No necesitan base de datos ni los otros servicios (usan datos y `fetch` simulados). TDSI-973:
+
+| Archivo | Qué prueba |
+|---|---|
+| `test/compararFacturaYTransaccion.test.js` | Cada regla de diferencias: total, métodos (pago mixto), cliente, estados, referencia, transacción inexistente, redondeo y avisos |
+| `test/comparacionService.test.js` | Uso del `venta_id`, prioridad del ID enviado, 400 sin datos, 404 como diferencia y 503 propagado |
+| `test/clientes.test.js` | Token de gestion_pagos: cache, renovación, reintento con 401, credenciales faltantes o rechazadas; servicio caído |
+| `test/rutas.test.js` | Los tres endpoints por HTTP con sus códigos 200/400/404 |
+
 ## Endpoints (solo lectura)
 
 | Método | Ruta | Qué hace | Subtarea |
