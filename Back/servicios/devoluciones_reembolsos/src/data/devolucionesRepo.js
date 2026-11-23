@@ -1,4 +1,4 @@
-const { pool } = require("../config/db");
+const { pool, query } = require("../config/db");
 
 // Columnas que el registro puede mandar. "codigo" NO esta: lo pone la BD (TDSI-76).
 const COLUMNAS_CABECERA = [
@@ -45,4 +45,29 @@ async function crear(datos, items = []) {
   }
 }
 
-module.exports = { crear };
+const RESUMEN = "codigo, factura_numero, cliente_nit, fecha_solicitud, tipo, estado, monto_total";
+
+/** TDSI-76/1112: la devolucion con ese codigo exacto (ya normalizado) y sus items; null si no existe. */
+async function buscarPorCodigo(codigo) {
+  const { rows } = await query("SELECT * FROM devoluciones.devoluciones WHERE codigo = $1", [codigo]);
+  if (!rows[0]) return null;
+  const items = await query(
+    `SELECT descripcion, cantidad, precio_unitario, subtotal
+       FROM devoluciones.devolucion_items WHERE devolucion_id = $1 ORDER BY id`,
+    [rows[0].id]
+  );
+  return { ...rows[0], items: items.rows };
+}
+
+/** TDSI-76/1112: filas de la lista; con codigo, solo esa (0 o 1). Las mas nuevas primero. */
+async function listar({ codigo = null, limite = 100 } = {}) {
+  const { rows } = await query(
+    `SELECT ${RESUMEN} FROM devoluciones.devoluciones
+      WHERE ($1::TEXT IS NULL OR codigo = $1)
+      ORDER BY length(codigo) DESC, codigo DESC LIMIT $2`, // orden del correlativo, no del id (DEV-1000000 despues de DEV-999999)
+    [codigo, limite]
+  );
+  return rows;
+}
+
+module.exports = { crear, buscarPorCodigo, listar };
