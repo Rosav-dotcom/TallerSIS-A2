@@ -32,6 +32,7 @@ app.get("/health", async (req, res) => {
 });
 
 app.use("/api/devoluciones/comprobantes", require("./routes/comprobantesRoutes")); // TDSI-68/991
+app.use("/api/devoluciones/configuracion", require("./routes/configuracionRoutes")); // TDSI-69/1097
 // Despues de /comprobantes, para que "comprobantes" no se lea como un codigo DEV-.
 app.use("/api/devoluciones", require("./routes/devolucionesRoutes")); // TDSI-76/1112
 

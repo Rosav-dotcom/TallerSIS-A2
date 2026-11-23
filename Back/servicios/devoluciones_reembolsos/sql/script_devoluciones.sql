@@ -221,3 +221,33 @@ DROP TRIGGER IF EXISTS trg_devoluciones_codigo_inmutable ON devoluciones.devoluc
 CREATE TRIGGER trg_devoluciones_codigo_inmutable
   BEFORE UPDATE OF codigo ON devoluciones.devoluciones
   FOR EACH ROW EXECUTE FUNCTION devoluciones.proteger_codigo_devolucion();
+
+-- ==========================================================================
+-- TDSI-69/1097: configuracion de Devoluciones (clave -> valor)
+-- --------------------------------------------------------------------------
+-- plazo_dias_habiles: dias habiles (lunes a viernes) que tiene el cliente para
+-- devolver una compra, contados desde la emision de la factura. Por defecto 7.
+-- Para cambiarlo:
+--   UPDATE devoluciones.configuracion SET valor = '10', actualizado_en = now(),
+--          actualizado_por = '<quien>' WHERE clave = 'plazo_dias_habiles';
+-- El CHECK solo acepta un entero de 1 a 60. Idempotente: si ya hay un valor,
+-- no se pisa.
+-- ==========================================================================
+CREATE TABLE IF NOT EXISTS devoluciones.configuracion (
+    clave            VARCHAR(60)  PRIMARY KEY,
+    valor            VARCHAR(200) NOT NULL,
+    descripcion      VARCHAR(300),
+    actualizado_en   TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    actualizado_por  VARCHAR(60)
+);
+ALTER TABLE devoluciones.configuracion ENABLE ROW LEVEL SECURITY;
+
+ALTER TABLE devoluciones.configuracion DROP CONSTRAINT IF EXISTS configuracion_plazo_valido;
+ALTER TABLE devoluciones.configuracion ADD CONSTRAINT configuracion_plazo_valido
+  CHECK (clave <> 'plazo_dias_habiles' OR valor ~ '^([1-9]|[1-5][0-9]|60)$');
+
+INSERT INTO devoluciones.configuracion (clave, valor, descripcion, actualizado_por)
+VALUES ('plazo_dias_habiles', '7',
+        'Dias habiles (lunes a viernes) para devolver una compra, desde la emision de la factura',
+        'SISTEMA')
+ON CONFLICT (clave) DO NOTHING;
