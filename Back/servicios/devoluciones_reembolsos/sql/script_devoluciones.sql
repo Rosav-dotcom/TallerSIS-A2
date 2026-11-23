@@ -176,3 +176,48 @@ DROP TRIGGER IF EXISTS trg_devoluciones_codigo ON devoluciones.devoluciones;
 CREATE TRIGGER trg_devoluciones_codigo
   BEFORE INSERT ON devoluciones.devoluciones
   FOR EACH ROW EXECUTE FUNCTION devoluciones.asignar_codigo_devolucion();
+
+-- ==========================================================================
+-- TDSI-76/1111: el codigo es unico, con formato DEV-NNNNNN y no se puede editar
+-- --------------------------------------------------------------------------
+-- Unico: la columna ya se creo con UNIQUE; el bloque DO la asegura si la
+-- tabla vino de una version sin esa restriccion. Formato: CHECK. No editable:
+-- trigger BEFORE UPDATE que rechaza cualquier cambio del codigo (SQLSTATE
+-- DV001, el microservicio lo responde como 409). Idempotente.
+-- ==========================================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+      FROM pg_constraint c
+      JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+     WHERE c.conrelid = 'devoluciones.devoluciones'::regclass
+       AND c.contype = 'u' AND a.attname = 'codigo' AND array_length(c.conkey, 1) = 1
+  ) THEN
+    ALTER TABLE devoluciones.devoluciones ADD CONSTRAINT devoluciones_codigo_key UNIQUE (codigo);
+  END IF;
+END;
+$$;
+
+ALTER TABLE devoluciones.devoluciones DROP CONSTRAINT IF EXISTS devoluciones_codigo_formato;
+ALTER TABLE devoluciones.devoluciones ADD CONSTRAINT devoluciones_codigo_formato
+  CHECK (codigo ~ '^DEV-[0-9]{6,}$');
+
+CREATE OR REPLACE FUNCTION devoluciones.proteger_codigo_devolucion()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF NEW.codigo IS DISTINCT FROM OLD.codigo THEN
+    RAISE EXCEPTION 'El codigo de la devolucion no se puede editar (%)', OLD.codigo
+      USING ERRCODE = 'DV001';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_devoluciones_codigo_inmutable ON devoluciones.devoluciones;
+CREATE TRIGGER trg_devoluciones_codigo_inmutable
+  BEFORE UPDATE OF codigo ON devoluciones.devoluciones
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.proteger_codigo_devolucion();
