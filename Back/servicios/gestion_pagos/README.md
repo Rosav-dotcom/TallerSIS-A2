@@ -347,6 +347,12 @@ GET /api/pagos/metodos?desde=2026-10-15&hasta=2026-10-17&caja_id=DEMO-MET-CAJA-1
 
 ---
 
+## 4.8. Reversión de pagos con tarjeta (TDSI-74)
+
+`POST /api/pagos/reversiones` (con token del Sistema Cliente de Devoluciones), `GET /api/pagos/reversiones`, `GET /api/pagos/reversiones/:id` y `POST /api/pagos/reversiones/:id/reintentar`. Revierte lo pagado con tarjeta en la pasarela (simulada, con reintentos) y deja esas filas en `Revertido`.
+
+Contrato completo para el Equipo 1: [`docs/contrato-reversion.md`](docs/contrato-reversion.md).
+
 # 5. Módulo de Clientes Frecuentes
 
 El módulo de clientes frecuentes permite identificar y reutilizar los datos de clientes mediante su **NIT**, facilitando el proceso de facturación y evitando que el cajero tenga que ingresar nuevamente la información de un cliente recurrente.

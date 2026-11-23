@@ -19,6 +19,7 @@
 - **Comprobante:** datos de la devolución, importe y forma de reembolso.
 - **Correo del cliente:** al lado, chip Enviado o Error y botón secundario "Reenviar". "Reenviar" abre un `Modal` pequeño con el correo precargado para corregirlo.
 - **Tarjeta "Reversión con tarjeta":** chip Enviado / Confirmado / Error y botón "Reintentar" si falla.
+  Datos: `GET /api/pagos/reversiones/:id` (el `reversion_id` lo guarda la devolución); el chip sale de `estado` (`ENVIADA` = Enviado, `CONFIRMADA` = Confirmado, `ERROR` = Error) y "Reintentar" llama a `POST /api/pagos/reversiones/:id/reintentar`. Contrato completo: `Back/servicios/gestion_pagos/docs/contrato-reversion.md`.
 - **Si el envío falla:** `Aviso` tono error "No se pudo emitir".
 
 ## Componentes a usar
