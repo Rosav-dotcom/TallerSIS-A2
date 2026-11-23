@@ -133,3 +133,46 @@ ALTER TABLE devoluciones.notas_credito              ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.vales_compra               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.envios_comprobante         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.notificaciones_inventario  ENABLE ROW LEVEL SECURITY;
+-- ==========================================================================
+-- TDSI-76/229: codigo DEV-NNNNNN correlativo de cada devolucion
+-- --------------------------------------------------------------------------
+-- El codigo lo pone la BD al insertar (trigger), nunca el que llama: asi dos
+-- devoluciones seguidas siempre tienen codigos consecutivos, aunque se
+-- registren al mismo tiempo desde dos cajas. El contador vive en una tabla
+-- (no en un SEQUENCE) para que una devolucion que falla y se deshace
+-- (ROLLBACK) no deje un hueco en la numeracion. Idempotente.
+-- ==========================================================================
+CREATE TABLE IF NOT EXISTS devoluciones.correlativos (
+    nombre  VARCHAR(30) PRIMARY KEY,
+    ultimo  BIGINT      NOT NULL DEFAULT 0 CHECK (ultimo >= 0)
+);
+ALTER TABLE devoluciones.correlativos ENABLE ROW LEVEL SECURITY;
+
+-- Arranca desde el mayor codigo que ya exista (0 si no hay devoluciones).
+INSERT INTO devoluciones.correlativos (nombre, ultimo)
+SELECT 'devolucion', COALESCE(MAX(substring(codigo FROM '^DEV-([0-9]+)$')::BIGINT), 0)
+  FROM devoluciones.devoluciones
+ON CONFLICT (nombre) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION devoluciones.asignar_codigo_devolucion()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  n BIGINT;
+BEGIN
+  -- El UPDATE bloquea la fila del contador hasta el COMMIT: los registros simultaneos esperan su turno.
+  UPDATE devoluciones.correlativos SET ultimo = ultimo + 1 WHERE nombre = 'devolucion' RETURNING ultimo INTO n;
+  IF n IS NULL THEN
+    RAISE EXCEPTION 'Falta el correlativo de devoluciones: corra sql/script_devoluciones.sql';
+  END IF;
+  NEW.codigo := 'DEV-' || CASE WHEN n < 1000000 THEN lpad(n::TEXT, 6, '0') ELSE n::TEXT END;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_devoluciones_codigo ON devoluciones.devoluciones;
+CREATE TRIGGER trg_devoluciones_codigo
+  BEFORE INSERT ON devoluciones.devoluciones
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.asignar_codigo_devolucion();
