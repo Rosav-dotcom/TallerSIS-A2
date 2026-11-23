@@ -1,5 +1,7 @@
 const { AppError } = require("../utils/AppError");
 const facturacion = require("../clients/facturacionClient");
+const { plazoDeComprobante } = require("./plazoService");
+const { obtenerPlazoDias } = require("./configuracionService");
 
 // TDSI-68/996: texto exacto que pide la PA para una factura anulada o que no existe.
 const NO_DISPONIBLE = "Comprobante no encontrado o anulado";
@@ -50,13 +52,28 @@ function verificarDisponible(factura, numero) {
   }
 }
 
-/** GET /api/devoluciones/comprobantes/:numero */
-async function obtenerComprobante(numero) {
+/** Factura emitida que puede ser el comprobante de una devolucion (si no, 404/409). */
+async function facturaDisponible(numero) {
   const valor = String(numero || "").trim().toUpperCase();
   if (!valor) throw new AppError(NO_DISPONIBLE, 404);
   const factura = await facturacion.obtenerFactura(valor);
   verificarDisponible(factura, valor);
-  return aComprobante(factura);
+  return factura;
+}
+
+/** GET /api/devoluciones/comprobantes/:numero -- TDSI-69: trae tambien su "plazo". */
+async function obtenerComprobante(numero) {
+  const factura = await facturaDisponible(numero);
+  return { ...aComprobante(factura), plazo: await plazoDeComprobante(factura.fecha) };
+}
+
+/**
+ * GET /api/devoluciones/comprobantes/:numero/plazo -- TDSI-69/1098: si el comprobante esta
+ * dentro del plazo de devolucion y cuantos dias habiles pasaron desde su emision.
+ */
+async function obtenerPlazo(numero) {
+  const factura = await facturaDisponible(numero);
+  return { numero: factura.numero, ...(await plazoDeComprobante(factura.fecha)) };
 }
 
 /**
@@ -78,9 +95,14 @@ async function buscarComprobantes(q) {
     return { criterio, comprobante: await obtenerComprobante(facturas[0].numero) };
   }
 
-  const compras = facturas
-    .filter((f) => f.estado !== "Anulada" && f.estado !== "Borrador")
-    .map((f) => ({
+  const disponibles = facturas.filter((f) => f.estado !== "Anulada" && f.estado !== "Borrador");
+  if (!disponibles.length) throw new AppError(NO_DISPONIBLE, 404, { q });
+
+  // TDSI-69: cada compra de la lista dice si todavia esta en plazo (la configuracion se lee una vez)
+  const { plazo_dias: plazoDias } = await obtenerPlazoDias();
+  const compras = await Promise.all(disponibles.map(async (f) => {
+    const plazo = await plazoDeComprobante(f.fecha, { plazoDias });
+    return {
       numero: f.numero,
       fecha: f.fecha,
       cliente_nit: f.cliente_nit,
@@ -88,9 +110,12 @@ async function buscarComprobantes(q) {
       canal: f.canal,
       total: num(f.total),
       estado: f.estado,
-    }));
-  if (!compras.length) throw new AppError(NO_DISPONIBLE, 404, { q });
+      dias_transcurridos: plazo.dias_transcurridos,
+      fecha_limite: plazo.fecha_limite,
+      dentro_de_plazo: plazo.dentro_de_plazo,
+    };
+  }));
   return { criterio, compras };
 }
 
-module.exports = { buscarComprobantes, obtenerComprobante, NO_DISPONIBLE };
+module.exports = { buscarComprobantes, obtenerComprobante, obtenerPlazo, NO_DISPONIBLE };
