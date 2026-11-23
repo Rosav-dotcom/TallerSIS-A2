@@ -228,7 +228,8 @@ async function listarPorCajero(cajero, { desde, hasta, q } = {}) {
             MAX(caja_id) AS caja_id,
             MAX(cajero_nombre) AS cajero_nombre,
             bool_and(estado = 'Anulado') AS anulado,
-            bool_or(estado = 'AnulacionSolicitada') AS anulacion_solicitada
+            bool_or(estado = 'AnulacionSolicitada') AS anulacion_solicitada,
+            bool_or(estado = 'Revertido') AS revertido
        FROM pagos.transacciones
       WHERE ${condiciones.join(" AND ")}
       GROUP BY id_transaccion
@@ -249,7 +250,8 @@ async function listarPorCajero(cajero, { desde, hasta, q } = {}) {
     // TDSI-61/943: "no registrado" para ventas de antes de este cambio (TDSI-199).
     cajero_nombre: r.cajero_nombre || "no registrado",
     // TDSI-28: la venta con una anulacion pendiente se muestra como "Anulacion solicitada"
-    estado: r.anulado ? 'Anulado' : r.anulacion_solicitada ? 'AnulacionSolicitada' : 'Registrado',
+    // TDSI-225: un pago con tarjeta revertido por una devolucion se muestra como "Revertido"
+    estado: r.anulado ? 'Anulado' : r.revertido ? 'Revertido' : r.anulacion_solicitada ? 'AnulacionSolicitada' : 'Registrado',
   }));
 }
 
@@ -522,7 +524,8 @@ async function historialPorDocumento(tipo_documento, numero) {
             MAX(razon_social) AS razon_social,
             MAX(caja_id) AS caja_id,
             MAX(cajero) AS cajero,
-            bool_and(estado = 'Anulado') AS anulado
+            bool_and(estado = 'Anulado') AS anulado,
+            bool_or(estado = 'Revertido') AS revertido
        FROM pagos.transacciones
       WHERE tipo_documento = $1 AND nit = $2
       GROUP BY id_transaccion
@@ -537,7 +540,7 @@ async function historialPorDocumento(tipo_documento, numero) {
     razon_social: r.razon_social,
     caja_id: r.caja_id,
     cajero: r.cajero,
-    estado: r.anulado ? 'Anulado' : 'Registrado',
+    estado: r.anulado ? 'Anulado' : r.revertido ? 'Revertido' : 'Registrado',
   }));
 }
 

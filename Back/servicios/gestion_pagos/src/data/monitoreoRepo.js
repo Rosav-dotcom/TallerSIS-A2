@@ -8,6 +8,7 @@ const num = (v) => (v === null || v === undefined ? v : Number(v));
  * y aqui se junta en una sola, sumando sus montos.
  * Estado de la operacion:
  *   ANULADA    -> la venta fue anulada (estado = 'Anulado')
+ *   REVERTIDA  -> el pago con tarjeta se revirtio por una devolucion (TDSI-225)
  *   RECHAZADA  -> el cobro fue rechazado (estado_pago = 'RECHAZADA')
  *   PENDIENTE  -> el cobro aun no se confirma (estado_pago = 'PENDIENTE')
  *   APROBADA   -> venta registrada y cobrada
@@ -24,6 +25,7 @@ const CTE_OPERACIONES = `
            array_agg(metodo ORDER BY id)  AS metodos,
            MAX(tipo_pago)                 AS tipo_pago,
            CASE WHEN bool_and(estado = 'Anulado')       THEN 'ANULADA'
+                WHEN bool_or(estado = 'Revertido')      THEN 'REVERTIDA'
                 WHEN bool_or(estado_pago = 'RECHAZADA') THEN 'RECHAZADA'
                 WHEN bool_or(estado_pago = 'PENDIENTE') THEN 'PENDIENTE'
                 ELSE 'APROBADA' END       AS estado

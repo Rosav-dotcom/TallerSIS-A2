@@ -23,6 +23,7 @@ const CTE_VENTAS = `
            MAX(nit)                                                         AS nit,
            MAX(razon_social)                                                AS razon_social,
            CASE WHEN bool_and(estado = 'Anulado')       THEN 'ANULADA'
+                WHEN bool_or(estado = 'Revertido')      THEN 'REVERTIDA'
                 WHEN bool_or(estado_pago = 'RECHAZADA') THEN 'RECHAZADA'
                 WHEN bool_or(estado_pago = 'PENDIENTE') THEN 'PENDIENTE'
                 ELSE 'APROBADA' END                                         AS estado
@@ -147,6 +148,7 @@ async function listarCajerosConVentas({ desde, hasta }) {
               MAX(cajero)  AS cajero,
               SUM(monto)   AS total,
               CASE WHEN bool_and(estado = 'Anulado')       THEN 'ANULADA'
+                   WHEN bool_or(estado = 'Revertido')      THEN 'REVERTIDA'
                    WHEN bool_or(estado_pago = 'RECHAZADA') THEN 'RECHAZADA'
                    WHEN bool_or(estado_pago = 'PENDIENTE') THEN 'PENDIENTE'
                    ELSE 'APROBADA' END AS estado

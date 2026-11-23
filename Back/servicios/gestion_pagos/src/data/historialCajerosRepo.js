@@ -29,6 +29,7 @@ const CTE_HISTORIAL = `
            array_agg(t.metodo ORDER BY t.id)                                AS metodos,
            json_agg(json_build_object('metodo', t.metodo, 'monto', t.monto) ORDER BY t.id) AS detalle_metodos,
            CASE WHEN bool_and(t.estado = 'Anulado')       THEN 'ANULADA'
+                WHEN bool_or(t.estado = 'Revertido')      THEN 'REVERTIDA'
                 WHEN bool_or(t.estado_pago = 'RECHAZADA') THEN 'RECHAZADA'
                 WHEN bool_or(t.estado_pago = 'PENDIENTE') THEN 'PENDIENTE'
                 ELSE 'APROBADA' END                                         AS estado

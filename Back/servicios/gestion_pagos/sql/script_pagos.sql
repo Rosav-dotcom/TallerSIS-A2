@@ -308,10 +308,12 @@ ALTER TABLE pagos.revisiones_transaccion ENABLE ROW LEVEL SECURITY;
 -- inmediata con PIN (TDSI-306/17): el cajero elige una u otra segun si hay
 -- un supervisor a mano o no.
 -- ==========================================================================
+-- 'Revertido' (TDSI-225, mas abajo) tambien se incluye aqui: si este script se vuelve a
+-- ejecutar cuando ya hay pagos revertidos, este CHECK no debe rechazarlos.
 ALTER TABLE pagos.transacciones DROP CONSTRAINT IF EXISTS transacciones_estado_check;
 ALTER TABLE pagos.transacciones
     ADD CONSTRAINT transacciones_estado_check
-    CHECK (estado::text = ANY (ARRAY['Registrado','AnulacionSolicitada','Anulado']::varchar[]));
+    CHECK (estado::text = ANY (ARRAY['Registrado','AnulacionSolicitada','Anulado','Revertido']::varchar[]));
 
 CREATE TABLE IF NOT EXISTS pagos.solicitudes_anulacion (
     id                 BIGSERIAL PRIMARY KEY,
@@ -613,3 +615,48 @@ ALTER TABLE pagos.transacciones
 -- ==========================================================================
 ALTER TABLE pagos.ventas_online
     ADD COLUMN IF NOT EXISTS email VARCHAR(150);
+
+-- ==========================================================================
+-- TDSI-74/225: reversion de un pago con tarjeta (devoluciones).
+-- Acuerdo de equipo (un dato, un dueño): la reversion la hace y la guarda
+-- gestion_pagos; devoluciones solo guarda la referencia (reversion_id).
+--
+-- 1. Nuevo estado 'Revertido' para las filas de pagos.transacciones: solo la
+--    fila pagada con Tarjeta pasa a Revertido (en un pago mixto, la otra parte
+--    no cambia). Todos los totales filtran estado = 'Registrado', asi que un
+--    pago revertido deja de sumarse en los totales del dia (TDSI-1030).
+-- 2. pagos.reversiones: una reversion por venta (UNIQUE id_transaccion, asi no
+--    se puede revertir dos veces) con su envio a la pasarela y los reintentos.
+--      ENVIADA    -> registrada y enviandose a la pasarela
+--      CONFIRMADA -> la pasarela la acepto; las filas de tarjeta quedan Revertido
+--      ERROR      -> la pasarela fallo en todos los intentos; se puede reintentar
+-- ==========================================================================
+ALTER TABLE pagos.transacciones DROP CONSTRAINT IF EXISTS transacciones_estado_check;
+ALTER TABLE pagos.transacciones
+    ADD CONSTRAINT transacciones_estado_check
+    CHECK (estado::text = ANY (ARRAY['Registrado','AnulacionSolicitada','Anulado','Revertido']::varchar[]));
+
+CREATE TABLE IF NOT EXISTS pagos.reversiones (
+    id                   BIGSERIAL PRIMARY KEY,
+    id_transaccion       VARCHAR(60)   NOT NULL,
+    metodo               VARCHAR(20)   NOT NULL DEFAULT 'Tarjeta' CHECK (metodo IN ('Tarjeta')),
+    monto                NUMERIC(14,2) NOT NULL CHECK (monto > 0),
+    motivo               VARCHAR(300)  NOT NULL CHECK (length(trim(motivo)) > 0),
+    devolucion_id        VARCHAR(60),               -- referencia a la devolucion del Equipo 1
+    solicitado_por       VARCHAR(100)  NOT NULL,     -- Encargado de Devoluciones
+    estado               VARCHAR(20)   NOT NULL DEFAULT 'ENVIADA'
+                         CHECK (estado IN ('ENVIADA','CONFIRMADA','ERROR')),
+    intentos             INT           NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+    ultimo_error         VARCHAR(300),
+    referencia_pasarela  VARCHAR(60),
+    creado_en            TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    actualizado_en       TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    confirmado_en        TIMESTAMPTZ,
+    CONSTRAINT uq_reversion_transaccion UNIQUE (id_transaccion),
+    CONSTRAINT reversion_confirmada_con_referencia
+        CHECK (estado <> 'CONFIRMADA' OR (referencia_pasarela IS NOT NULL AND confirmado_en IS NOT NULL))
+);
+CREATE INDEX IF NOT EXISTS idx_reversiones_estado ON pagos.reversiones (estado);
+CREATE INDEX IF NOT EXISTS idx_reversiones_devolucion ON pagos.reversiones (devolucion_id);
+
+ALTER TABLE pagos.reversiones ENABLE ROW LEVEL SECURITY;
