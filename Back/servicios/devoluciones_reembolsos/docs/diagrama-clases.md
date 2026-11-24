@@ -18,6 +18,7 @@ classDiagram
         +GET /:codigo
         +GET /:codigo/historial
         +POST /:codigo/rechazo
+        +POST /:codigo/nota-credito
     }
     class ComprobantesRoutes {
         <<router /api/devoluciones/comprobantes>>
@@ -40,6 +41,9 @@ classDiagram
         +registrarDevolucion(body) DetalleDevolucion
         +validarPedido(body) Pedido
         +construirDevolucion(factura, pedido, plazo, yaDevuelto) NuevaDevolucion
+    }
+    class NotaCreditoService {
+        +emitirNotaCreditoDeDevolucion(codigo, usuario) NotaCredito
     }
     class RechazoService {
         +rechazarDevolucion(codigo, motivo, usuario) DetalleDevolucion
@@ -100,6 +104,8 @@ classDiagram
         +buscarFacturas(q) ResultadoFacturacion
         +obtenerFactura(numero) Factura
         +validarSupervisor(supervisor_id, pin) Supervisor
+        +emitirNotaCredito(pedido) NotaCredito
+        +obtenerNotaCredito(numero) NotaCredito
     }
 
     class DiasHabiles {
@@ -134,6 +140,8 @@ classDiagram
         GET /api/facturas/buscar?q
         GET /api/facturas/:numero
         POST /api/supervisores/validar
+        POST /api/notas-credito
+        GET /api/notas-credito/:numero
     }
     class GestionCaja {
         <<microservicio externo :4004>>
@@ -144,6 +152,9 @@ classDiagram
     DevolucionesRoutes --> DevolucionesService
     DevolucionesRoutes --> RegistroService
     DevolucionesRoutes --> RechazoService
+    DevolucionesRoutes --> NotaCreditoService
+    NotaCreditoService --> DevolucionesRepo : registrarNotaCredito
+    NotaCreditoService --> FacturacionClient : emitirNotaCredito
     RechazoService --> DevolucionesRepo : cambiarEstado con validar
     RechazoService --> DevolucionesService : obtenerDevolucion
     ComprobantesRoutes --> ComprobantesService
@@ -269,8 +280,8 @@ classDiagram
         +referencia : id en gestion_pagos
     }
     class NotaCredito {
-        <<devoluciones.notas_credito>>
-        +numero
+        <<devoluciones.notas_credito, referencia>>
+        +numero : NC-NNNNNN de Facturación
         +monto
         +estado
     }
@@ -305,5 +316,7 @@ classDiagram
 | Una devolución RECHAZADA no genera reembolso, nota de crédito ni aviso a Inventario | triggers `trg_*_no_rechazada` en `reembolsos`, `notas_credito` y `notificaciones_inventario`, SQLSTATE DV003 (TDSI-1116) |
 | No se rechaza una devolución procesada o con reembolso / nota de crédito emitidos | `RechazoService.verificarRechazable` dentro de la transacción, con la devolución bloqueada (TDSI-1116) |
 | No se devuelve dos veces la misma unidad | `DevolucionesRepo.registrar` bloquea la factura con `pg_advisory_xact_lock` mientras suma lo ya devuelto (TDSI-1001) |
+
+La nota de crédito (con su PDF y su envío a Contabilidad) la emite Facturación (`facturacion.notas_credito`, TDSI-73; ver `facturacion/docs/diagrama-secuencia-nota-credito.md`): Devoluciones guarda solo su número en `devoluciones.notas_credito`.
 
 Los vales, la reversión con tarjeta y el correo del comprobante los hace `gestion_pagos` (acuerdo de equipo, contrato TDSI-1027): Devoluciones solo guarda la referencia (`reembolsos.referencia`, `devoluciones.envio_comprobante_id`).
