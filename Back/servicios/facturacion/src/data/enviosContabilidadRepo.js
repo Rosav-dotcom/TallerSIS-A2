@@ -185,6 +185,22 @@ async function registrarResultado({ facturaNumero, tipo, resultado, numeroAsient
   return rows[0] ? obtener(rows[0].id) : null;
 }
 
+/**
+ * TDSI-73/1019: guarda el acuse de Contabilidad (resultado y numero de asiento) en el envio de la
+ * nota de credito "NC-...". Devuelve el envio actualizado, o null si esa nota no tiene envio aqui.
+ */
+async function registrarResultadoNota({ notaNumero, resultado, numeroAsiento, motivo, messageId }) {
+  const { rows } = await query(
+    `UPDATE facturacion.factura_envios_contabilidad e
+     SET resultado = $2, numero_asiento = $3, resultado_motivo = $4, resultado_en = now(), resultado_message_id = $5
+     FROM facturacion.notas_credito n
+     WHERE n.id = e.nota_credito_id AND n.numero = $1
+     RETURNING e.id`,
+    [notaNumero, resultado, numeroAsiento, motivo, messageId]
+  );
+  return rows[0] ? obtener(rows[0].id) : null;
+}
+
 /** Datos de la factura que van en el mensaje (cabecera, items y metodos de pago). */
 async function datosFactura(facturaId) {
   const { rows } = await query(`SELECT * FROM facturacion.facturas WHERE id = $1`, [facturaId]);
@@ -215,5 +231,5 @@ async function anulacionAutorizada(facturaId) {
 
 module.exports = {
   obtener, obtenerPorFactura, obtenerPorNota, crear, crearNotaCredito, marcarEnviado, registrarFallo, posponer, tomarPendientes,
-  prepararReenvio, listar, datosFactura, anulacionAutorizada, registrarResultado,
+  prepararReenvio, listar, datosFactura, anulacionAutorizada, registrarResultado, registrarResultadoNota,
 };

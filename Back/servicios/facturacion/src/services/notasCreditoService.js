@@ -1,6 +1,7 @@
 const repo = require("../data/notasCreditoRepo");
 const { generarPdfNotaCredito } = require("./documentosService");
 const contabilidad = require("./contabilidadService");
+const enviosRepo = require("../data/enviosContabilidadRepo");
 
 function err(mensaje, status = 400, detalle = null) {
   const e = new Error(mensaje);
@@ -99,6 +100,37 @@ function aPublica(n) {
 }
 
 /**
+ * TDSI-73/1019: estado del envio a Contabilidad para la tarjeta "Nota de credito" (TDSI-1021):
+ * "Enviado a Contabilidad" y luego "Aceptado" con el N° de asiento (PA TDSI-1025), "Rechazado"
+ * con el motivo, o "Error" con el boton Reenviar.
+ */
+function estadoContabilidad(envio) {
+  if (!envio) return { estado: "Sin enviar", texto: "No enviado a Contabilidad", envio_id: null, numero_asiento: null, puede_reenviar: false };
+  const resultado = envio.resultado ? String(envio.resultado).toLowerCase() : null;
+  let texto = "Enviando a Contabilidad";
+  if (envio.estado === "Error") texto = "Error al enviar a Contabilidad";
+  else if (resultado === "aceptado") texto = "Aceptado";
+  else if (resultado === "rechazado") texto = "Rechazado";
+  else if (envio.estado === "Enviado") texto = "Enviado a Contabilidad";
+  return {
+    estado: envio.estado,
+    texto,
+    resultado,
+    numero_asiento: envio.numero_asiento ?? null,
+    motivo: envio.resultado_motivo ?? null,
+    ultimo_error: envio.ultimo_error ?? null,
+    intentos: envio.intentos,
+    envio_id: envio.id,
+    puede_reenviar: envio.estado === "Error",
+    reenviar_url: envio.estado === "Error" ? `/api/facturas/envios-contabilidad/${envio.id}/reenviar` : null,
+  };
+}
+
+async function conContabilidad(nota) {
+  return { ...aPublica(nota), contabilidad: estadoContabilidad(await enviosRepo.obtenerPorNota(nota.id)) };
+}
+
+/**
  * POST /api/notas-credito -- TDSI-73/1016: emite la nota de credito vinculada a la factura.
  * Cuerpo: { factura_numero, items: [{ descripcion, cantidad, precio_unitario }], monto?, motivo,
  *           emitida_por, devolucion_codigo? }. Sin monto, es la suma de los items.
@@ -143,15 +175,18 @@ async function emitirNotaCredito(body) {
   // TDSI-73/1018: se publica para Contabilidad; si falla, la nota igual queda emitida (reintentos).
   // Devuelve { nota, contabilidad } (igual que POST /api/facturas responde la factura y su envio).
   const envio = await contabilidad.enviarNotaCreditoSeguro(id);
-  return { nota: aPublica(await repo.obtener({ id })), contabilidad: envio };
+  return { nota: await conContabilidad(await repo.obtener({ id })), contabilidad: envio };
 }
 
-/** GET /api/notas-credito/:numero -- TDSI-73/1016: la nota con su factura original e items. */
+/**
+ * GET /api/notas-credito/:numero -- TDSI-73/1016: la nota con su factura original e items.
+ * TDSI-73/1019: y el estado de su envio a Contabilidad (bloque "contabilidad").
+ */
 async function obtenerNotaCredito(numero) {
   const normalizado = normalizarNumero(numero);
   const nota = normalizado ? await repo.obtener({ numero: normalizado }) : null;
   if (!nota) throw err(NO_ENCONTRADA, 404, { numero });
-  return aPublica(nota);
+  return conContabilidad(nota);
 }
 
 /** GET /api/notas-credito?factura=F-... -- notas de una factura. */
@@ -170,5 +205,6 @@ async function pdfNotaCredito(numero) {
 }
 
 module.exports = {
+  estadoContabilidad,
   emitirNotaCredito, obtenerNotaCredito, listarNotasCredito, pdfNotaCredito, normalizarNumero, PASA_EL_TOTAL, NO_ENCONTRADA,
 };

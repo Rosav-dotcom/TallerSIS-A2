@@ -1,7 +1,8 @@
 const repo = require("../data/enviosContabilidadRepo");
 
-// referencia_externa de nuestros envios: "F-000001" (venta) o "ANU-F-000001" (anulacion)
-const REFERENCIA = /^(ANU-)?(F-\d+)$/;
+// referencia_externa de nuestros envios: "F-000001" (venta), "ANU-F-000001" (anulacion) o
+// TDSI-73/1019 "NC-000001" (nota de credito)
+const REFERENCIA = /^(?:(ANU-)?(F-\d+)|(NC-\d+))$/;
 
 /**
  * TDSI-22: interpreta un mensaje del topico del Grupo A. Devuelve null si no es una
@@ -20,7 +21,8 @@ function interpretar(texto) {
   return {
     referencia: ref[0],
     facturaNumero: ref[2],
-    tipo: ref[1] ? "anulacion" : "venta",
+    ...(ref[3] && { notaNumero: ref[3] }), // TDSI-73/1019 (las facturas siguen igual)
+    tipo: ref[3] ? "nota_credito" : ref[1] ? "anulacion" : "venta",
     resultado: String(r.estado).trim().toLowerCase().slice(0, 20),
     numeroAsiento: r.numero_asiento != null ? String(r.numero_asiento).slice(0, 30) : null,
     motivo: r.motivo ? String(r.motivo).slice(0, 400) : null,
@@ -34,7 +36,9 @@ function interpretar(texto) {
 async function procesarMensaje({ texto, messageId }) {
   const datos = interpretar(texto);
   if (!datos) return { propio: false };
-  const envio = await repo.registrarResultado({ ...datos, messageId });
+  const envio = datos.notaNumero
+    ? await repo.registrarResultadoNota({ ...datos, messageId }) // TDSI-73/1019
+    : await repo.registrarResultado({ ...datos, messageId });
   return { propio: Boolean(envio), referencia: datos.referencia, resultado: datos.resultado, envio };
 }
 

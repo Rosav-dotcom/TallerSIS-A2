@@ -1,5 +1,6 @@
 // TDSI-73/1018: la nota de credito se publica en el topico de Contabilidad (tipo nota_credito,
 // referencia NC-<numero>) con el mismo publicador, reintentos y "Reenviar" que las facturas.
+// TDSI-73/1019: el acuse de Contabilidad (resultado y numero_asiento) y el estado de la tarjeta.
 // Pub/Sub simulado (no publica en Google); BD real, las facturas de prueba se borran al final.
 process.env.CONTABILIDAD_PUBSUB_TOPIC = "projects/proyecto-prueba/topics/topico-prueba";
 process.env.CONTABILIDAD_MAX_INTENTOS = "3";
@@ -8,7 +9,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const facturasService = require("../services/facturasService");
 const contabilidad = require("../services/contabilidadService");
-const { emitirNotaCredito } = require("../services/notasCreditoService");
+const { emitirNotaCredito, obtenerNotaCredito } = require("../services/notasCreditoService");
+const { interpretar, procesarMensaje } = require("../services/respuestasContabilidadService");
 const { procesarPendientes } = require("../jobs/reintentoEnviosContabilidad");
 const { usarClienteDePrueba } = require("../clients/pubsubPublisher");
 const cfg = require("../config/contabilidad");
@@ -166,4 +168,62 @@ test("TDSI-1018: sin topico configurado la nota se emite igual y no se registra 
   assert.match(nota.numero, /^NC-/);
   assert.deepEqual(envio, { publicado: false, motivo: "CONTABILIDAD_PUBSUB_TOPIC no esta configurado" });
   assert.deepEqual(await enviosDe(f.id), []);
+});
+
+// ---------- TDSI-1019: acuse de Contabilidad ----------
+const acuse = (referencia, extra) => ({
+  texto: JSON.stringify({ sistema_origen: "CONTABILIDAD", tipo_mensaje: "resultado_documento", referencia_externa: referencia, ...extra }),
+  messageId: `m-${referencia}`,
+});
+
+test("TDSI-1019: interpreta el acuse de una nota de credito (NC-...) sin cambiar el de las facturas", () => {
+  assert.deepEqual(interpretar(acuse("NC-000007", { estado: "Aceptado", numero_asiento: 42 }).texto), {
+    referencia: "NC-000007", facturaNumero: undefined, notaNumero: "NC-000007", tipo: "nota_credito",
+    resultado: "aceptado", numeroAsiento: "42", motivo: null,
+  });
+  assert.equal(interpretar(acuse("F-000001", { estado: "aceptado" }).texto).tipo, "venta");
+  assert.equal(interpretar(acuse("NC-ABC", { estado: "aceptado" }).texto), null);
+});
+
+test("TDSI-1025: la tarjeta pasa de \"Enviado a Contabilidad\" a \"Aceptado\" con el N° de asiento", async () => {
+  const f = await nuevaFactura();
+  const { nota } = await emitir(f);
+  assert.equal(nota.contabilidad.estado, "Enviado");
+  assert.equal(nota.contabilidad.texto, "Enviado a Contabilidad");
+  assert.equal(nota.contabilidad.numero_asiento, null);
+  assert.equal(nota.contabilidad.puede_reenviar, false);
+
+  const r = await procesarMensaje(acuse(nota.numero, { estado: "aceptado", numero_asiento: 1025 }));
+  assert.equal(r.propio, true); // se confirma (ack)
+  assert.equal(r.envio.tipo, "nota_credito");
+  const detalle = await obtenerNotaCredito(nota.numero);
+  assert.deepEqual([detalle.contabilidad.texto, detalle.contabilidad.resultado, detalle.contabilidad.numero_asiento],
+    ["Aceptado", "aceptado", "1025"]);
+});
+
+test("TDSI-1019: un rechazo de Contabilidad se ve con su motivo; un acuse de otra nota no se toma", async () => {
+  const f = await nuevaFactura();
+  const { nota } = await emitir(f);
+  await procesarMensaje(acuse(nota.numero, { estado: "rechazado", motivo: "Periodo contable cerrado" }));
+  const detalle = await obtenerNotaCredito(nota.numero);
+  assert.deepEqual([detalle.contabilidad.texto, detalle.contabilidad.motivo], ["Rechazado", "Periodo contable cerrado"]);
+
+  const ajeno = await procesarMensaje(acuse("NC-999999999", { estado: "aceptado", numero_asiento: 1 }));
+  assert.equal(ajeno.propio, false); // se libera para quien mas lea la suscripcion
+});
+
+test("TDSI-1019: si el envio quedo en Error la tarjeta muestra el error y el Reenviar", async () => {
+  const f = await nuevaFactura();
+  await contabilidad.enviarFactura(f.id, "venta");
+  falso.fallas.push(errorGrpc(7, "PERMISSION_DENIED"));
+  const { nota, contabilidad: envio } = await emitir(f);
+  assert.equal(nota.contabilidad.texto, "Error al enviar a Contabilidad");
+  assert.equal(nota.contabilidad.puede_reenviar, true);
+  assert.equal(nota.contabilidad.reenviar_url, `/api/facturas/envios-contabilidad/${envio.id}/reenviar`);
+  await contabilidad.reenviarEnvio(envio.id);
+  assert.equal((await obtenerNotaCredito(nota.numero)).contabilidad.texto, "Enviado a Contabilidad");
+
+  cfg.PUBSUB_TOPIC = null;
+  const sinTopico = (await emitir(f, { items: [{ descripcion: "Arroz 1kg", cantidad: 1, precio_unitario: 12 }] })).nota;
+  assert.deepEqual([sinTopico.contabilidad.estado, sinTopico.contabilidad.texto], ["Sin enviar", "No enviado a Contabilidad"]);
 });
