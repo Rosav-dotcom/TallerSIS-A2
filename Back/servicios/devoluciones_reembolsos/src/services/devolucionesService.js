@@ -59,6 +59,15 @@ function aDetalle(d) {
     requiere_autorizacion: d.requiere_autorizacion,
     autorizado_por: d.autorizado_por,
     autorizado_en: d.autorizado_en,
+    // TDSI-73/1016: referencia a la nota de credito (el documento vive en Facturacion)
+    nota_credito: d.nota_credito_numero
+      ? {
+          numero: d.nota_credito_numero,
+          monto: num(d.nota_credito_monto),
+          estado: d.nota_credito_estado,
+          emitida_en: d.nota_credito_emitida_en,
+        }
+      : null,
     // TDSI-80/1085: bloque "Autorizado por" del detalle (PA TDSI-1056); null si no hizo falta
     autorizacion: d.autorizado_por
       ? { supervisor_id: d.autorizado_por, nombre: d.autorizado_por_nombre ?? null, fecha: d.autorizado_en ?? null }

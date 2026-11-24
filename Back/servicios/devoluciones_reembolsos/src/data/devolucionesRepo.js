@@ -86,7 +86,9 @@ const RESUMEN = "d.codigo, d.factura_numero, d.cliente_nit, d.fecha_solicitud, d
 /** TDSI-76/1112: la devolucion con ese codigo exacto (ya normalizado) y sus items; null si no existe. */
 async function buscarPorCodigo(codigo) {
   const { rows } = await query(
-    `SELECT d.*, m.nombre AS motivo_nombre, r.cambiado_por AS rechazado_por, r.cambiado_en AS rechazado_en
+    `SELECT d.*, m.nombre AS motivo_nombre, r.cambiado_por AS rechazado_por, r.cambiado_en AS rechazado_en,
+            nc.numero AS nota_credito_numero, nc.monto AS nota_credito_monto, nc.estado AS nota_credito_estado,
+            nc.emitida_en AS nota_credito_emitida_en
        FROM devoluciones.devoluciones d
        LEFT JOIN devoluciones.motivos m ON m.id = d.motivo_id
        -- TDSI-78/1117: quien y cuando la rechazo, del historial (el ultimo rechazo)
@@ -95,6 +97,11 @@ async function buscarPorCodigo(codigo) {
           WHERE h.devolucion_id = d.id AND h.estado_nuevo = 'RECHAZADA'
           ORDER BY h.cambiado_en DESC, h.id DESC LIMIT 1
        ) r ON d.estado = 'RECHAZADA'
+       -- TDSI-73/1016: referencia a la nota de credito de Facturacion (la ultima emitida)
+       LEFT JOIN LATERAL (
+         SELECT n.numero, n.monto, n.estado, n.emitida_en FROM devoluciones.notas_credito n
+          WHERE n.devolucion_id = d.id ORDER BY (n.estado = 'EMITIDA') DESC, n.id DESC LIMIT 1
+       ) nc ON true
       WHERE d.codigo = $1`,
     [codigo]
   );
@@ -170,4 +177,30 @@ async function delPeriodo(desde, hasta) {
   return rows;
 }
 
-module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado, delPeriodo };
+/**
+ * TDSI-73/1016: guarda la referencia a la nota de credito que emitio Facturacion. Con la
+ * devolucion bloqueada (FOR UPDATE): "emitir(fila)" valida y pide la nota a Facturacion, y su
+ * numero se guarda en devoluciones.notas_credito en la misma transaccion. Asi un rechazo a la vez
+ * espera, y el trigger de TDSI-1116 impide la referencia si la devolucion esta RECHAZADA.
+ * Devuelve { devolucion, nota } o null si la devolucion no existe.
+ */
+async function registrarNotaCredito(codigo, emitir) {
+  return enTransaccion(async (cliente) => {
+    const { rows } = await cliente.query("SELECT * FROM devoluciones.devoluciones WHERE codigo = $1 FOR UPDATE", [codigo]);
+    if (!rows[0]) return null;
+    const existentes = await cliente.query(
+      "SELECT numero FROM devoluciones.notas_credito WHERE devolucion_id = $1 AND estado = 'EMITIDA'",
+      [rows[0].id]
+    );
+    const nota = await emitir(rows[0], existentes.rows[0]?.numero || null);
+    await cliente.query(
+      `INSERT INTO devoluciones.notas_credito (devolucion_id, numero, monto, estado, emitida_en)
+       VALUES ($1, $2, $3, 'EMITIDA', $4)
+       ON CONFLICT (numero) DO NOTHING`,
+      [rows[0].id, nota.numero, nota.monto, nota.emitida_en]
+    );
+    return { devolucion: rows[0], nota };
+  });
+}
+
+module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado, delPeriodo, registrarNotaCredito };

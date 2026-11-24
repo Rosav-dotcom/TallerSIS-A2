@@ -65,6 +65,54 @@ async function generarPdfBuffer(factura) {
   });
 }
 
+/**
+ * TDSI-73/1024: PDF de la nota de credito con el mismo formato que la factura (TDSI-13): mismo
+ * tamaño, margenes, columnas y codigo de barras (con el N° de la nota), y la factura original
+ * a la que pertenece (PA TDSI-1022).
+ */
+async function generarPdfNotaCredito(nota) {
+  const barras = await codigoBarrasPng(nota.numero);
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 50 });
+    const chunks = [];
+    doc.on("data", (chunk) => chunks.push(chunk));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+
+    doc.fontSize(18).text(`NOTA DE CRÉDITO ${nota.numero}`, { align: "center" });
+    doc.moveDown();
+    doc.fontSize(10);
+    doc.text(`Fecha: ${new Date(nota.emitida_en).toLocaleString("es-BO")}`);
+    doc.text(`Factura original: ${nota.factura_numero} del ${new Date(nota.factura_fecha).toLocaleDateString("es-BO")} (total Bs ${Number(nota.factura_total).toFixed(2)})`);
+    doc.text(`Cliente: ${nota.cliente_nombre || "-"}`);
+    doc.text(`NIT/CI: ${nota.cliente_nit || "-"}`);
+    if (nota.devolucion_codigo) doc.text(`Devolución: ${nota.devolucion_codigo}`);
+    doc.text(`Motivo: ${nota.motivo}`);
+    if (nota.estado !== "EMITIDA") doc.text(`Estado: ${nota.estado}`);
+    doc.moveDown();
+
+    doc.text(
+      "Descripcion".padEnd(30) + "Cant.".padStart(6) + "P.Unit".padStart(10) + "Subtotal".padStart(10)
+    );
+    doc.moveDown(0.5);
+    for (const it of nota.items) {
+      doc.text(
+        String(it.descripcion).slice(0, 30).padEnd(30) +
+        String(Number(it.cantidad)).padStart(6) +
+        Number(it.precio_unitario).toFixed(2).padStart(10) +
+        Number(it.subtotal).toFixed(2).padStart(10)
+      );
+    }
+    doc.moveDown();
+    doc.fontSize(12).text(`TOTAL CRÉDITO Bs: ${Number(nota.monto).toFixed(2)}`, { align: "right" });
+
+    doc.moveDown(2);
+    doc.image(barras, (doc.page.width - 200) / 2, doc.y, { width: 200 });
+
+    doc.end();
+  });
+}
+
 function escapeXml(valor) {
   return String(valor ?? "")
     .replace(/&/g, "&amp;")
@@ -184,4 +232,4 @@ async function obtenerEstadoDocumentos(numero) {
   return { numero: factura.numero, documentos };
 }
 
-module.exports = { generarPdfBuffer, generarDocumentosFactura, obtenerArchivoParaEntrega, obtenerEstadoDocumentos };
+module.exports = { generarPdfBuffer, generarPdfNotaCredito, generarDocumentosFactura, obtenerArchivoParaEntrega, obtenerEstadoDocumentos };

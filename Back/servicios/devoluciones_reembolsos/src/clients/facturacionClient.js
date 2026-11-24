@@ -67,4 +67,36 @@ async function validarSupervisor({ supervisor_id, pin }) {
   throw new AppError("No se pudo validar al supervisor en este momento. Intente de nuevo.", 502, { status: respuesta.status });
 }
 
-module.exports = { buscarFacturas, obtenerFactura, validarSupervisor, PIN_INVALIDO };
+/**
+ * TDSI-73/1016: POST /api/notas-credito de Facturacion (dueño de las notas de credito).
+ * Un 4xx se devuelve con el mismo status y mensaje (p. ej. 422 si pasa el total de la factura,
+ * 409 si la devolucion ya tiene nota, con detalle.numero); si Facturacion no responde, 502.
+ */
+async function emitirNotaCredito(cuerpo) {
+  let respuesta;
+  try {
+    respuesta = await fetch(`${FACTURACION_URL}/api/notas-credito`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cuerpo),
+    });
+  } catch (e) {
+    throw new AppError("No se pudo emitir la nota de crédito: Facturación no responde. Intente de nuevo.", 502);
+  }
+  const datos = await respuesta.json().catch(() => null);
+  if (respuesta.ok) return datos.data;
+  if (respuesta.status >= 400 && respuesta.status < 500) {
+    throw new AppError(datos?.mensaje || "Facturación no emitió la nota de crédito.", respuesta.status, datos?.detalle || null);
+  }
+  throw new AppError("No se pudo emitir la nota de crédito: Facturación no responde. Intente de nuevo.", 502, { status: respuesta.status });
+}
+
+/** GET /api/notas-credito/:numero de Facturacion; null si no existe. */
+async function obtenerNotaCredito(numero) {
+  const r = await pedir(`/api/notas-credito/${encodeURIComponent(numero)}`);
+  if (r.status === 404) return null;
+  if (!r.ok) throw new AppError("No se pudo consultar la nota de crédito en Facturación.", 502, { status: r.status });
+  return r.datos.data;
+}
+
+module.exports = { buscarFacturas, obtenerFactura, validarSupervisor, emitirNotaCredito, obtenerNotaCredito, PIN_INVALIDO };

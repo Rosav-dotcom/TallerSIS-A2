@@ -4,6 +4,7 @@ const cors = require("cors");
 const facturacionRoutes = require("./routes/facturacionRoutes");
 const clientesRoutes = require("./routes/clientesRoutes");
 const supervisoresRoutes = require("./routes/supervisoresRoutes");
+const notasCreditoRoutes = require("./routes/notasCreditoRoutes");
 const { errorHandler } = require("./middlewares/errorHandler");
 const { query } = require("./config/db");
 
@@ -30,6 +31,7 @@ app.get("/health", async (req, res) => {
 app.use("/api/facturas", facturacionRoutes);
 app.use("/api/clientes", clientesRoutes);
 app.use("/api/supervisores", supervisoresRoutes);
+app.use("/api/notas-credito", notasCreditoRoutes); // TDSI-73/1016
 
 app.use(errorHandler);
 

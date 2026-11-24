@@ -4,6 +4,7 @@ const {
 } = require("../services/devolucionesService");
 const { registrarDevolucion } = require("../services/registroService");
 const { rechazarDevolucion } = require("../services/rechazoService");
+const { emitirNotaCreditoDeDevolucion } = require("../services/notaCreditoService");
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
@@ -32,6 +33,13 @@ router.post("/", wrap(async (req, res) => {
 router.post("/:codigo/rechazo", wrap(async (req, res) => {
   const devolucion = await rechazarDevolucion(req.params.codigo, req.body);
   res.json({ ok: true, mensaje: `Devolución ${devolucion.codigo} rechazada.`, data: devolucion });
+}));
+
+// TDSI-73/1016: "Emitir nota de credito" de la confirmacion. Cuerpo: { usuario }. La nota (y su PDF)
+// la emite Facturacion; aqui queda su numero.
+router.post("/:codigo/nota-credito", wrap(async (req, res) => {
+  const nota = await emitirNotaCreditoDeDevolucion(req.params.codigo, req.body);
+  res.status(201).json({ ok: true, mensaje: `Nota de crédito ${nota.numero} emitida.`, data: nota });
 }));
 
 // TDSI-81/1057: linea de tiempo (historial de estados con usuario y hora). Solo lectura.
