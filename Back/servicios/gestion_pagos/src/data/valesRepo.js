@@ -46,4 +46,20 @@ async function listar({ estado = null, codigo = null, devolucion_id = null } = {
   return rows.map(formatear);
 }
 
-module.exports = { crear, obtener, listar, formatear, COLUMNAS, HOY };
+/**
+ * TDSI-1109: pasa a Expirado los vales Activo cuyo último día ya pasó (día de Bolivia).
+ * Con código, solo ese vale; sin código, todos los vencidos. Devuelve cuántos cambió.
+ * Un vale Usado no se toca: ya no tiene saldo.
+ */
+async function marcarVencidos(codigo = null) {
+  const { rowCount } = await query(
+    `UPDATE pagos.vales_compra
+        SET estado = 'Expirado', actualizado_en = now()
+      WHERE estado = 'Activo' AND expira_en < ${HOY}
+        AND ($1::text IS NULL OR codigo = $1)`,
+    [codigo]
+  );
+  return rowCount;
+}
+
+module.exports = { crear, obtener, listar, marcarVencidos, formatear, COLUMNAS, HOY };

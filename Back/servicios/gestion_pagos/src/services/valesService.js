@@ -82,9 +82,13 @@ function codigoValido(valor) {
   return codigo;
 }
 
-/** TDSI-1081: saldo y estado de un vale por su código (acepta minúsculas). */
+/**
+ * TDSI-1081: saldo y estado de un vale por su código (acepta minúsculas).
+ * TDSI-1109: si el vale está Activo pero su último día ya pasó, primero se marca Expirado.
+ */
 async function consultarVale(codigo) {
   const c = codigoValido(codigo);
+  await repo.marcarVencidos(c); // TDSI-1109: si ya venció, se consulta como Expirado
   const vale = await repo.obtener(c);
   if (!vale) throw new AppError(`No existe un vale con el código ${c}.`, 404);
   return vale;
@@ -97,6 +101,7 @@ async function listarVales(consulta = {}) {
   const parte = texto(consulta.codigo, "codigo", { max: 20 });
   if (parte && !/^[A-Za-z0-9-]+$/.test(parte)) throw new AppError("El código solo tiene letras, números y guiones.", 400);
   const devolucion_id = texto(consulta.devolucion_id, "devolucion_id", { max: 60 });
+  await repo.marcarVencidos(); // TDSI-1109: la tabla tampoco muestra vencidos como Activo
   return repo.listar({ estado, codigo: parte ? `%${parte.toUpperCase()}%` : null, devolucion_id });
 }
 

@@ -676,3 +676,5 @@ Tabla `pagos.vales_compra` (TDSI-227): código único `VAL-XXXX-XXXX`, monto, sa
 | GET | `/api/pagos/vales?estado=&codigo=&devolucion_id=` | No | Lista para la tabla (más nuevos primero, máx. 100). `codigo` busca por parte del código. | TDSI-1081 |
 
 Contrato completo para el Equipo 1 y la pantalla: [`docs/contrato-vales.md`](docs/contrato-vales.md).
+
+**Vencimiento (TDSI-1109):** al consultar un vale (o la lista), los vales `Activo` cuyo `expira_en` ya pasó (día de Bolivia) se guardan como `Expirado` y se devuelven así. Un vale vence al terminar su último día: el día de `expira_en` todavía se puede usar.

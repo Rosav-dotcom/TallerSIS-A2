@@ -73,6 +73,8 @@ GET /api/pagos/vales/VAL-6VUK-2HSM
 
 `200` con `data` = el vale · `400` si el código no tiene el formato · `404` "No existe un vale con el código …". Acepta el código en minúsculas.
 
+**Vencido (TDSI-1109):** si el vale estaba `Activo` y su `expira_en` ya pasó, al consultarlo se guarda como **`Expirado`** y llega así (con `dias_restantes` negativo). El día de `expira_en` todavía es válido. La lista hace lo mismo antes de responder.
+
 ## 3. Listar vales (tabla de la página)
 
 ```http
