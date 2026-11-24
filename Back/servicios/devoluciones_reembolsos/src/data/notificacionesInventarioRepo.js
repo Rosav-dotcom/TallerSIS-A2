@@ -108,4 +108,20 @@ async function tomarPendientes(limite = 10) {
   return Promise.all(rows.map((r) => obtener(r.id, { conPayload: true })));
 }
 
-module.exports = { obtener, obtenerPorCodigo, crearEnTransaccion, marcarEnviado, registrarFallo, posponer, tomarPendientes };
+/**
+ * TDSI-1040: guarda el acuse de Inventario (CONFIRMADO o RECHAZADO con su motivo). Llega aunque el
+ * aviso figure PENDIENTE o ERROR (Inventario lo recibio igual): deja de reintentarse.
+ */
+async function registrarAcuse({ id, estado, motivo }) {
+  await query(
+    `UPDATE devoluciones.notificaciones_inventario
+        SET estado = $2, resultado_motivo = $3, resultado_en = now(), proximo_intento_en = NULL
+      WHERE id = $1`,
+    [id, estado, motivo]
+  );
+  return obtener(id);
+}
+
+module.exports = {
+  obtener, obtenerPorCodigo, crearEnTransaccion, marcarEnviado, registrarFallo, posponer, tomarPendientes, registrarAcuse,
+};
