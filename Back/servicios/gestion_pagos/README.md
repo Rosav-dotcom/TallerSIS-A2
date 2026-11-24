@@ -668,3 +668,7 @@ http://localhost:4005
 # Vales de compra (TDSI-75)
 
 Tabla `pagos.vales_compra` (TDSI-227): código único `VAL-XXXX-XXXX`, monto, saldo, fecha de emisión y de expiración, estado (`Activo`, `Usado`, `Expirado`) y la devolución que lo generó. Es la única tabla de vales del sistema: Devoluciones solo guarda el código.
+
+| Método | Ruta | Token | Qué hace | Subtarea |
+|---|---|---|---|---|
+| POST | `/api/pagos/vales` | Sí (Devoluciones) | Genera un vale: `{ monto, emitido_por, devolucion_id?, dias_validez? }`. Código único `VAL-XXXX-XXXX`, saldo = monto, vence en `dias_validez` días de Bolivia (por defecto `VALE_DIAS_VALIDEZ`, 90). 201 con el vale. | TDSI-1032 |
