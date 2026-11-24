@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { listarUsuarios, crearCajero, editarUsuario, cambiarPasswordCajero, cambiarEstadoUsuario } from '../api/usuarios.js'
+import { listarUsuarios, crearCajero, crearPersonal, listarRolesPersonal, editarUsuario, cambiarPasswordCajero, cambiarEstadoUsuario } from '../api/usuarios.js'
 import { useAdminAuth } from '../context/AdminAuthContext.jsx'
 import { Plus } from 'lucide-react'
 import {
@@ -21,8 +21,14 @@ const FILTROS_ROL = [
   { valor: '', etiqueta: 'Todos' },
   { valor: 'Cajero', etiqueta: 'Cajeros' },
   { valor: 'Supervisor', etiqueta: 'Supervisores' },
+  { valor: 'Encargado de Devoluciones', etiqueta: 'Encargados de Devoluciones' },
+  { valor: 'Usuario de Soporte', etiqueta: 'Usuarios de Soporte' },
 ]
-const NUEVO_CAJERO_INICIAL = { usuario: '', nombre: '', password: '', confirmarPassword: '' }
+const NUEVO_USUARIO_INICIAL = { usuario: '', nombre: '', password: '', confirmarPassword: '', rol: 'Cajero' }
+const ROLES_PERSONAL_POR_DEFECTO = [
+  { codigo: 'ENCARGADO_DEVOLUCIONES', nombre: 'Encargado de Devoluciones' },
+  { codigo: 'USUARIO_SOPORTE', nombre: 'Usuario de Soporte' },
+]
 
 // TDSI-172/920-923: pantalla "Usuarios" del Administrador -- cajeros y supervisores
 // en una sola lista, con alta de cajeros, edicion y activar/desactivar.
@@ -38,7 +44,8 @@ function Usuarios() {
   const [mensaje, setMensaje] = useState(null)
 
   const [mostrandoNuevo, setMostrandoNuevo] = useState(false)
-  const [nuevo, setNuevo] = useState(NUEVO_CAJERO_INICIAL)
+  const [nuevo, setNuevo] = useState(NUEVO_USUARIO_INICIAL)
+  const [rolesPersonal, setRolesPersonal] = useState(ROLES_PERSONAL_POR_DEFECTO)
   const [creando, setCreando] = useState(false)
   const [errorNuevo, setErrorNuevo] = useState(null)
 
@@ -68,10 +75,19 @@ function Usuarios() {
     }
   }, [token, recargar])
 
+  useEffect(() => {
+    if (!token) return
+    let vigente = true
+    listarRolesPersonal(token)
+      .then((r) => { if (vigente && Array.isArray(r.data)) setRolesPersonal(r.data) })
+      .catch(() => { /* Mantiene los roles documentados si no se puede cargar el catálogo. */ })
+    return () => { vigente = false }
+  }, [token])
+
   const usuariosFiltrados = filtroRol ? usuarios.filter((u) => u.rol === filtroRol) : usuarios
 
   function abrirNuevo() {
-    setNuevo(NUEVO_CAJERO_INICIAL)
+    setNuevo(NUEVO_USUARIO_INICIAL)
     setErrorNuevo(null)
     setMostrandoNuevo(true)
     setMensaje(null)
@@ -94,9 +110,14 @@ function Usuarios() {
     setCreando(true)
     setErrorNuevo(null)
     try {
-      await crearCajero({ usuario: nuevo.usuario.trim(), nombre: nuevo.nombre.trim(), password: nuevo.password }, token)
+      const datos = { usuario: nuevo.usuario.trim(), nombre: nuevo.nombre.trim(), password: nuevo.password }
+      if (nuevo.rol === 'Cajero') {
+        await crearCajero(datos, token)
+      } else {
+        await crearPersonal({ ...datos, rol: nuevo.rol }, token)
+      }
       setMostrandoNuevo(false)
-      setMensaje({ ok: true, texto: `Cajero "${nuevo.usuario.trim()}" registrado correctamente.` })
+      setMensaje({ ok: true, texto: `Usuario "${nuevo.usuario.trim()}" registrado correctamente.` })
       setRecargar((n) => n + 1)
     } catch (err) {
       setErrorNuevo(err.mensaje || err.message)
@@ -121,7 +142,7 @@ function Usuarios() {
       setErrorEditar('Complete el usuario y el nombre.')
       return
     }
-    if (editando.rol === 'Cajero' && cambiarPassword) {
+    if (editando.rol !== 'Supervisor' && cambiarPassword) {
       if (passwordNueva.length < 6) {
         setErrorEditar('La contraseña debe tener al menos 6 caracteres.')
         return
@@ -136,7 +157,7 @@ function Usuarios() {
     setErrorEditar(null)
     try {
       await editarUsuario(editando.id, { usuario: formEditar.usuario.trim(), nombre: formEditar.nombre.trim() }, token)
-      if (editando.rol === 'Cajero' && cambiarPassword) {
+      if (editando.rol !== 'Supervisor' && cambiarPassword) {
         await cambiarPasswordCajero(editando.id, passwordNueva, token)
       }
       setEditando(null)
@@ -176,10 +197,10 @@ function Usuarios() {
       <div className="adm-cabecera">
         <div className="turno-encabezado">
           <h1>Usuarios</h1>
-          <p>Cuentas de cajeros y supervisores que usan el sistema.</p>
+          <p>Cuentas de cajeros, supervisores, encargados de devoluciones y personal de soporte.</p>
         </div>
         <Boton icono={Plus} onClick={abrirNuevo}>
-          Nuevo cajero
+          Nuevo usuario
         </Boton>
       </div>
 
@@ -243,8 +264,13 @@ function Usuarios() {
       )}
 
       {mostrandoNuevo && (
-        <Modal abierto titulo="Nuevo cajero" onCerrar={creando ? undefined : () => setMostrandoNuevo(false)}>
+        <Modal abierto titulo="Nuevo usuario" onCerrar={creando ? undefined : () => setMostrandoNuevo(false)}>
           <form className="adm-form" onSubmit={confirmarNuevo}>
+            <Selector etiqueta="Rol del nuevo usuario" value={nuevo.rol}
+              onChange={(e) => setNuevo((prev) => ({ ...prev, rol: e.target.value }))}>
+              <option value="Cajero">Cajero</option>
+              {rolesPersonal.map((r) => <option key={r.codigo} value={r.codigo}>{r.nombre}</option>)}
+            </Selector>
             <CampoTexto
               etiqueta="Usuario (correo)"
               type="email"
@@ -308,7 +334,7 @@ function Usuarios() {
               onChange={(e) => setFormEditar((prev) => ({ ...prev, nombre: e.target.value }))}
             />
 
-            {editando.rol === 'Cajero' && (
+            {editando.rol !== 'Supervisor' && (
               <>
                 <div>
                   <Boton

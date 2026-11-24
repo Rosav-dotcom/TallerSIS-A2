@@ -48,3 +48,17 @@ export function cambiarEstadoUsuario(id, activo, token) {
     headers: headerAutorizacion(token),
   })
 }
+
+// TDSI-68/992: perfiles del personal nuevo disponibles en el backend.
+export function listarRolesPersonal(token) {
+  return apiFetch('/api/usuarios/roles', { headers: headerAutorizacion(token) })
+}
+
+// Registra Encargado de Devoluciones o Usuario de Soporte. No modifica un cajero existente.
+export function crearPersonal({ usuario, password, nombre, rol }, token) {
+  return apiFetch('/api/usuarios/personal', {
+    method: 'POST',
+    body: JSON.stringify({ usuario, password, nombre, rol }),
+    headers: headerAutorizacion(token),
+  })
+}
