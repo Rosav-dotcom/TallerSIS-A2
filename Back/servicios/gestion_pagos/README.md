@@ -672,3 +672,7 @@ Tabla `pagos.vales_compra` (TDSI-227): código único `VAL-XXXX-XXXX`, monto, sa
 | Método | Ruta | Token | Qué hace | Subtarea |
 |---|---|---|---|---|
 | POST | `/api/pagos/vales` | Sí (Devoluciones) | Genera un vale: `{ monto, emitido_por, devolucion_id?, dias_validez? }`. Código único `VAL-XXXX-XXXX`, saldo = monto, vence en `dias_validez` días de Bolivia (por defecto `VALE_DIAS_VALIDEZ`, 90). 201 con el vale. | TDSI-1032 |
+| GET | `/api/pagos/vales/:codigo` | No | Saldo y estado del vale: `codigo`, `monto`, `saldo`, `estado`, `emitido_en`, `expira_en` (AAAA-MM-DD), `dias_restantes`, `devolucion_id`. Acepta minúsculas. 400 si el código no tiene el formato, 404 si no existe. | TDSI-1081 |
+| GET | `/api/pagos/vales?estado=&codigo=&devolucion_id=` | No | Lista para la tabla (más nuevos primero, máx. 100). `codigo` busca por parte del código. | TDSI-1081 |
+
+Contrato completo para el Equipo 1 y la pantalla: [`docs/contrato-vales.md`](docs/contrato-vales.md).

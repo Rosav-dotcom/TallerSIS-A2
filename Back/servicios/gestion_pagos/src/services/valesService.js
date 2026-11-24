@@ -72,4 +72,32 @@ async function generarVale(datos = {}, { generar = generarCodigo } = {}) {
   return null; // no se llega aquí
 }
 
-module.exports = { generarVale, generarCodigo, validarMonto, FORMATO_CODIGO, ALFABETO, texto };
+const ESTADOS = ["Activo", "Usado", "Expirado"];
+
+function codigoValido(valor) {
+  const codigo = String(valor ?? "").trim().toUpperCase();
+  if (!FORMATO_CODIGO.test(codigo)) {
+    throw new AppError("El código del vale no es válido.", 400, "El formato es VAL-XXXX-XXXX");
+  }
+  return codigo;
+}
+
+/** TDSI-1081: saldo y estado de un vale por su código (acepta minúsculas). */
+async function consultarVale(codigo) {
+  const c = codigoValido(codigo);
+  const vale = await repo.obtener(c);
+  if (!vale) throw new AppError(`No existe un vale con el código ${c}.`, 404);
+  return vale;
+}
+
+/** TDSI-1081: lista de vales con filtros opcionales: estado, parte del código y devolución. */
+async function listarVales(consulta = {}) {
+  const estado = texto(consulta.estado, "estado", { max: 20 });
+  if (estado && !ESTADOS.includes(estado)) throw new AppError(`El estado debe ser ${ESTADOS.join(", ")}.`, 400);
+  const parte = texto(consulta.codigo, "codigo", { max: 20 });
+  if (parte && !/^[A-Za-z0-9-]+$/.test(parte)) throw new AppError("El código solo tiene letras, números y guiones.", 400);
+  const devolucion_id = texto(consulta.devolucion_id, "devolucion_id", { max: 60 });
+  return repo.listar({ estado, codigo: parte ? `%${parte.toUpperCase()}%` : null, devolucion_id });
+}
+
+module.exports = { generarVale, consultarVale, listarVales, generarCodigo, validarMonto, codigoValido, FORMATO_CODIGO, ALFABETO, ESTADOS, texto };

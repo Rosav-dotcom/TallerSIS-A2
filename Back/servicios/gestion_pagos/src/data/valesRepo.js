@@ -26,4 +26,24 @@ async function crear({ codigo, monto, dias, devolucion_id, emitido_por }) {
   return formatear(rows[0]);
 }
 
-module.exports = { crear, formatear, COLUMNAS, HOY };
+/** TDSI-1081: un vale por su código. null si no existe. */
+async function obtener(codigo) {
+  const { rows } = await query(`SELECT ${COLUMNAS} FROM pagos.vales_compra WHERE codigo = $1`, [codigo]);
+  return formatear(rows[0]);
+}
+
+/** TDSI-1081: vales para la tabla de la pantalla, del más nuevo al más antiguo (máx. 100). */
+async function listar({ estado = null, codigo = null, devolucion_id = null } = {}) {
+  const { rows } = await query(
+    `SELECT ${COLUMNAS} FROM pagos.vales_compra
+      WHERE ($1::text IS NULL OR estado = $1)
+        AND ($2::text IS NULL OR codigo LIKE $2)
+        AND ($3::text IS NULL OR devolucion_id = $3)
+      ORDER BY emitido_en DESC, id DESC
+      LIMIT 100`,
+    [estado, codigo, devolucion_id]
+  );
+  return rows.map(formatear);
+}
+
+module.exports = { crear, obtener, listar, formatear, COLUMNAS, HOY };
