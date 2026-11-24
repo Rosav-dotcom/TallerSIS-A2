@@ -100,7 +100,7 @@ sequenceDiagram
     else válido
         RS-->>REPO: datos (TOTAL o PARCIAL, monto_total) + items
         REPO->>DB: INSERT devoluciones (sin código)
-        Note over DB: trigger trg_devoluciones_codigo:<br/>UPDATE correlativos SET ultimo = ultimo + 1<br/>codigo = DEV-000124
+        Note over DB: trigger trg_devoluciones_codigo:<br/>UPDATE correlativos SET ultimo = ultimo + 1<br/>codigo = DEV-000124<br/>trigger trg_devoluciones_historial:<br/>historial "Devolución registrada" por creado_por
         REPO->>DB: INSERT devolucion_items (factura_item_id, condicion...)
         REPO->>DB: COMMIT
         DB-->>REPO: fila con código DEV-000124
@@ -116,3 +116,4 @@ sequenceDiagram
 - Si algo falla después del `INSERT` (por ejemplo un ítem inválido), el `ROLLBACK` deshace también el correlativo: no quedan huecos en los códigos `DEV-`.
 - El bloqueo es por factura: dos devoluciones de facturas distintas se registran en paralelo; dos de la misma factura, una después de la otra, así nunca se devuelve dos veces la misma unidad.
 - El código no se puede editar después (trigger `trg_devoluciones_codigo_inmutable`, TDSI-1111).
+- La línea de tiempo (`GET /api/devoluciones/:codigo/historial`) arranca con ese registro; cada cambio de estado posterior lo agrega la BD con usuario y hora, y nada se puede editar ni borrar (TDSI-81).

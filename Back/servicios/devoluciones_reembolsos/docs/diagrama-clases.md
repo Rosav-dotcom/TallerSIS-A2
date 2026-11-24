@@ -15,6 +15,7 @@ classDiagram
         +GET / ?codigo&estado&desde&hasta
         +POST /
         +GET /:codigo
+        +GET /:codigo/historial
     }
     class ComprobantesRoutes {
         <<router /api/devoluciones/comprobantes>>
@@ -40,6 +41,7 @@ classDiagram
     class DevolucionesService {
         +listarDevoluciones(codigo, estado, desde, hasta) ResumenDevolucion[]
         +obtenerDevolucion(codigo) DetalleDevolucion
+        +obtenerHistorial(codigo) LineaDeTiempo
         +aDetalle(fila) DetalleDevolucion
     }
     class ComprobantesService {
@@ -66,11 +68,15 @@ classDiagram
         +registrar(facturaNumero, construir) Devolucion
         +buscarPorCodigo(codigo) Devolucion
         +listar(filtros) Devolucion[]
+        +cambiarEstado(codigo, estado, usuario, comentario) Devolucion
         -insertar(cliente, datos, items)
         -enTransaccion(trabajo)
     }
     class ConfiguracionRepo {
         +obtener(clave) Configuracion
+    }
+    class HistorialRepo {
+        +listarPorDevolucion(id) HistorialEstado[]
     }
     class ReglasReembolsoRepo {
         +reglasDe(metodos) ReglaReembolso[]
@@ -133,6 +139,7 @@ classDiagram
     RegistroService --> DevolucionesRepo : registrar
     RegistroService --> DevolucionesService : aDetalle
     DevolucionesService --> DevolucionesRepo
+    DevolucionesService --> HistorialRepo
     DevolucionesService --> CodigoDevolucion
     ComprobantesService --> FacturacionClient
     ComprobantesService --> PlazoService
@@ -145,6 +152,7 @@ classDiagram
     ConfiguracionRepo --> Db
     MotivosRepo --> Db
     ReglasReembolsoRepo --> Db
+    HistorialRepo --> Db
     FacturacionClient ..> Facturacion : HTTP
 
     RegistroService ..> AppError : lanza
@@ -219,11 +227,12 @@ classDiagram
         +explicacion : texto del tooltip
     }
     class HistorialEstado {
-        <<devoluciones.historial_estados>>
+        <<devoluciones.historial_estados, solo agregar>>
         +estado_anterior
         +estado_nuevo
-        +cambiado_por
-        +cambiado_en
+        +cambiado_por : usuario
+        +cambiado_en : clock_timestamp
+        +comentario
     }
     class Reembolso {
         <<devoluciones.reembolsos>>
@@ -245,7 +254,7 @@ classDiagram
     }
 
     Devolucion "1" *-- "1..*" DevolucionItem : items
-    Devolucion "1" *-- "0..*" HistorialEstado : TDSI-81
+    Devolucion "1" *-- "1..*" HistorialEstado : TDSI-81, trigger trg_devoluciones_historial
     Devolucion "1" *-- "0..*" Reembolso : TDSI-72 y 74
     Devolucion "1" *-- "0..*" NotaCredito : TDSI-73
     Devolucion "1" *-- "0..*" NotificacionInventario : TDSI-77
@@ -263,6 +272,8 @@ classDiagram
 | El plazo es un entero de 1 a 60 | `CHECK configuracion_plazo_valido` (TDSI-1097) |
 | Una opción de reembolso bloqueada siempre explica por qué | `CHECK (permitido OR explicacion IS NOT NULL)` en `reglas_reembolso` (TDSI-221) |
 | Las observaciones tienen hasta 300 caracteres | `VARCHAR(300)`; el servicio responde 400 antes de llegar a la BD (TDSI-1009) |
+| Cada cambio de estado queda en el historial, con usuario y hora | trigger `trg_devoluciones_historial` (TDSI-1057) |
+| El historial no se puede editar ni borrar (solo se va si se borra la devolución completa) | triggers `trg_historial_inmutable` y `trg_historial_sin_truncate`, SQLSTATE DV002 (TDSI-239) |
 | No se devuelve dos veces la misma unidad | `DevolucionesRepo.registrar` bloquea la factura con `pg_advisory_xact_lock` mientras suma lo ya devuelto (TDSI-1001) |
 
 Los vales, la reversión con tarjeta y el correo del comprobante los hace `gestion_pagos` (acuerdo de equipo, contrato TDSI-1027): Devoluciones solo guarda la referencia (`reembolsos.referencia`, `devoluciones.envio_comprobante_id`).
