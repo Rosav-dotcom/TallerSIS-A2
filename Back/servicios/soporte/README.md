@@ -87,6 +87,7 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | GET | `/api/soporte/catalogos` | Tipos, prioridades y estados válidos (para los selectores). | TDSI-677 |
 | GET | `/api/soporte/tickets/:numero` | Detalle de un ticket (`INC-000123`) con su solución. 400 si el número es inválido, 404 si no existe. | TDSI-677 |
 | PATCH | `/api/soporte/tickets/:numero/tipo` | Cuerpo `{ tipo }`. Cambia el tipo y lo deja en el historial con el usuario de la sesión y la hora. Responde el ticket actualizado. | TDSI-677 |
+| PATCH | `/api/soporte/tickets/:numero/prioridad` | Cuerpo `{ prioridad }` (Baja, Media, Alta, Critica). Cambia la prioridad y registra el cambio en el historial (valor anterior, nuevo, usuario y hora). | TDSI-680 |
 
 ### Qué compara (TDSI-972)
 

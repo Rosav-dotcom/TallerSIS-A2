@@ -102,3 +102,40 @@ test("rutas TDSI-677: GET /catalogos, GET /tickets/:numero y PATCH /tipo", async
     servidor.close();
   }
 });
+
+// ---------------------------------------------------------------------------
+// TDSI-680: prioridad
+// ---------------------------------------------------------------------------
+
+test("cambiar prioridad: guarda el cambio con valor anterior, nuevo y usuario", async () => {
+  const repo = repoFalso();
+  const s = crearGestionTicketsService({ repo });
+  const t = await s.cambiarPrioridad("INC-000001", { prioridad: "Critica" }, SESION);
+  assert.equal(t.prioridad, "Critica");
+  await s.cambiarPrioridad("INC-000001", { prioridad: "Alta" }, SESION);
+  assert.deepEqual(repo.historial, [
+    { campo: "prioridad", valor_anterior: "Media", valor_nuevo: "Critica", usuario: "soporte@tallersis.bo" },
+    { campo: "prioridad", valor_anterior: "Critica", valor_nuevo: "Alta", usuario: "soporte@tallersis.bo" },
+  ]);
+});
+
+test("cambiar prioridad: valor inválido 400 (Crítica con tilde no es el valor guardado); misma prioridad sin historial", async () => {
+  const repo = repoFalso();
+  const s = crearGestionTicketsService({ repo });
+  await assert.rejects(s.cambiarPrioridad("INC-000001", { prioridad: "Urgente" }, SESION), (e) => e.status === 400);
+  await assert.rejects(s.cambiarPrioridad("INC-000001", { prioridad: "Crítica" }, SESION), (e) => e.status === 400);
+  await s.cambiarPrioridad("INC-000001", { prioridad: "Media" }, SESION);
+  assert.equal(repo.historial.length, 0);
+});
+
+test("ruta PATCH /tickets/:numero/prioridad", async () => {
+  const { servidor, pedir } = await levantar(crearGestionTicketsService({ repo: repoFalso() }));
+  try {
+    const r = await pedir("/tickets/INC-000001/prioridad", "PATCH", { prioridad: "Baja" });
+    assert.equal(r.status, 200);
+    assert.equal(r.cuerpo.data.prioridad, "Baja");
+    assert.equal((await pedir("/tickets/INC-000001/prioridad", "PATCH", {})).status, 400);
+  } finally {
+    servidor.close();
+  }
+});

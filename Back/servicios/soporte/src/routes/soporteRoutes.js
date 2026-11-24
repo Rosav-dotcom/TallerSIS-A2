@@ -76,6 +76,18 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     )
   );
 
+  // TDSI-680: cambiar la prioridad (queda en el historial)
+  router.patch(
+    "/tickets/:numero/prioridad",
+    wrap(async (req, res) =>
+      res.json({
+        ok: true,
+        mensaje: "Prioridad actualizada",
+        data: await gestionTicketsService.cambiarPrioridad(req.params.numero, req.body, req.usuario),
+      })
+    )
+  );
+
   return router;
 }
 

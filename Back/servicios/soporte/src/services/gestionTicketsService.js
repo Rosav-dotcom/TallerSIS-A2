@@ -49,6 +49,11 @@ function crearGestionTicketsService({ repo }) {
     cambiarTipo(numero, datos = {}, usuario = null) {
       return cambiar(numero, "tipo", TIPOS, datos.tipo, usuario);
     },
+
+    /** TDSI-680: cambia la prioridad y registra el cambio (valor anterior, nuevo, usuario y hora). */
+    cambiarPrioridad(numero, datos = {}, usuario = null) {
+      return cambiar(numero, "prioridad", PRIORIDADES, datos.prioridad, usuario);
+    },
   };
 }
 
