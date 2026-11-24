@@ -39,9 +39,60 @@ function entero(valor, campo, { porDefecto, min, max }) {
   return numero;
 }
 
-/** Arma las condiciones SQL de la bandeja a partir de los filtros (TDSI-674 agrega los filtros). */
-function construirFiltros() {
-  return { condiciones: [], params: [] };
+const FORMATO_FECHA = /^\d{4}-\d{2}-\d{2}$/;
+const ZONA = "America/La_Paz"; // los días se cuentan en hora de Bolivia
+
+// Escapa % _ y \ para que el texto se busque tal cual dentro de un ILIKE
+const paraLike = (texto) => `%${texto.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
+function fecha(valor, campo) {
+  const limpio = texto(valor, campo, { max: 10 });
+  if (!limpio) return null;
+  const d = new Date(`${limpio}T00:00:00Z`);
+  if (!FORMATO_FECHA.test(limpio) || Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== limpio) {
+    throw new AppError(`El parámetro '${campo}' debe ser una fecha AAAA-MM-DD.`, 400);
+  }
+  return limpio;
+}
+
+/**
+ * TDSI-674: arma las condiciones SQL de la bandeja. Los filtros se combinan (todos a la vez):
+ *   numero     parte del número del ticket (INC-000012, "12", "inc-0000")
+ *   usuario    parte del usuario afectado (correo o nombre), sin distinguir mayúsculas
+ *   desde      AAAA-MM-DD, desde el inicio de ese día (hora de Bolivia)
+ *   hasta      AAAA-MM-DD, hasta el final de ese día (incluido)
+ *   estado     Abierto, En proceso, Pendiente, Resuelto, Cerrado o Escalado
+ *   prioridad  Baja, Media, Alta o Critica
+ */
+function construirFiltros(consulta = {}) {
+  const condiciones = [];
+  const params = [];
+  const agregar = (sql, valor) => {
+    params.push(valor);
+    condiciones.push(sql.replace("?", `$${params.length}`));
+  };
+
+  const numero = texto(consulta.numero, "numero", { max: 20 });
+  if (numero) agregar("numero ILIKE ?", paraLike(numero));
+
+  const usuario = texto(consulta.usuario, "usuario");
+  if (usuario) agregar("usuario_afectado ILIKE ?", paraLike(usuario));
+
+  const desde = fecha(consulta.desde, "desde");
+  const hasta = fecha(consulta.hasta, "hasta");
+  if (desde && hasta && desde > hasta) {
+    throw new AppError("La fecha 'desde' no puede ser posterior a 'hasta'.", 400);
+  }
+  if (desde) agregar(`creado_en >= (?::date)::timestamp AT TIME ZONE '${ZONA}'`, desde);
+  if (hasta) agregar(`creado_en < (?::date + 1)::timestamp AT TIME ZONE '${ZONA}'`, hasta);
+
+  const estado = deLista(consulta.estado, "estado", ESTADOS);
+  if (estado) agregar("estado = ?", estado);
+
+  const prioridad = deLista(consulta.prioridad, "prioridad", PRIORIDADES);
+  if (prioridad) agregar("prioridad = ?", prioridad);
+
+  return { condiciones, params };
 }
 
 function crearTicketsService({ repo }) {
@@ -72,7 +123,7 @@ function crearTicketsService({ repo }) {
 
     /**
      * TDSI-671: bandeja de tickets paginada, ordenada por prioridad (Critica primero) y,
-     * dentro de cada prioridad, del más nuevo al más antiguo.
+     * dentro de cada prioridad, del más nuevo al más antiguo. TDSI-674: con filtros combinables.
      * Responde { data, paginacion: { pagina, limite, total, paginas } }.
      */
     async listarTickets(consulta = {}) {

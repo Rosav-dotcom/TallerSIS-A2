@@ -28,6 +28,7 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
   );
 
   // TDSI-671: bandeja de tickets, paginada (?pagina=1&limite=20) y ordenada por prioridad
+  // TDSI-674: filtros combinables ?numero=&usuario=&desde=&hasta=&estado=&prioridad=
   router.get(
     "/tickets",
     wrap(async (req, res) => {

@@ -171,3 +171,52 @@ test("GET /tickets: responde data y paginacion", async () => {
     servidor.close();
   }
 });
+
+// ---------------------------------------------------------------------------
+// TDSI-674: filtros de la bandeja
+// ---------------------------------------------------------------------------
+const { construirFiltros } = require("../src/services/ticketsService");
+
+test("filtros: sin filtros no hay condiciones", () => {
+  assert.deepEqual(construirFiltros({}), { condiciones: [], params: [] });
+  assert.deepEqual(construirFiltros({ numero: "  ", estado: "" }), { condiciones: [], params: [] });
+});
+
+test("filtros: se combinan todos, con parámetros numerados en orden", () => {
+  const f = construirFiltros({ numero: "12", usuario: "Cajero1", desde: "2026-11-01", hasta: "2026-11-30", estado: "Abierto", prioridad: "Alta" });
+  assert.deepEqual(f.params, ["%12%", "%Cajero1%", "2026-11-01", "2026-11-30", "Abierto", "Alta"]);
+  assert.equal(f.condiciones.length, 6);
+  assert.match(f.condiciones[0], /^numero ILIKE \$1$/);
+  assert.match(f.condiciones[1], /^usuario_afectado ILIKE \$2$/);
+  assert.match(f.condiciones[2], /creado_en >= \(\$3::date\)::timestamp AT TIME ZONE 'America\/La_Paz'/);
+  assert.match(f.condiciones[3], /creado_en < \(\$4::date \+ 1\)/);
+  assert.equal(f.condiciones[4], "estado = $5");
+  assert.equal(f.condiciones[5], "prioridad = $6");
+});
+
+test("filtros: % y _ se buscan como texto, no como comodines", () => {
+  assert.deepEqual(construirFiltros({ usuario: "50%_a" }).params, ["%50\\%\\_a%"]);
+});
+
+test("filtros: valores inválidos (400)", () => {
+  const casos = [
+    { estado: "Borrado" },
+    { prioridad: "Urgente" },
+    { desde: "24/11/2026" },
+    { hasta: "2026-02-30" },
+    { desde: "2026-12-01", hasta: "2026-11-01" },
+    { numero: "x".repeat(21) },
+    { usuario: ["a", "b"] },
+  ];
+  for (const consulta of casos) {
+    assert.throws(() => construirFiltros(consulta), (e) => e.status === 400, JSON.stringify(consulta));
+  }
+});
+
+test("listar: los filtros llegan al repositorio junto con la paginación", async () => {
+  const repo = repoConLista(3);
+  await crearTicketsService({ repo }).listarTickets({ prioridad: "Alta", limite: 5 });
+  assert.deepEqual(repo.pedidos[0].condiciones, ["prioridad = $1"]);
+  assert.deepEqual(repo.pedidos[0].params, ["Alta"]);
+  assert.equal(repo.pedidos[0].limite, 5);
+});
