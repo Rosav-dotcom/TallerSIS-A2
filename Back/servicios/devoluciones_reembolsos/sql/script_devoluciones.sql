@@ -511,3 +511,38 @@ VALUES ('limite_autorizacion', '500',
         'Monto (Bs) desde el cual una devolucion necesita la autorizacion de un supervisor (usuario y PIN)',
         'SISTEMA')
 ON CONFLICT (clave) DO NOTHING;
+
+-- ==========================================================================
+-- TDSI-80/1085: quien autorizo una devolucion sobre el limite
+-- --------------------------------------------------------------------------
+-- autorizado_por (ya existia) guarda el usuario del supervisor (supervisor_id
+-- de facturacion), autorizado_por_nombre su nombre para mostrarlo en el
+-- detalle y autorizado_en la hora. El registro en el historial dice tambien
+-- que supervisor la autorizo. Idempotente.
+-- ==========================================================================
+ALTER TABLE devoluciones.devoluciones ADD COLUMN IF NOT EXISTS autorizado_por_nombre VARCHAR(150);
+
+CREATE OR REPLACE FUNCTION devoluciones.registrar_cambio_estado()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  usuario    TEXT := NULLIF(current_setting('devoluciones.usuario', true), '');
+  comentario TEXT := NULLIF(current_setting('devoluciones.comentario', true), '');
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO devoluciones.historial_estados (devolucion_id, estado_anterior, estado_nuevo, cambiado_por, comentario)
+    VALUES (NEW.id, NULL, NEW.estado, COALESCE(NEW.creado_por, usuario, session_user), COALESCE(comentario,
+      'Devolución registrada' || CASE WHEN NEW.autorizado_por IS NOT NULL
+        THEN ' · autorizada por el supervisor ' || COALESCE(NEW.autorizado_por_nombre, NEW.autorizado_por)
+             || ' (' || NEW.autorizado_por || ')'
+        ELSE '' END));
+  ELSIF NEW.estado IS DISTINCT FROM OLD.estado THEN
+    INSERT INTO devoluciones.historial_estados (devolucion_id, estado_anterior, estado_nuevo, cambiado_por, comentario)
+    VALUES (NEW.id, OLD.estado, NEW.estado, COALESCE(usuario, session_user),
+            COALESCE(comentario, CASE WHEN NEW.estado = 'RECHAZADA' THEN NEW.motivo_rechazo END));
+  END IF;
+  RETURN NULL;
+END;
+$$;

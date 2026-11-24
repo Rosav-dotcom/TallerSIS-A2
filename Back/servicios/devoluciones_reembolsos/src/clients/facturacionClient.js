@@ -34,4 +34,37 @@ async function obtenerFactura(numero) {
   return r.datos.data;
 }
 
-module.exports = { buscarFacturas, obtenerFactura };
+// TDSI-80/1055: texto de la PA para un PIN incorrecto
+const PIN_INVALIDO = "PIN inválido";
+
+/**
+ * TDSI-80/1085: POST /api/supervisores/validar (TDSI-55). Facturacion es el dueño de los
+ * supervisores, sus PIN (con hash) y el bloqueo por intentos fallidos; aqui no se duplica nada.
+ * - PIN incorrecto, con formato invalido o supervisor que no existe -> 401 "PIN invalido"
+ *   (no se dice cual de los dos fallo).
+ * - Supervisor bloqueado por intentos fallidos -> 423 con el mensaje de facturacion.
+ * Devuelve { supervisor_id, nombre }.
+ */
+async function validarSupervisor({ supervisor_id, pin }) {
+  let respuesta;
+  try {
+    respuesta = await fetch(`${FACTURACION_URL}/api/supervisores/validar`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ supervisor_id, pin }),
+    });
+  } catch (e) {
+    throw new AppError("No se pudo validar al supervisor en este momento. Intente de nuevo.", 502);
+  }
+  const datos = await respuesta.json().catch(() => null);
+  if (respuesta.ok) return datos.data;
+  if (respuesta.status === 401 || respuesta.status === 400) {
+    throw new AppError(PIN_INVALIDO, 401, datos?.detalle || null);
+  }
+  if (respuesta.status === 423) {
+    throw new AppError(datos?.mensaje || "Supervisor bloqueado por intentos fallidos.", 423, datos?.detalle || null);
+  }
+  throw new AppError("No se pudo validar al supervisor en este momento. Intente de nuevo.", 502, { status: respuesta.status });
+}
+
+module.exports = { buscarFacturas, obtenerFactura, validarSupervisor, PIN_INVALIDO };

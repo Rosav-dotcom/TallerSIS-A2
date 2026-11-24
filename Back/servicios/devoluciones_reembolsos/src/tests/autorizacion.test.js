@@ -1,6 +1,7 @@
-// TDSI-80: devoluciones sobre el monto limite -- limite configurable (TDSI-237).
-// Facturacion se reemplaza por un servidor falso; las devoluciones y la configuracion van a la
-// BD real y se deja todo como estaba.
+// TDSI-80: devoluciones sobre el monto limite -- limite configurable (TDSI-237) y autorizacion
+// con usuario y PIN del supervisor (TDSI-1085; PA TDSI-1054, TDSI-1055 y TDSI-1056).
+// Facturacion (facturas y POST /api/supervisores/validar) se reemplaza por un servidor falso;
+// las devoluciones y la configuracion van a la BD real y se deja todo como estaba.
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const express = require("express");
@@ -18,10 +19,27 @@ function factura(letra, precio) {
 }
 const FACTURAS = Object.fromEntries([
   factura("ALTA", 600), factura("JUSTO", 500), factura("BAJA", 120), factura("CONF", 600),
+  factura("AUT", 750), factura("PIN", 600), factura("BLOQ", 600), factura("CAIDA", 600), factura("BAJA2", 100),
 ].map((f) => [f.numero, f]));
 
 const falso = express();
 falso.use(express.json());
+// Como facturacion (TDSI-55): SUP-01 / 1234; un PIN mal escrito es 400, uno incorrecto 401 y
+// SUP-BLOQ esta bloqueado (423). SUP-ROTO simula una falla de facturacion.
+const validaciones = [];
+falso.post("/api/supervisores/validar", (req, res) => {
+  const { supervisor_id, pin } = req.body || {};
+  validaciones.push(supervisor_id);
+  if (supervisor_id === "SUP-ROTO") return res.status(500).json({ ok: false, mensaje: "Error interno" });
+  if (typeof pin !== "string" || !/^\d{4,6}$/.test(pin)) return res.status(400).json({ ok: false, mensaje: "El PIN debe tener entre 4 y 6 dígitos" });
+  if (supervisor_id === "SUP-BLOQ") {
+    return res.status(423).json({ ok: false, mensaje: "Supervisor bloqueado por intentos fallidos. Intente en 10 minuto(s)", detalle: { bloqueado_hasta: "x" } });
+  }
+  if (supervisor_id !== "SUP-01" || pin !== "1234") {
+    return res.status(401).json({ ok: false, mensaje: "Supervisor o PIN incorrecto", detalle: { intentos_restantes: 2 } });
+  }
+  res.json({ ok: true, data: { supervisor_id: "SUP-01", nombre: "Carlos Mamani" } });
+});
 falso.get("/api/facturas/:numero", (req, res) => {
   const f = FACTURAS[req.params.numero];
   return f ? res.json({ ok: true, data: f }) : res.status(404).json({ ok: false });
@@ -106,4 +124,66 @@ test("TDSI-237: cambiar el limite en la configuracion cambia la regla", async ()
   } finally {
     await ponerLimite("500");
   }
+});
+
+// ---------- TDSI-1085: usuario y PIN del supervisor ----------
+const SUP_OK = { supervisor_id: "SUP-01", pin: "1234" };
+
+test("TDSI-1056: con usuario y PIN validos se registra y el detalle muestra que supervisor autorizo", async () => {
+  const r = await registrar("AUT", { autorizacion: SUP_OK });
+  assert.equal(r.status, 201);
+  const d = r.cuerpo.data;
+  assert.equal(d.monto_total, 750);
+  assert.equal(d.requiere_autorizacion, true);
+  assert.equal(d.autorizado_por, "SUP-01");
+  assert.deepEqual([d.autorizacion.supervisor_id, d.autorizacion.nombre], ["SUP-01", "Carlos Mamani"]);
+  assert.ok(Math.abs(Date.parse(d.autorizacion.fecha) - Date.now()) < 60000);
+
+  const guardada = await (await fetch(`${base}/${d.codigo}`)).json();
+  assert.deepEqual(guardada.data, d);
+  const historial = (await (await fetch(`${base}/${d.codigo}/historial`)).json()).data.historial;
+  assert.equal(historial[0].comentario, "Devolución registrada · autorizada por el supervisor Carlos Mamani (SUP-01)");
+  assert.equal(historial[0].usuario, "ana@test.com");
+});
+
+test("TDSI-1055: con PIN incorrecto se responde \"PIN inválido\" y no se registra", async () => {
+  for (const autorizacion of [
+    { supervisor_id: "SUP-01", pin: "9999" }, // PIN incorrecto
+    { supervisor_id: "SUP-01", pin: "12" }, // mal escrito
+    { supervisor_id: "SUP-01", pin: "" },
+    { supervisor_id: "SUP-01" }, // sin PIN
+    { supervisor_id: "NO-EXISTE", pin: "1234" }, // no dice si fallo el usuario o el PIN
+  ]) {
+    const r = await registrar("PIN", { autorizacion });
+    assert.equal(r.status, 401, JSON.stringify(autorizacion));
+    assert.equal(r.cuerpo.mensaje, "PIN inválido");
+  }
+  const conIntentos = await registrar("PIN", { autorizacion: { supervisor_id: "SUP-01", pin: "0000" } });
+  assert.deepEqual(conIntentos.cuerpo.detalle, { intentos_restantes: 2 });
+  assert.equal(await cuantas("PIN"), 0);
+});
+
+test("TDSI-1054: sobre el limite no se procesa sin usuario y PIN validos", async () => {
+  assert.equal((await registrar("PIN")).status, 403); // sin autorizacion
+  const sinUsuario = await registrar("PIN", { autorizacion: { pin: "1234" } });
+  assert.equal(sinUsuario.status, 400);
+  assert.equal(sinUsuario.cuerpo.mensaje, "Indique el usuario del supervisor que autoriza.");
+  assert.equal((await registrar("PIN", { autorizacion: "SUP-01:1234" })).status, 400);
+
+  const bloqueado = await registrar("BLOQ", { autorizacion: { supervisor_id: "SUP-BLOQ", pin: "1234" } });
+  assert.equal(bloqueado.status, 423);
+  assert.match(bloqueado.cuerpo.mensaje, /bloqueado/);
+
+  const caida = await registrar("CAIDA", { autorizacion: { supervisor_id: "SUP-ROTO", pin: "1234" } });
+  assert.equal(caida.status, 502);
+  for (const letra of ["PIN", "BLOQ", "CAIDA"]) assert.equal(await cuantas(letra), 0, letra);
+});
+
+test("TDSI-1085: hasta el limite no se pide ni se valida el PIN", async () => {
+  const antes = validaciones.length;
+  const r = await registrar("BAJA2", { autorizacion: { supervisor_id: "SUP-01", pin: "9999" } });
+  assert.equal(r.status, 201);
+  assert.equal(r.cuerpo.data.requiere_autorizacion, false);
+  assert.equal(r.cuerpo.data.autorizacion, null);
+  assert.equal(validaciones.length, antes);
 });

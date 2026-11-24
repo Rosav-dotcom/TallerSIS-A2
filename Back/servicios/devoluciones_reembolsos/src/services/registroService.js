@@ -6,6 +6,7 @@ const { plazoDeComprobante } = require("./plazoService");
 const { aDetalle } = require("./devolucionesService");
 const { CODIGOS: OPCIONES_REEMBOLSO, opcionesDeFactura } = require("./opcionesReembolsoService");
 const { obtenerLimiteAutorizacion } = require("./configuracionService");
+const facturacion = require("../clients/facturacionClient");
 
 // TDSI-70/1001: registro de una devolucion total o parcial eligiendo items y cantidades.
 const MAS_DE_LO_COMPRADO = "No se puede devolver más unidades de las compradas";
@@ -88,7 +89,17 @@ function validarPedido(body) {
   if (!OPCIONES_REEMBOLSO.includes(opcion)) {
     throw new AppError(`La opción de reembolso debe ser ${OPCIONES_REEMBOLSO.join(", ")}.`, 400, { opcion_reembolso: body.opcion_reembolso });
   }
-  return { facturaNumero, items, creadoPor, motivoId, observaciones, opcion };
+
+  // TDSI-80/1085: { supervisor_id, pin } del supervisor que autoriza (solo hace falta sobre el limite)
+  let autorizacion = null;
+  if (body.autorizacion !== undefined && body.autorizacion !== null) {
+    const a = body.autorizacion;
+    if (typeof a !== "object" || Array.isArray(a)) throw new AppError("La autorización debe tener supervisor_id y pin.", 400);
+    const supervisorId = typeof a.supervisor_id === "string" ? a.supervisor_id.trim() : "";
+    if (!supervisorId) throw new AppError("Indique el usuario del supervisor que autoriza.", 400);
+    autorizacion = { supervisor_id: supervisorId, pin: typeof a.pin === "string" ? a.pin : String(a.pin ?? "") };
+  }
+  return { facturaNumero, items, creadoPor, motivoId, observaciones, opcion, autorizacion };
 }
 
 /**
@@ -175,18 +186,25 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
  * TDSI-80/237: una devolucion de MAS del limite (configuracion limite_autorizacion) necesita la
  * autorizacion de un supervisor; sin ella no se registra (403, PA TDSI-1054). Marca
  * requiere_autorizacion en la devolucion.
+ * TDSI-80/1085: con { supervisor_id, pin } valida al supervisor en Facturacion (TDSI-55) y
+ * guarda quien y cuando autorizo. PIN incorrecto: 401 "PIN invalido" (PA TDSI-1055) y no se
+ * registra nada. Hasta el limite no se pide ni se valida el PIN.
  */
-async function exigirAutorizacion(nueva, limite) {
+async function exigirAutorizacion(nueva, limite, autorizacion) {
   const monto = nueva.datos.monto_total;
   nueva.datos.requiere_autorizacion = monto > limite;
   if (!nueva.datos.requiere_autorizacion) return;
-  throw new AppError(REQUIERE_AUTORIZACION, 403, { monto_total: monto, limite });
+  if (!autorizacion) throw new AppError(REQUIERE_AUTORIZACION, 403, { monto_total: monto, limite });
+  const supervisor = await facturacion.validarSupervisor(autorizacion);
+  nueva.datos.autorizado_por = supervisor.supervisor_id;
+  nueva.datos.autorizado_por_nombre = supervisor.nombre ?? null;
+  nueva.datos.autorizado_en = new Date();
 }
 
 /**
  * POST /api/devoluciones -- TDSI-70/1001.
  * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id,
- *          observaciones? (hasta 300), opcion_reembolso, creado_por }
+ *          observaciones? (hasta 300), opcion_reembolso, creado_por, autorizacion? { supervisor_id, pin } }
  * item_id es el de cada item del comprobante (GET /api/devoluciones/comprobantes/:numero).
  * El motivo (TDSI-71), la opcion de reembolso (TDSI-72) y la autorizacion del supervisor
  * (TDSI-80) se suman en sus historias.
@@ -225,7 +243,7 @@ async function registrarDevolucion(body) {
 
   const registrada = await devolucionesRepo.registrar(factura.numero, async (yaDevuelto) => {
     const nueva = construirDevolucion({ factura, pedido, plazo, yaDevuelto });
-    await exigirAutorizacion(nueva, limite);
+    await exigirAutorizacion(nueva, limite, pedido.autorizacion);
     return nueva;
   });
   return aDetalle({ ...registrada, motivo_nombre: motivo.nombre });

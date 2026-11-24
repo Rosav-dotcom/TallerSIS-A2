@@ -58,6 +58,10 @@ function aDetalle(d) {
     requiere_autorizacion: d.requiere_autorizacion,
     autorizado_por: d.autorizado_por,
     autorizado_en: d.autorizado_en,
+    // TDSI-80/1085: bloque "Autorizado por" del detalle (PA TDSI-1056); null si no hizo falta
+    autorizacion: d.autorizado_por
+      ? { supervisor_id: d.autorizado_por, nombre: d.autorizado_por_nombre ?? null, fecha: d.autorizado_en ?? null }
+      : null,
     creado_por: d.creado_por,
     items: (d.items || []).map((it) => ({
       item_id: num(it.factura_item_id),
