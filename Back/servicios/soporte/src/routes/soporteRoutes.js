@@ -107,6 +107,18 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     })
   );
 
+  // TDSI-205: registrar la solución y marcar el ticket como Resuelto
+  router.post(
+    "/tickets/:numero/solucion",
+    wrap(async (req, res) =>
+      res.json({
+        ok: true,
+        mensaje: "Solución registrada: el ticket quedó Resuelto",
+        data: await gestionTicketsService.registrarSolucion(req.params.numero, req.body, req.usuario),
+      })
+    )
+  );
+
   return router;
 }
 

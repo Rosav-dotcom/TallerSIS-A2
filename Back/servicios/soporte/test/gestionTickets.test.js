@@ -27,6 +27,13 @@ function repoFalso(inicial = {}) {
       ticket.estado = nuevo;
       return { ...ticket };
     },
+    async registrarSolucion(numero, { solucion, usuario }, validar) {
+      if (numero !== ticket.numero) return null;
+      validar({ actual: ticket.estado });
+      historial.push({ campo: "estado", valor_anterior: ticket.estado, valor_nuevo: "Resuelto", usuario });
+      Object.assign(ticket, { solucion, solucion_registrada_por: usuario, estado: "Resuelto", resuelto_en: "ahora" });
+      return { ...ticket };
+    },
     async historial(numero, { soloEstado }) {
       if (numero !== ticket.numero) return null;
       return historial
@@ -209,6 +216,50 @@ test("rutas PATCH /estado y GET /historial", async () => {
     const h = await pedir("/tickets/INC-000001/historial");
     assert.equal(h.cuerpo.total, 1);
     assert.equal(h.cuerpo.data[0].estado_nuevo, "En proceso");
+  } finally {
+    servidor.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// TDSI-205: solución
+// ---------------------------------------------------------------------------
+
+test("solución: queda Resuelto con la solución, quién la registró y cuándo; va al historial", async () => {
+  const repo = repoFalso({ estado: "En proceso" });
+  const t = await crearGestionTicketsService({ repo }).registrarSolucion("INC-000001", { solucion: "  Se reinició el lector QR ", usuario: "otro@x.bo" }, SESION);
+  assert.equal(t.estado, "Resuelto");
+  assert.equal(t.solucion, "Se reinició el lector QR");
+  assert.equal(t.solucion_registrada_por, "soporte@tallersis.bo");
+  assert.ok(t.resuelto_en);
+  assert.deepEqual(repo.cambios.at(-1), { campo: "estado", valor_anterior: "En proceso", valor_nuevo: "Resuelto", usuario: "soporte@tallersis.bo" });
+});
+
+test("solución: sin texto no se puede marcar Resuelto (PA TDSI-978)", async () => {
+  const repo = repoFalso();
+  const s = crearGestionTicketsService({ repo });
+  for (const datos of [{}, { solucion: "   " }, { solucion: "x".repeat(2001) }]) {
+    await assert.rejects(s.registrarSolucion("INC-000001", datos, SESION), (e) => e.status === 400);
+  }
+  assert.equal(repo.ticket.estado, "Abierto");
+  assert.equal(repo.cambios.length, 0);
+});
+
+test("solución: desde Cerrado, Resuelto o Escalado responde 409", async () => {
+  for (const estado of ["Cerrado", "Resuelto", "Escalado"]) {
+    const s = crearGestionTicketsService({ repo: repoFalso({ estado }) });
+    await assert.rejects(s.registrarSolucion("INC-000001", { solucion: "Algo" }, SESION), (e) => e.status === 409, estado);
+  }
+});
+
+test("ruta POST /tickets/:numero/solucion", async () => {
+  const { servidor, pedir } = await levantar(crearGestionTicketsService({ repo: repoFalso() }));
+  try {
+    const r = await pedir("/tickets/INC-000001/solucion", "POST", { solucion: "Se corrigió el NIT" });
+    assert.equal(r.status, 200);
+    assert.equal(r.cuerpo.data.estado, "Resuelto");
+    assert.equal((await pedir("/tickets/INC-000001/solucion", "POST", { solucion: "Otra" })).status, 409);
+    assert.equal((await pedir("/tickets/INC-000001/solucion", "POST", {})).status, 400);
   } finally {
     servidor.close();
   }

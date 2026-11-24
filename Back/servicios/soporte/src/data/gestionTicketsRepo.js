@@ -94,4 +94,36 @@ async function historial(numero, { soloEstado = true } = {}) {
   return rows.map((r) => ({ ...r, id: Number(r.id) }));
 }
 
-module.exports = { obtener, cambiarCampo, cambiarEstado, historial, COLUMNAS_DETALLE };
+/**
+ * TDSI-205: guarda la solución (con quién y cuándo) y deja el ticket en Resuelto, en una
+ * sola transacción con su línea de historial. validar({ actual }) lanza si no se permite.
+ * Devuelve null si el ticket no existe.
+ */
+async function registrarSolucion(numero, { solucion, usuario }, validar) {
+  return withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT id, estado FROM soporte.incidentes WHERE numero = $1 FOR UPDATE`,
+      [numero]
+    );
+    const fila = rows[0];
+    if (!fila) return null;
+    validar({ actual: fila.estado });
+
+    const { rows: actualizado } = await client.query(
+      `UPDATE soporte.incidentes
+          SET solucion = $2, solucion_registrada_por = $3, estado = 'Resuelto',
+              resuelto_en = now(), actualizado_en = now()
+        WHERE id = $1
+        RETURNING ${COLUMNAS_DETALLE}`,
+      [fila.id, solucion, usuario]
+    );
+    await client.query(
+      `INSERT INTO soporte.incidentes_historial (incidente_id, campo, valor_anterior, valor_nuevo, usuario)
+       VALUES ($1, 'estado', $2, 'Resuelto', $3)`,
+      [fila.id, fila.estado, usuario]
+    );
+    return formatear(actualizado[0]);
+  });
+}
+
+module.exports = { obtener, cambiarCampo, cambiarEstado, registrarSolucion, historial, COLUMNAS_DETALLE };

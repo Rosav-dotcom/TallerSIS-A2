@@ -21,6 +21,8 @@ function quien(usuario) {
   return nombre;
 }
 
+const SOLUCION_MAX = 2000;
+
 const noExiste = (numero) => new AppError(`No hay ningún incidente con el número ${numero}.`, 404);
 
 function crearGestionTicketsService({ repo }) {
@@ -62,6 +64,21 @@ function crearGestionTicketsService({ repo }) {
       const nuevo = deLista(datos.estado, "estado", ESTADOS, { requerido: true });
       const ticket = await repo.cambiarEstado(n, nuevo, quien(usuario), ({ actual, tieneSolucion }) => {
         const error = validarTransicion({ actual, nuevo, tieneSolucion });
+        if (error) throw new AppError(error.mensaje, error.status, { estado_actual: actual, permitidos: error.permitidos });
+      });
+      if (!ticket) throw noExiste(n);
+      return ticket;
+    },
+
+    /**
+     * TDSI-205: registra la solución aplicada y marca el ticket como Resuelto. La solución
+     * es obligatoria y se guarda con quién la registró y cuándo (PA TDSI-978).
+     */
+    async registrarSolucion(numero, datos = {}, usuario = null) {
+      const n = numeroValido(numero);
+      const solucion = texto(datos.solucion, "solucion", { requerido: true, max: SOLUCION_MAX });
+      const ticket = await repo.registrarSolucion(n, { solucion, usuario: quien(usuario) }, ({ actual }) => {
+        const error = validarTransicion({ actual, nuevo: "Resuelto", tieneSolucion: true });
         if (error) throw new AppError(error.mensaje, error.status, { estado_actual: actual, permitidos: error.permitidos });
       });
       if (!ticket) throw noExiste(n);
