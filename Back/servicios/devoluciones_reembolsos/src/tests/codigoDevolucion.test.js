@@ -163,7 +163,10 @@ test("TDSI-1112: detalle por codigo con sus items", async () => {
   assert.equal(status, 200);
   assert.equal(cuerpo.data.codigo, d.codigo);
   assert.equal(cuerpo.data.monto_total, 30);
-  assert.deepEqual(cuerpo.data.items, [{ descripcion: "Aceite 900ml", cantidad: 2, precio_unitario: 15, subtotal: 30 }]);
+  assert.deepEqual(cuerpo.data.items, [{
+    item_id: null, codigo_producto: null, descripcion: "Aceite 900ml", cantidad: 2, precio_unitario: 15, subtotal: 30,
+    condicion: "REINGRESO", // TDSI-217: por defecto vuelve al stock
+  }]);
 });
 
 test("TDSI-1112: codigo inexistente, invalido o vacio", async () => {

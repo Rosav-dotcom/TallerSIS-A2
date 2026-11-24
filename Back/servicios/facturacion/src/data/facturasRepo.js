@@ -56,8 +56,9 @@ async function obtenerFacturaCompleta(numero) {
   const factura = facturaRows[0];
   if (!factura) return null;
 
+  // TDSI-70/1001: con su id, para que Devoluciones sepa que item se devuelve
   const { rows: items } = await query(
-    `SELECT descripcion, cantidad, precio_unitario, subtotal
+    `SELECT id, descripcion, cantidad, precio_unitario, subtotal
      FROM facturacion.factura_items WHERE factura_id = $1 ORDER BY id`,
     [factura.id]
   );

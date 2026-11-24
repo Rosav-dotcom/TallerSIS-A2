@@ -24,6 +24,7 @@ function aComprobante(f) {
     impuesto: num(f.impuesto),
     total: num(f.total),
     items: (f.items || []).map((i) => ({
+      ...(i.id !== undefined && i.id !== null && { item_id: Number(i.id) }), // TDSI-70: se manda al registrar
       descripcion: i.descripcion,
       cantidad: num(i.cantidad),
       precio_unitario: num(i.precio_unitario),
@@ -118,4 +119,4 @@ async function buscarComprobantes(q) {
   return { criterio, compras };
 }
 
-module.exports = { buscarComprobantes, obtenerComprobante, obtenerPlazo, NO_DISPONIBLE };
+module.exports = { buscarComprobantes, obtenerComprobante, obtenerPlazo, facturaDisponible, NO_DISPONIBLE };
