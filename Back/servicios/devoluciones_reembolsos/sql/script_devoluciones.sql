@@ -1,14 +1,12 @@
 CREATE SCHEMA IF NOT EXISTS devoluciones;
 
--- TDSI-71: catalogo de motivos predefinidos
+-- TDSI-71: catalogo de motivos predefinidos (los 4 de la historia se cargan en el bloque TDSI-71/219)
 CREATE TABLE IF NOT EXISTS devoluciones.motivos (
     id      BIGSERIAL PRIMARY KEY,
     nombre  VARCHAR(100) NOT NULL UNIQUE,
-    activo  BOOLEAN      NOT NULL DEFAULT true
+    activo  BOOLEAN      NOT NULL DEFAULT true,
+    orden   SMALLINT     NOT NULL DEFAULT 0      -- orden en el selector de la pantalla
 );
-INSERT INTO devoluciones.motivos (nombre) VALUES
-    ('Producto defectuoso'), ('Producto equivocado'), ('Cliente se arrepintio'), ('Otro')
-ON CONFLICT DO NOTHING;
 
 -- TDSI-68/69/70/71/76/78/80/81: cabecera de la devolucion
 CREATE TABLE IF NOT EXISTS devoluciones.devoluciones (
@@ -274,3 +272,23 @@ BEGIN
   END LOOP;
 END;
 $$;
+
+-- ==========================================================================
+-- TDSI-71/219: los 4 motivos de devolucion de la historia
+-- --------------------------------------------------------------------------
+-- El selector muestra solo estos 4 (PA TDSI-1011), en este orden. Los 4 de
+-- ejemplo que traia la primera version del script se desactivan (no se
+-- borran: una devolucion vieja podria apuntar a ellos). Un motivo agregado
+-- a mano no se toca. Idempotente.
+-- ==========================================================================
+ALTER TABLE devoluciones.motivos ADD COLUMN IF NOT EXISTS orden SMALLINT NOT NULL DEFAULT 0;
+
+INSERT INTO devoluciones.motivos (nombre, activo, orden) VALUES
+    ('Producto vencido',   true, 1),
+    ('Empaque dañado',     true, 2),
+    ('Error de cobro',     true, 3),
+    ('Cambio de producto', true, 4)
+ON CONFLICT (nombre) DO UPDATE SET activo = true, orden = EXCLUDED.orden;
+
+UPDATE devoluciones.motivos SET activo = false
+ WHERE nombre IN ('Producto defectuoso', 'Producto equivocado', 'Cliente se arrepintio', 'Otro');
