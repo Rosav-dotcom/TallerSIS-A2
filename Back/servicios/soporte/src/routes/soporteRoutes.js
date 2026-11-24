@@ -27,6 +27,15 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     )
   );
 
+  // TDSI-671: bandeja de tickets, paginada (?pagina=1&limite=20) y ordenada por prioridad
+  router.get(
+    "/tickets",
+    wrap(async (req, res) => {
+      const { data, paginacion } = await ticketsService.listarTickets(req.query);
+      res.json({ ok: true, data, paginacion });
+    })
+  );
+
   // TDSI-668: registrar un ticket (nace Abierto, con número INC-NNNNNN)
   router.post(
     "/tickets",

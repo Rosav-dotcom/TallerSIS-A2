@@ -8,6 +8,8 @@ const REFERENCIAS = ["factura", "transaccion"];
 const FORMATO_REFERENCIA = /^[A-Za-z0-9_-]{1,60}$/;
 const DESCRIPCION_MAX = 2000;
 const TEXTO_MAX = 100;
+const LIMITE_POR_DEFECTO = 20;
+const LIMITE_MAXIMO = 100;
 
 function texto(valor, campo, { requerido = false, max = TEXTO_MAX } = {}) {
   if (Array.isArray(valor) || (valor !== null && typeof valor === "object")) {
@@ -24,6 +26,22 @@ function deLista(valor, campo, lista, { requerido = false, porDefecto = null } =
   if (!limpio) return porDefecto;
   if (!lista.includes(limpio)) throw new AppError(`El campo '${campo}' debe ser: ${lista.join(", ")}.`, 400);
   return limpio;
+}
+
+function entero(valor, campo, { porDefecto, min, max }) {
+  if (valor === undefined || valor === null || valor === "") return porDefecto;
+  if (Array.isArray(valor)) throw new AppError(`El parámetro '${campo}' debe enviarse una sola vez.`, 400);
+  const numero = Number(valor);
+  if (!Number.isInteger(numero) || numero < min || (max !== undefined && numero > max)) {
+    const rango = max !== undefined ? ` entre ${min} y ${max}` : ` desde ${min}`;
+    throw new AppError(`El parámetro '${campo}' debe ser un entero${rango}.`, 400);
+  }
+  return numero;
+}
+
+/** Arma las condiciones SQL de la bandeja a partir de los filtros (TDSI-674 agrega los filtros). */
+function construirFiltros() {
+  return { condiciones: [], params: [] };
 }
 
 function crearTicketsService({ repo }) {
@@ -51,7 +69,24 @@ function crearTicketsService({ repo }) {
 
       return repo.crear({ tipo, prioridad, descripcion, usuario_afectado, referencia_tipo, referencia, registrado_por });
     },
+
+    /**
+     * TDSI-671: bandeja de tickets paginada, ordenada por prioridad (Critica primero) y,
+     * dentro de cada prioridad, del más nuevo al más antiguo.
+     * Responde { data, paginacion: { pagina, limite, total, paginas } }.
+     */
+    async listarTickets(consulta = {}) {
+      const pagina = entero(consulta.pagina, "pagina", { porDefecto: 1, min: 1 });
+      const limite = entero(consulta.limite, "limite", { porDefecto: LIMITE_POR_DEFECTO, min: 1, max: LIMITE_MAXIMO });
+      const { condiciones, params } = construirFiltros(consulta);
+
+      const { total, filas } = await repo.listar({ condiciones, params, limite, offset: (pagina - 1) * limite });
+      return {
+        data: filas,
+        paginacion: { pagina, limite, total, paginas: Math.ceil(total / limite) },
+      };
+    },
   };
 }
 
-module.exports = { crearTicketsService, TIPOS, PRIORIDADES, ESTADOS, REFERENCIAS };
+module.exports = { crearTicketsService, construirFiltros, TIPOS, PRIORIDADES, ESTADOS, REFERENCIAS, LIMITE_MAXIMO };

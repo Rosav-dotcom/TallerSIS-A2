@@ -106,3 +106,68 @@ test("POST /tickets: 201 con el ticket; 400 si falta la descripción", async () 
     servidor.close();
   }
 });
+
+// ---------------------------------------------------------------------------
+// TDSI-671: bandeja paginada
+// ---------------------------------------------------------------------------
+
+function repoConLista(total = 45) {
+  const pedidos = [];
+  return {
+    pedidos,
+    async listar(args) {
+      pedidos.push(args);
+      const filas = Array.from({ length: Math.max(0, Math.min(args.limite, total - args.offset)) }, (_, i) => ({ id: args.offset + i + 1 }));
+      return { total, filas };
+    },
+  };
+}
+
+test("listar: por defecto página 1 de 20, con el total y la cantidad de páginas", async () => {
+  const repo = repoConLista(45);
+  const r = await crearTicketsService({ repo }).listarTickets({});
+  assert.deepEqual(r.paginacion, { pagina: 1, limite: 20, total: 45, paginas: 3 });
+  assert.equal(r.data.length, 20);
+  assert.equal(repo.pedidos[0].offset, 0);
+  assert.equal(repo.pedidos[0].limite, 20);
+});
+
+test("listar: la página 3 de 20 empieza en el 41 y trae los 5 que quedan", async () => {
+  const repo = repoConLista(45);
+  const r = await crearTicketsService({ repo }).listarTickets({ pagina: "3", limite: "20" });
+  assert.equal(repo.pedidos[0].offset, 40);
+  assert.equal(r.data.length, 5);
+  assert.equal(r.data[0].id, 41);
+});
+
+test("listar: una página que ya no existe devuelve vacío con el total", async () => {
+  const r = await crearTicketsService({ repo: repoConLista(45) }).listarTickets({ pagina: 9 });
+  assert.deepEqual(r.data, []);
+  assert.equal(r.paginacion.total, 45);
+});
+
+test("listar: sin tickets, 0 páginas", async () => {
+  const r = await crearTicketsService({ repo: repoConLista(0) }).listarTickets({});
+  assert.deepEqual(r.paginacion, { pagina: 1, limite: 20, total: 0, paginas: 0 });
+});
+
+test("listar: pagina y limite inválidos (400)", async () => {
+  const servicio = crearTicketsService({ repo: repoConLista() });
+  for (const consulta of [{ pagina: 0 }, { pagina: "abc" }, { pagina: 1.5 }, { limite: 0 }, { limite: 101 }, { pagina: ["1", "2"] }]) {
+    await assert.rejects(servicio.listarTickets(consulta), (e) => e.status === 400, JSON.stringify(consulta));
+  }
+});
+
+test("GET /tickets: responde data y paginacion", async () => {
+  const { servidor, base } = await levantar(crearTicketsService({ repo: repoConLista(3) }));
+  try {
+    const r = await fetch(`${base}/tickets?limite=2`);
+    const cuerpo = await r.json();
+    assert.equal(r.status, 200);
+    assert.equal(cuerpo.data.length, 2);
+    assert.deepEqual(cuerpo.paginacion, { pagina: 1, limite: 2, total: 3, paginas: 2 });
+    assert.equal((await fetch(`${base}/tickets?pagina=-1`)).status, 400);
+  } finally {
+    servidor.close();
+  }
+});
