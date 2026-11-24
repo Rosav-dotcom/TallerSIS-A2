@@ -7,6 +7,7 @@ const { SUCURSALES, SUCURSAL_POR_DEFECTO } = require("../config/sucursal");
 
 // TDSI-82/241: reporte periodico de devoluciones y notas de credito del Encargado de Devoluciones.
 const MAX_DIAS = 366; // un reporte cubre hasta un año
+const SIN_RESULTADOS = "Sin resultados: no hay devoluciones ni notas de crédito con los filtros elegidos.";
 const DIA_MS = 24 * 60 * 60 * 1000;
 const vacio = (v) => v === undefined || v === null || (typeof v === "string" && !v.trim());
 const num = (v) => (v === null || v === undefined ? null : Number(v));
@@ -139,13 +140,28 @@ async function obtenerReporte(query = {}) {
   ]);
   const devoluciones = filasDev.map((d) => aDevolucion(d, f.sucursal));
   const notas = filasNc.map(aNotaCredito);
+  const sinResultados = devoluciones.length === 0 && notas.length === 0;
   return {
     filtros: filtrosAplicados(f),
     devoluciones,
     notas_credito: notas,
     totales: totales(devoluciones, notas),
-    sin_resultados: devoluciones.length === 0 && notas.length === 0,
+    sin_resultados: sinResultados,
+    mensaje: sinResultados ? SIN_RESULTADOS : null, // TDSI-1127: aviso de la vista previa
   };
+}
+
+/**
+ * GET /api/devoluciones/reportes/excel -- TDSI-82/1127: si los filtros no traen ni devoluciones
+ * ni notas de credito responde 404 "Sin resultados" y NO genera el archivo (PA TDSI-1063): no se
+ * descarga un Excel vacio. Si hay datos devuelve el reporte para armar el Excel (TDSI-1088).
+ */
+async function reporteParaExportar(query = {}) {
+  const reporte = await obtenerReporte(query);
+  if (reporte.sin_resultados) {
+    throw new AppError(SIN_RESULTADOS, 404, { sin_resultados: true, filtros: reporte.filtros });
+  }
+  return reporte;
 }
 
 /** GET /api/devoluciones/reportes/filtros -- TDSI-82/241: opciones de los selectores de la pantalla. */
@@ -160,4 +176,4 @@ async function opcionesDeFiltros() {
   };
 }
 
-module.exports = { validarFiltros, obtenerReporte, opcionesDeFiltros, MAX_DIAS };
+module.exports = { validarFiltros, obtenerReporte, reporteParaExportar, opcionesDeFiltros, MAX_DIAS, SIN_RESULTADOS };

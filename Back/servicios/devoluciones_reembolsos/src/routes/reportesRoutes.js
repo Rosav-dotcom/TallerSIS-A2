@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { obtenerReporte, opcionesDeFiltros } = require("../services/reportesService");
+const { obtenerReporte, reporteParaExportar, opcionesDeFiltros } = require("../services/reportesService");
 const { generarReporteExcel, nombreArchivo } = require("../services/reportesExcelService");
 
 const router = Router();
@@ -17,9 +17,10 @@ router.get("/", wrap(async (req, res) => {
 }));
 
 // TDSI-82/1088: "Exportar" baja el Excel (hojas Devoluciones y Notas de credito) con los mismos
-// filtros y filas que la vista previa.
+// filtros y filas que la vista previa. TDSI-1127: sin resultados responde 404 JSON
+// { ok: false, mensaje: "Sin resultados...", detalle: { sin_resultados: true } } y no genera archivo.
 router.get("/excel", wrap(async (req, res) => {
-  const reporte = await obtenerReporte(req.query);
+  const reporte = await reporteParaExportar(req.query);
   const archivo = await generarReporteExcel(reporte);
   res.set({
     "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
