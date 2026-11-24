@@ -233,3 +233,73 @@ ALTER TABLE facturacion.respuestas_anulacion ALTER COLUMN texto TYPE VARCHAR(100
 CREATE INDEX IF NOT EXISTS idx_respuestas_anulacion_cajero ON facturacion.respuestas_anulacion (cajero_id);
 
 ALTER TABLE facturacion.respuestas_anulacion ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================================================
+-- TDSI-73/223: notas de credito electronicas vinculadas a la factura original
+-- --------------------------------------------------------------------------
+-- La nota de credito es un documento de Facturacion (un dato, un dueño):
+-- Devoluciones la pide y solo guarda su numero como referencia.
+-- - numero NC-NNNNNN correlativo (lo arma notasCreditoRepo, igual que F-).
+-- - factura_id: la factura original a la que pertenece (PA TDSI-1022).
+-- - devolucion_codigo: la devolucion (DEV-...) que la origino; una por devolucion.
+-- - nota_credito_items: los items devueltos, para el PDF.
+-- - trg_notas_credito_tope: la suma de las notas EMITIDAS de una factura nunca
+--   pasa el total de la factura (PA TDSI-1023), venga de donde venga. Bloquea
+--   la factura (FOR UPDATE) para que dos notas a la vez no se pasen juntas.
+--   SQLSTATE NC001 (el microservicio responde 422).
+-- Idempotente.
+-- ==========================================================================
+CREATE TABLE IF NOT EXISTS facturacion.notas_credito (
+    id                 BIGSERIAL PRIMARY KEY,
+    numero             VARCHAR(20)   NOT NULL UNIQUE CHECK (numero ~ '^NC-[0-9]{6,}$'),
+    factura_id         BIGINT        NOT NULL REFERENCES facturacion.facturas(id) ON DELETE CASCADE,
+    devolucion_codigo  VARCHAR(20)   UNIQUE,
+    motivo             VARCHAR(300)  NOT NULL,
+    monto              NUMERIC(14,2) NOT NULL CHECK (monto > 0),
+    estado             VARCHAR(20)   NOT NULL DEFAULT 'EMITIDA' CHECK (estado IN ('EMITIDA','ANULADA')),
+    emitida_por        VARCHAR(100)  NOT NULL,
+    emitida_en         TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_notas_credito_factura ON facturacion.notas_credito (factura_id);
+
+CREATE TABLE IF NOT EXISTS facturacion.nota_credito_items (
+    id               BIGSERIAL PRIMARY KEY,
+    nota_credito_id  BIGINT        NOT NULL REFERENCES facturacion.notas_credito(id) ON DELETE CASCADE,
+    descripcion      VARCHAR(200)  NOT NULL,
+    cantidad         NUMERIC(10,2) NOT NULL CHECK (cantidad > 0),
+    precio_unitario  NUMERIC(14,2) NOT NULL CHECK (precio_unitario >= 0),
+    subtotal         NUMERIC(14,2) NOT NULL
+);
+
+ALTER TABLE facturacion.notas_credito      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE facturacion.nota_credito_items ENABLE ROW LEVEL SECURITY;
+
+CREATE OR REPLACE FUNCTION facturacion.verificar_tope_nota_credito()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  v_total   NUMERIC;
+  v_numero  TEXT;
+  v_emitido NUMERIC;
+BEGIN
+  IF NEW.estado <> 'EMITIDA' THEN
+    RETURN NEW;
+  END IF;
+  SELECT f.total, f.numero INTO v_total, v_numero FROM facturacion.facturas f WHERE f.id = NEW.factura_id FOR UPDATE;
+  SELECT COALESCE(SUM(n.monto), 0) INTO v_emitido
+    FROM facturacion.notas_credito n
+   WHERE n.factura_id = NEW.factura_id AND n.estado = 'EMITIDA' AND n.id IS DISTINCT FROM NEW.id;
+  IF v_emitido + NEW.monto > v_total THEN
+    RAISE EXCEPTION 'Las notas de credito de la factura % pasarian su total (% + % > %)', v_numero, v_emitido, NEW.monto, v_total
+      USING ERRCODE = 'NC001';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_notas_credito_tope ON facturacion.notas_credito;
+CREATE TRIGGER trg_notas_credito_tope
+  BEFORE INSERT OR UPDATE OF monto, estado, factura_id ON facturacion.notas_credito
+  FOR EACH ROW EXECUTE FUNCTION facturacion.verificar_tope_nota_credito();
