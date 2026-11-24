@@ -334,3 +334,26 @@ ALTER TABLE devoluciones.devoluciones ADD COLUMN IF NOT EXISTS opcion_reembolso 
 ALTER TABLE devoluciones.devoluciones DROP CONSTRAINT IF EXISTS devoluciones_opcion_reembolso_check;
 ALTER TABLE devoluciones.devoluciones ADD CONSTRAINT devoluciones_opcion_reembolso_check
   CHECK (opcion_reembolso IS NULL OR opcion_reembolso IN ('EFECTIVO','REVERSION_TARJETA','VALE'));
+
+-- ==========================================================================
+-- TDSI-81/1124: tabla de historial (estado anterior, estado nuevo, usuario, fecha)
+-- --------------------------------------------------------------------------
+-- devoluciones.historial_estados ya existia; aqui se completa:
+-- - comentario: el detalle del cambio (p. ej. el motivo de un rechazo).
+-- - estados validos (los mismos de devoluciones.estado).
+-- - cambiado_en con clock_timestamp(): dos cambios en la misma transaccion
+--   quedan con horas distintas y en orden.
+-- - indice para leer la linea de tiempo de una devolucion en orden.
+-- Idempotente.
+-- ==========================================================================
+ALTER TABLE devoluciones.historial_estados ADD COLUMN IF NOT EXISTS comentario VARCHAR(300);
+ALTER TABLE devoluciones.historial_estados ALTER COLUMN cambiado_en SET DEFAULT clock_timestamp();
+
+ALTER TABLE devoluciones.historial_estados DROP CONSTRAINT IF EXISTS historial_estados_estados_check;
+ALTER TABLE devoluciones.historial_estados ADD CONSTRAINT historial_estados_estados_check CHECK (
+  estado_nuevo IN ('PENDIENTE','APROBADA','RECHAZADA','PROCESADA')
+  AND (estado_anterior IS NULL OR estado_anterior IN ('PENDIENTE','APROBADA','RECHAZADA','PROCESADA'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_historial_estados_devolucion
+    ON devoluciones.historial_estados (devolucion_id, cambiado_en, id);
