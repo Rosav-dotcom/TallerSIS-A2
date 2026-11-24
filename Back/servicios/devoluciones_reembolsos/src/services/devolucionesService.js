@@ -196,4 +196,5 @@ async function devolucionesDelDia({ fecha } = {}) {
 
 module.exports = {
   listarDevoluciones, obtenerDevolucion, obtenerHistorial, devolucionesDelDia, aDetalle, ESTADOS, NO_ENCONTRADA,
+  limiteDelDia, // TDSI-82: mismos dias de Bolivia en el reporte
 };
