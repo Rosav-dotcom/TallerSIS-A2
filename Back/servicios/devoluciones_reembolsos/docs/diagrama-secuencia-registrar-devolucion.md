@@ -2,7 +2,7 @@
 
 TDSI-1004 (historia TDSI-70). Qué pasa desde que el Encargado de Devoluciones busca el comprobante hasta que la devolución queda registrada con su código `DEV-NNNNNN`. Los nombres son los módulos reales de `devoluciones_reembolsos` (ver [diagrama-clases.md](diagrama-clases.md)).
 
-El motivo (TDSI-71), la opción de reembolso (TDSI-72) y la autorización del supervisor sobre el límite (TDSI-80) se suman a este flujo en sus historias.
+El motivo y las observaciones (TDSI-71) ya están en el flujo. La opción de reembolso (TDSI-72) y la autorización del supervisor sobre el límite (TDSI-80) se suman en sus historias.
 
 ## 1. Buscar el comprobante y ver el plazo (paso 1 de "Nueva devolución")
 
@@ -55,15 +55,22 @@ sequenceDiagram
     participant CS as ComprobantesService
     participant F as Facturacion :4002
     participant PS as PlazoService
+    participant MR as MotivosRepo
     participant REPO as DevolucionesRepo
     participant DB as PostgreSQL
 
-    E->>UI: elige ítems, cantidades y condición y confirma
-    UI->>DR: POST /api/devoluciones {factura_numero, items[item_id, cantidad, condicion]}
+    UI->>MR: GET /api/devoluciones/motivos (paso 3)
+    MR-->>UI: los 4 motivos activos
+    E->>UI: elige ítems, cantidades, condición, motivo y observaciones, y confirma
+    UI->>DR: POST /api/devoluciones {factura_numero, items[item_id, cantidad, condicion], motivo_id, observaciones}
     DR->>RS: registrarDevolucion(body)
     RS->>RS: validarPedido(body)
     alt pedido inválido
-        RS-->>UI: 400 (ítem repetido, cantidad <= 0, condición inválida...)
+        RS-->>UI: 400 ("Seleccione un motivo", observaciones > 300, ítem repetido, cantidad <= 0...)
+    end
+    RS->>MR: buscarActivo(motivo_id)
+    alt motivo inexistente o desactivado
+        RS-->>UI: 400 "El motivo no es válido."
     end
     RS->>CS: facturaDisponible(numero)
     CS->>F: GET /api/facturas/:numero

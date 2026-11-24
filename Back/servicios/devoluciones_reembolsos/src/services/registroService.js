@@ -9,6 +9,9 @@ const { aDetalle } = require("./devolucionesService");
 const MAS_DE_LO_COMPRADO = "No se puede devolver más unidades de las compradas";
 const CONDICIONES = ["REINGRESO", "MERMA"];
 const MAX_ITEMS = 200;
+// TDSI-71/1009: textos de la PA y de la pantalla (paso 3 "Motivo")
+const SIN_MOTIVO = "Seleccione un motivo";
+const MAX_OBSERVACIONES = 300;
 
 // Montos y cantidades en enteros (centavos / centesimas) para no arrastrar errores de coma flotante.
 const aCentesimas = (v) => Math.round(Number(v) * 100);
@@ -52,18 +55,25 @@ function validarPedido(body) {
     creadoPor = String(body.creado_por).trim().slice(0, 60) || null;
   }
 
-  // TDSI-71/1103: motivo (id del catalogo, GET /api/devoluciones/motivos) y observaciones
-  let motivoId = null;
-  if (body.motivo_id !== undefined && body.motivo_id !== null && body.motivo_id !== "") {
-    motivoId = Number(body.motivo_id);
-    if (!Number.isSafeInteger(motivoId) || motivoId < 1) {
-      throw new AppError("El motivo no es válido.", 400, { motivo_id: body.motivo_id });
-    }
+  // TDSI-71/1103: motivo (id del catalogo, GET /api/devoluciones/motivos) y observaciones.
+  // TDSI-71/1009: el motivo es obligatorio (PA TDSI-1010) y las observaciones, opcionales,
+  // tienen hasta 300 caracteres (PA TDSI-1012).
+  if (body.motivo_id === undefined || body.motivo_id === null || body.motivo_id === "") {
+    throw new AppError(SIN_MOTIVO, 400);
+  }
+  const motivoId = Number(body.motivo_id);
+  if (!Number.isSafeInteger(motivoId) || motivoId < 1) {
+    throw new AppError("El motivo no es válido.", 400, { motivo_id: body.motivo_id });
   }
   let observaciones = null;
   if (body.observaciones !== undefined && body.observaciones !== null) {
     if (typeof body.observaciones !== "string") throw new AppError("Las observaciones deben ser texto.", 400);
     observaciones = body.observaciones.trim() || null;
+    // por caracteres reales (un emoji o una letra con tilde cuentan 1), igual que VARCHAR(300) en la BD
+    const largo = observaciones ? [...observaciones].length : 0;
+    if (largo > MAX_OBSERVACIONES) {
+      throw new AppError(`Las observaciones no pueden tener más de ${MAX_OBSERVACIONES} caracteres.`, 400, { largo });
+    }
   }
   return { facturaNumero, items, creadoPor, motivoId, observaciones };
 }
@@ -149,8 +159,8 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
 
 /**
  * POST /api/devoluciones -- TDSI-70/1001.
- * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id, observaciones?,
- *          creado_por? }
+ * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id,
+ *          observaciones? (hasta 300), creado_por? }
  * item_id es el de cada item del comprobante (GET /api/devoluciones/comprobantes/:numero).
  * El motivo (TDSI-71), la opcion de reembolso (TDSI-72) y la autorizacion del supervisor
  * (TDSI-80) se suman en sus historias.
@@ -159,11 +169,8 @@ async function registrarDevolucion(body) {
   const pedido = validarPedido(body);
 
   // TDSI-71/1103: el motivo tiene que ser uno de los activos del catalogo
-  let motivo = null;
-  if (pedido.motivoId !== null) {
-    motivo = await motivosRepo.buscarActivo(pedido.motivoId);
-    if (!motivo) throw new AppError("El motivo no es válido.", 400, { motivo_id: pedido.motivoId });
-  }
+  const motivo = await motivosRepo.buscarActivo(pedido.motivoId);
+  if (!motivo) throw new AppError("El motivo no es válido.", 400, { motivo_id: pedido.motivoId });
 
   // 404/409 si la factura no existe, esta anulada o tiene una anulacion pendiente (TDSI-68)
   const factura = await facturaDisponible(pedido.facturaNumero);
@@ -182,7 +189,7 @@ async function registrarDevolucion(body) {
   const registrada = await devolucionesRepo.registrar(factura.numero, (yaDevuelto) =>
     construirDevolucion({ factura, pedido, plazo, yaDevuelto })
   );
-  return aDetalle({ ...registrada, motivo_nombre: motivo ? motivo.nombre : null });
+  return aDetalle({ ...registrada, motivo_nombre: motivo.nombre });
 }
 
-module.exports = { registrarDevolucion, construirDevolucion, validarPedido, MAS_DE_LO_COMPRADO };
+module.exports = { registrarDevolucion, construirDevolucion, validarPedido, MAS_DE_LO_COMPRADO, SIN_MOTIVO, MAX_OBSERVACIONES };

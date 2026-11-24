@@ -46,11 +46,13 @@ falso.get("/api/facturas/:numero", (req, res) => {
   return f ? res.json({ ok: true, data: f }) : res.status(404).json({ ok: false });
 });
 
-let servidorFalso, servidor, base, query, pool, correlativoInicial;
+let servidorFalso, servidor, base, query, pool, correlativoInicial, MOTIVO_POR_DEFECTO;
 const idDe = (letra, i = 0) => Number(FACTURAS[N(letra)].items[i].id);
 
+// TDSI-1009: el motivo es obligatorio; las pruebas que no tratan del motivo usan uno por defecto
 async function registrar(cuerpo) {
-  const r = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(cuerpo) });
+  const conMotivo = "motivo_id" in cuerpo ? cuerpo : { ...cuerpo, motivo_id: MOTIVO_POR_DEFECTO };
+  const r = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(conMotivo) });
   return { status: r.status, cuerpo: await r.json() };
 }
 const pedir = async (ruta) => {
@@ -64,6 +66,8 @@ test.before(async () => {
   ({ query, pool } = require("../config/db"));
   const { rows } = await query("SELECT ultimo FROM devoluciones.correlativos WHERE nombre = 'devolucion'");
   correlativoInicial = Number(rows[0].ultimo);
+  const motivo = await query("SELECT id FROM devoluciones.motivos WHERE nombre = 'Empaque dañado'");
+  MOTIVO_POR_DEFECTO = Number(motivo.rows[0].id);
   const app = require("../app");
   await new Promise((ok) => { servidor = app.listen(0, ok); });
   base = `http://localhost:${servidor.address().port}/api/devoluciones`;
@@ -276,6 +280,35 @@ test("TDSI-1103: un motivo que no existe o esta desactivado no se acepta", async
   });
   assert.equal(noTexto.status, 400);
   assert.equal(noTexto.cuerpo.mensaje, "Las observaciones deben ser texto.");
+});
+
+test("TDSI-1010: sin motivo no se puede guardar", async () => {
+  const antes = await query("SELECT count(*)::int AS n FROM devoluciones.devoluciones WHERE factura_numero = $1", [N("K")]);
+  for (const motivo_id of [undefined, null, ""]) {
+    const r = await registrar({ factura_numero: N("K"), items: [{ item_id: idDe("K"), cantidad: 1 }], motivo_id });
+    assert.equal(r.status, 400, String(motivo_id));
+    assert.equal(r.cuerpo.mensaje, "Seleccione un motivo");
+  }
+  const despues = await query("SELECT count(*)::int AS n FROM devoluciones.devoluciones WHERE factura_numero = $1", [N("K")]);
+  assert.equal(despues.rows[0].n, antes.rows[0].n);
+});
+
+test("TDSI-1012: las observaciones no aceptan mas de 300 caracteres", async () => {
+  const pedido = (observaciones) => registrar({ factura_numero: N("K"), items: [{ item_id: idDe("K"), cantidad: 1 }], observaciones });
+
+  const justo = await pedido("x".repeat(300));
+  assert.equal(justo.status, 201);
+  assert.equal(justo.cuerpo.data.observaciones.length, 300);
+
+  const largo = await pedido("x".repeat(301));
+  assert.equal(largo.status, 400);
+  assert.equal(largo.cuerpo.mensaje, "Las observaciones no pueden tener más de 300 caracteres.");
+  assert.equal(largo.cuerpo.detalle.largo, 301);
+
+  // se cuentan caracteres reales: 300 letras con tilde o emojis entran; los espacios de los bordes no cuentan
+  assert.equal((await pedido("ñ".repeat(299) + "😀")).status, 201);
+  assert.equal((await pedido("  " + "a".repeat(300) + "  ")).status, 201);
+  assert.equal((await pedido("😀".repeat(301))).status, 400);
 });
 
 test("TDSI-70: la lista se filtra por estado y por fecha", async () => {

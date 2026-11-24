@@ -26,6 +26,10 @@ classDiagram
         <<router /api/devoluciones/configuracion>>
         +GET /plazo
     }
+    class MotivosRoutes {
+        <<router /api/devoluciones/motivos>>
+        +GET /
+    }
 
     class RegistroService {
         +registrarDevolucion(body) DetalleDevolucion
@@ -61,6 +65,10 @@ classDiagram
     }
     class ConfiguracionRepo {
         +obtener(clave) Configuracion
+    }
+    class MotivosRepo {
+        +listarActivos() Motivo[]
+        +buscarActivo(id) Motivo
     }
     class FacturacionClient {
         -FACTURACION_URL
@@ -105,9 +113,11 @@ classDiagram
     DevolucionesRoutes --> RegistroService
     ComprobantesRoutes --> ComprobantesService
     ConfiguracionRoutes --> ConfiguracionService
+    MotivosRoutes --> MotivosRepo
 
     RegistroService --> ComprobantesService : facturaDisponible
     RegistroService --> PlazoService
+    RegistroService --> MotivosRepo : buscarActivo
     RegistroService --> DevolucionesRepo : registrar
     RegistroService --> DevolucionesService : aDetalle
     DevolucionesService --> DevolucionesRepo
@@ -121,6 +131,7 @@ classDiagram
 
     DevolucionesRepo --> Db
     ConfiguracionRepo --> Db
+    MotivosRepo --> Db
     FacturacionClient ..> Facturacion : HTTP
 
     RegistroService ..> AppError : lanza
@@ -182,8 +193,9 @@ classDiagram
     }
     class Motivo {
         <<devoluciones.motivos>>
-        +nombre
+        +nombre : Producto vencido, Empaque dañado, Error de cobro o Cambio de producto
         +activo
+        +orden
     }
     class HistorialEstado {
         <<devoluciones.historial_estados>>
@@ -227,6 +239,7 @@ classDiagram
 | El código `DEV-NNNNNN` lo pone la BD al insertar, seguido y sin huecos | trigger `trg_devoluciones_codigo` + tabla `correlativos` (TDSI-229) |
 | El código es único, con formato fijo y no se puede editar | `UNIQUE`, `CHECK devoluciones_codigo_formato` y trigger `trg_devoluciones_codigo_inmutable` (TDSI-1111) |
 | El plazo es un entero de 1 a 60 | `CHECK configuracion_plazo_valido` (TDSI-1097) |
+| Las observaciones tienen hasta 300 caracteres | `VARCHAR(300)`; el servicio responde 400 antes de llegar a la BD (TDSI-1009) |
 | No se devuelve dos veces la misma unidad | `DevolucionesRepo.registrar` bloquea la factura con `pg_advisory_xact_lock` mientras suma lo ya devuelto (TDSI-1001) |
 
 Los vales, la reversión con tarjeta y el correo del comprobante los hace `gestion_pagos` (acuerdo de equipo, contrato TDSI-1027): Devoluciones solo guarda la referencia (`reembolsos.referencia`, `devoluciones.envio_comprobante_id`).
