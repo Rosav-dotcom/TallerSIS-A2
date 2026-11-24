@@ -292,3 +292,45 @@ ON CONFLICT (nombre) DO UPDATE SET activo = true, orden = EXCLUDED.orden;
 
 UPDATE devoluciones.motivos SET activo = false
  WHERE nombre IN ('Producto defectuoso', 'Producto equivocado', 'Cliente se arrepintio', 'Otro');
+
+-- ==========================================================================
+-- TDSI-72/221: reglas metodo de pago -> opciones de reembolso
+-- --------------------------------------------------------------------------
+-- Para cada metodo con que se pago la compra (facturacion.factura_metodos_pago:
+-- Efectivo, Tarjeta o QR) dice que opcion de reembolso se permite y, si no,
+-- por que (el texto que la pantalla muestra al pasar el mouse, PA TDSI-1015).
+--   EFECTIVO           : se devuelve en caja.
+--   REVERSION_TARJETA  : "Reversion electronica"; la hace gestion_pagos y solo
+--                        revierte lo pagado con tarjeta (contrato TDSI-1027).
+--   VALE               : vale de compra (gestion_pagos, TDSI-75).
+-- En un pago mixto una opcion se habilita solo si TODOS los metodos de la
+-- compra la permiten. Para cambiar una regla basta un UPDATE. Idempotente:
+-- si una regla ya existe no se pisa.
+-- ==========================================================================
+CREATE TABLE IF NOT EXISTS devoluciones.reglas_reembolso (
+    metodo_pago  VARCHAR(20)  NOT NULL,
+    opcion       VARCHAR(20)  NOT NULL CHECK (opcion IN ('EFECTIVO','REVERSION_TARJETA','VALE')),
+    permitido    BOOLEAN      NOT NULL,
+    explicacion  VARCHAR(200),
+    CHECK (permitido OR explicacion IS NOT NULL),          -- una opcion bloqueada siempre dice por que
+    PRIMARY KEY (metodo_pago, opcion)
+);
+ALTER TABLE devoluciones.reglas_reembolso ENABLE ROW LEVEL SECURITY;
+
+INSERT INTO devoluciones.reglas_reembolso (metodo_pago, opcion, permitido, explicacion) VALUES
+    ('Efectivo', 'EFECTIVO',          true,  NULL),
+    ('Efectivo', 'REVERSION_TARJETA', false, 'La compra se pagó en efectivo: no hay un cobro con tarjeta que revertir.'),
+    ('Efectivo', 'VALE',              true,  NULL),
+    ('Tarjeta',  'EFECTIVO',          false, 'Lo pagado con tarjeta se devuelve a la misma tarjeta (reversión electrónica) o con un vale, no en efectivo.'),
+    ('Tarjeta',  'REVERSION_TARJETA', true,  NULL),
+    ('Tarjeta',  'VALE',              true,  NULL),
+    ('QR',       'EFECTIVO',          true,  NULL),
+    ('QR',       'REVERSION_TARJETA', false, 'Los pagos con QR no se pueden revertir en la pasarela: devuelva en efectivo o con un vale.'),
+    ('QR',       'VALE',              true,  NULL)
+ON CONFLICT (metodo_pago, opcion) DO NOTHING;
+
+-- La opcion elegida al registrar la devolucion (TDSI-1106).
+ALTER TABLE devoluciones.devoluciones ADD COLUMN IF NOT EXISTS opcion_reembolso VARCHAR(20);
+ALTER TABLE devoluciones.devoluciones DROP CONSTRAINT IF EXISTS devoluciones_opcion_reembolso_check;
+ALTER TABLE devoluciones.devoluciones ADD CONSTRAINT devoluciones_opcion_reembolso_check
+  CHECK (opcion_reembolso IS NULL OR opcion_reembolso IN ('EFECTIVO','REVERSION_TARJETA','VALE'));
