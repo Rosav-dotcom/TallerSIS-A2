@@ -37,6 +37,8 @@ function validarCampos({ email, password, caja_id }, modo) {
 const PERFILES = [
   { modo: 'CAJERO', texto: 'Cajero' },
   { modo: 'ADMINISTRADOR', texto: 'Administrador' },
+  { modo: 'ENCARGADO_DEVOLUCIONES', texto: 'Encargado de Devoluciones' },
+  { modo: 'USUARIO_SOPORTE', texto: 'Usuario de Soporte' },
 ]
 
 function SelectorModo({ modo, onCambiar }) {
@@ -138,9 +140,9 @@ function Login() {
         // inactiva, y exige abrir el turno con un supervisor si hace falta.
         navigate('/')
       } else {
-        const respuesta = await loginAdministrador(datos)
+        const respuesta = await loginAdministrador({ ...datos, rol: modo })
         iniciarSesionAdmin(respuesta.data.administrador)
-        navigate('/admin/tablero')
+        navigate(modo === 'ENCARGADO_DEVOLUCIONES' ? '/devoluciones/nueva' : modo === 'USUARIO_SOPORTE' ? '/soporte' : '/admin/tablero')
       }
     } catch (err) {
       setErrorApi(err.message)
@@ -149,7 +151,7 @@ function Login() {
     }
   }
 
-  const esAdmin = modo === 'ADMINISTRADOR'
+  const esAdmin = modo !== 'CAJERO'
 
   return (
     <div className="acceso">
@@ -255,7 +257,7 @@ function Login() {
                 <span className="ui-campo-ayuda">La caja seleccionada se asignará a tu turno al ingresar.</span>
               </label>
             ) : (
-              <p className="acceso-ayuda">Acceso a la administración y al análisis de la operación.</p>
+              <p className="acceso-ayuda">{modo === 'ENCARGADO_DEVOLUCIONES' ? 'Gestiona devoluciones y vales de compra.' : modo === 'USUARIO_SOPORTE' ? 'Resuelve incidentes y consulta operaciones.' : 'Acceso a la administración y al análisis de la operación.'} La selección de caja está disponible únicamente para Cajero.</p>
             )}
 
             {errorValidacion && <Alerta tono="error" titulo={errorValidacion} />}

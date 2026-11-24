@@ -4,7 +4,7 @@ import { useRolActual } from '../hooks/useRolActual.js'
 const INICIO_POR_ROL = {
   CAJERO: '/',
   ADMINISTRADOR: '/admin/tablero',
-  ENCARGADO_DEVOLUCIONES: '/devoluciones',
+  ENCARGADO_DEVOLUCIONES: '/devoluciones/nueva',
   USUARIO_SOPORTE: '/soporte',
 }
 
