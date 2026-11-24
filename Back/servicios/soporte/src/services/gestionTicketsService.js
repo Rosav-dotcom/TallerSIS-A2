@@ -106,6 +106,18 @@ function crearGestionTicketsService({ repo }) {
       return ticket;
     },
 
+    /**
+     * TDSI-1072: bandeja "Incidentes escalados". Solo el Administrador (el Usuario de Soporte
+     * escala, pero no ve la bandeja). Para tomarlo, el Administrador lo pasa a En proceso
+     * (PATCH /estado) y después registra la solución (POST /solucion).
+     */
+    async listarEscalados(usuario = null) {
+      if (!usuario || usuario.rol !== "ADMINISTRADOR") {
+        throw new AppError("Solo el Administrador ve la bandeja de incidentes escalados.", 403);
+      }
+      return repo.listarEscalados();
+    },
+
     /** TDSI-968: comentarios del ticket con autor y fecha, del más antiguo al más nuevo. */
     async listarComentarios(numero) {
       const n = numeroValido(numero);

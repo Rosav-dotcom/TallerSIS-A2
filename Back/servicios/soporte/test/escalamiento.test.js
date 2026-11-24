@@ -12,6 +12,9 @@ function repoFalso(inicial = {}) {
   return {
     ticket,
     historialFilas: [],
+    async listarEscalados() {
+      return ticket.estado === "Escalado" ? [{ ...ticket }] : [];
+    },
     async historial(numero) {
       return numero === ticket.numero ? this.historialFilas : null;
     },
@@ -52,4 +55,18 @@ test("historial (TDSI-1092): el escalamiento queda con quién, cuándo y el moti
   assert.equal(cambio.usuario, "soporte@tallersis.bo");
   assert.equal(cambio.motivo, MOTIVO);
   assert.ok(cambio.cambiado_en);
+});
+
+test("bandeja de escalados (TDSI-1072): el Administrador la ve; el Usuario de Soporte no (403)", async () => {
+  const repo = repoFalso();
+  const s = crearGestionTicketsService({ repo });
+  await s.escalar("INC-000001", { motivo: MOTIVO }, SESION);
+
+  const bandeja = await s.listarEscalados({ email: "admin@tallersis.bo", rol: "ADMINISTRADOR" });
+  assert.equal(bandeja.length, 1);
+  assert.equal(bandeja[0].numero, "INC-000001");
+  assert.equal(bandeja[0].motivo_escalamiento, MOTIVO);
+
+  await assert.rejects(s.listarEscalados(SESION), (e) => e.status === 403);
+  await assert.rejects(s.listarEscalados(null), (e) => e.status === 403);
 });

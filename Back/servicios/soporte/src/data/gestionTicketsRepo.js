@@ -181,7 +181,24 @@ async function escalar(numero, { motivo, usuario }, validar) {
   });
 }
 
+/**
+ * TDSI-1072: incidentes escalados para la bandeja del Administrador. Primero los de mayor
+ * prioridad y, dentro de cada una, el que lleva más tiempo esperando (máx. 200).
+ */
+async function listarEscalados() {
+  const { rows } = await query(
+    `SELECT ${COLUMNAS_DETALLE}
+       FROM soporte.incidentes
+      WHERE estado = 'Escalado'
+      ORDER BY CASE prioridad WHEN 'Critica' THEN 1 WHEN 'Alta' THEN 2 WHEN 'Media' THEN 3 ELSE 4 END,
+               escalado_en, id
+      LIMIT 200`
+  );
+  return rows.map(formatear);
+}
+
 module.exports = {
+  listarEscalados,
   escalar,
   obtener,
   cambiarCampo,

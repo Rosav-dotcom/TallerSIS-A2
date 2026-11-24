@@ -150,6 +150,15 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     )
   );
 
+  // TDSI-1072 (TDSI-65): bandeja "Incidentes escalados" del Administrador
+  router.get(
+    "/escalados",
+    wrap(async (req, res) => {
+      const data = await gestionTicketsService.listarEscalados(req.usuario);
+      res.json({ ok: true, total: data.length, data });
+    })
+  );
+
   return router;
 }
 

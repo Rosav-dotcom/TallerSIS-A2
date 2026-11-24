@@ -94,6 +94,7 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | GET | `/api/soporte/tickets/:numero/comentarios` | Comentarios del más antiguo al más nuevo: `[{ id, autor, texto, creado_en }]`. | TDSI-968 |
 | POST | `/api/soporte/tickets/:numero/comentarios` | Cuerpo `{ texto }` (máx. 1000). El autor es el usuario de la sesión. 201 con el comentario. No se pueden editar ni borrar (no hay ruta y un trigger lo impide en la base). | TDSI-968 |
 | POST | `/api/soporte/tickets/:numero/escalar` | Cuerpo `{ motivo }` (10 a 500 caracteres). Pasa el ticket a **Escalado** y guarda `motivo_escalamiento`, `escalado_por` (usuario de la sesión) y `escalado_en`. 409 si ya está Escalado, Resuelto o Cerrado. | TDSI-207 |
+| GET | `/api/soporte/escalados` | Bandeja "Incidentes escalados": **solo el Administrador** (403 para el Usuario de Soporte). Tickets en Escalado con `motivo_escalamiento`, `escalado_por` y `escalado_en`; primero Crítica y, dentro de cada prioridad, el que espera hace más tiempo. "Tomar y resolver": `PATCH /tickets/:numero/estado` con `En proceso` y luego `POST /tickets/:numero/solucion`. | TDSI-1072 |
 
 ### Qué compara (TDSI-972)
 
