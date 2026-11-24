@@ -138,6 +138,18 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     )
   );
 
+  // TDSI-207 (TDSI-65): escalar el ticket al Administrador (motivo obligatorio)
+  router.post(
+    "/tickets/:numero/escalar",
+    wrap(async (req, res) =>
+      res.json({
+        ok: true,
+        mensaje: "Incidente escalado al Administrador",
+        data: await gestionTicketsService.escalar(req.params.numero, req.body, req.usuario),
+      })
+    )
+  );
+
   return router;
 }
 

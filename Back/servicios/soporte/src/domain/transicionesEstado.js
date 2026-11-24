@@ -41,4 +41,19 @@ function validarTransicion({ actual, nuevo, tieneSolucion }) {
   return null;
 }
 
-module.exports = { TRANSICIONES, validarTransicion };
+// TDSI-207 (TDSI-65): se escala lo que todavía se está atendiendo. Un ticket Resuelto o
+// Cerrado ya no se escala, y uno Escalado no se vuelve a escalar.
+const ESCALABLES = ["Abierto", "En proceso", "Pendiente"];
+
+/** Devuelve null si el ticket se puede escalar, o { status, mensaje } si no. */
+function validarEscalamiento(actual) {
+  if (actual === "Escalado") {
+    return { status: 409, mensaje: "El incidente ya está escalado al Administrador." };
+  }
+  if (!ESCALABLES.includes(actual)) {
+    return { status: 409, mensaje: `Un incidente ${actual} no se puede escalar.` };
+  }
+  return null;
+}
+
+module.exports = { TRANSICIONES, ESCALABLES, validarTransicion, validarEscalamiento };

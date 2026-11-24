@@ -1,6 +1,6 @@
 const { AppError } = require("../utils/AppError");
 const { TIPOS, PRIORIDADES, ESTADOS, texto, deLista } = require("./ticketsService");
-const { validarTransicion } = require("../domain/transicionesEstado");
+const { validarTransicion, validarEscalamiento } = require("../domain/transicionesEstado");
 
 // TDSI-64: gestionar cada ticket (detalle, tipo, prioridad, estado, solución y comentarios).
 // Quien hace cada cambio sale de la sesión (req.usuario, TDSI-665), nunca del cuerpo del pedido.
@@ -23,6 +23,8 @@ function quien(usuario) {
 
 const SOLUCION_MAX = 2000;
 const COMENTARIO_MAX = 1000;
+const MOTIVO_ESCALAMIENTO_MIN = 10;
+const MOTIVO_ESCALAMIENTO_MAX = 500;
 
 const noExiste = (numero) => new AppError(`No hay ningún incidente con el número ${numero}.`, 404);
 
@@ -81,6 +83,24 @@ function crearGestionTicketsService({ repo }) {
       const ticket = await repo.registrarSolucion(n, { solucion, usuario: quien(usuario) }, ({ actual }) => {
         const error = validarTransicion({ actual, nuevo: "Resuelto", tieneSolucion: true });
         if (error) throw new AppError(error.mensaje, error.status, { estado_actual: actual, permitidos: error.permitidos });
+      });
+      if (!ticket) throw noExiste(n);
+      return ticket;
+    },
+
+    /**
+     * TDSI-207 (TDSI-65): escala el ticket al Administrador cuando Soporte no lo puede resolver.
+     * Exige un motivo (10 a 500 caracteres) y deja el ticket en Escalado.
+     */
+    async escalar(numero, datos = {}, usuario = null) {
+      const n = numeroValido(numero);
+      const motivo = texto(datos.motivo, "motivo", { requerido: true, max: MOTIVO_ESCALAMIENTO_MAX });
+      if (motivo.length < MOTIVO_ESCALAMIENTO_MIN) {
+        throw new AppError(`El motivo debe tener entre ${MOTIVO_ESCALAMIENTO_MIN} y ${MOTIVO_ESCALAMIENTO_MAX} caracteres.`, 400);
+      }
+      const ticket = await repo.escalar(n, { motivo, usuario: quien(usuario) }, ({ actual }) => {
+        const error = validarEscalamiento(actual);
+        if (error) throw new AppError(error.mensaje, error.status, { estado_actual: actual });
       });
       if (!ticket) throw noExiste(n);
       return ticket;

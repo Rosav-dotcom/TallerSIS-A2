@@ -6,7 +6,7 @@ const { formatear } = require("./ticketsRepo");
 
 const COLUMNAS_DETALLE = `id, numero, tipo, referencia_tipo, referencia, descripcion, estado, prioridad,
   usuario_afectado, registrado_por, creado_en, actualizado_en, resuelto_en, cerrado_en,
-  solucion, solucion_registrada_por`;
+  solucion, solucion_registrada_por, motivo_escalamiento, escalado_por, escalado_en`;
 
 async function obtener(numero) {
   const { rows } = await query(`SELECT ${COLUMNAS_DETALLE} FROM soporte.incidentes WHERE numero = $1`, [numero]);
@@ -149,7 +149,34 @@ async function agregarComentario(numero, { autor, texto }) {
   return rows[0] ? { ...rows[0], id: Number(rows[0].id) } : null;
 }
 
+/**
+ * TDSI-207: pasa el ticket a Escalado y guarda el motivo, quién y cuándo, con la fila
+ * bloqueada. validar({ actual }) lanza si no se puede escalar. null si el ticket no existe.
+ */
+async function escalar(numero, { motivo, usuario }, validar) {
+  return withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT id, estado FROM soporte.incidentes WHERE numero = $1 FOR UPDATE`,
+      [numero]
+    );
+    const fila = rows[0];
+    if (!fila) return null;
+    validar({ actual: fila.estado });
+
+    const { rows: actualizado } = await client.query(
+      `UPDATE soporte.incidentes
+          SET estado = 'Escalado', motivo_escalamiento = $2, escalado_por = $3,
+              escalado_en = now(), actualizado_en = now()
+        WHERE id = $1
+        RETURNING ${COLUMNAS_DETALLE}`,
+      [fila.id, motivo, usuario]
+    );
+    return formatear(actualizado[0]);
+  });
+}
+
 module.exports = {
+  escalar,
   obtener,
   cambiarCampo,
   cambiarEstado,

@@ -100,3 +100,15 @@ DROP TRIGGER IF EXISTS trg_comentarios_no_se_modifican ON soporte.incidentes_com
 CREATE TRIGGER trg_comentarios_no_se_modifican
     BEFORE UPDATE OR DELETE ON soporte.incidentes_comentarios
     FOR EACH ROW EXECUTE FUNCTION soporte.comentarios_no_se_modifican();
+
+-- --------------------------------------------------------------------------
+-- TDSI-207 (TDSI-65): escalar un incidente al Administrador. El incidente
+-- pasa a Escalado y guarda el motivo, quién lo escaló y cuándo.
+-- --------------------------------------------------------------------------
+ALTER TABLE soporte.incidentes
+    ADD COLUMN IF NOT EXISTS motivo_escalamiento TEXT,
+    ADD COLUMN IF NOT EXISTS escalado_por        VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS escalado_en         TIMESTAMPTZ;
+
+CREATE INDEX IF NOT EXISTS idx_incidentes_escalados
+    ON soporte.incidentes (escalado_en) WHERE estado = 'Escalado';

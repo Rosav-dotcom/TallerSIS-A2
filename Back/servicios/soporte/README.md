@@ -93,6 +93,7 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | POST | `/api/soporte/tickets/:numero/solucion` | Cuerpo `{ solucion }` (obligatoria, máx. 2000). Guarda la solución con `solucion_registrada_por` (usuario de la sesión) y `resuelto_en`, y deja el ticket en **Resuelto** (queda en el historial). 409 si está Cerrado, ya Resuelto o Escalado. | TDSI-205 |
 | GET | `/api/soporte/tickets/:numero/comentarios` | Comentarios del más antiguo al más nuevo: `[{ id, autor, texto, creado_en }]`. | TDSI-968 |
 | POST | `/api/soporte/tickets/:numero/comentarios` | Cuerpo `{ texto }` (máx. 1000). El autor es el usuario de la sesión. 201 con el comentario. No se pueden editar ni borrar (no hay ruta y un trigger lo impide en la base). | TDSI-968 |
+| POST | `/api/soporte/tickets/:numero/escalar` | Cuerpo `{ motivo }` (10 a 500 caracteres). Pasa el ticket a **Escalado** y guarda `motivo_escalamiento`, `escalado_por` (usuario de la sesión) y `escalado_en`. 409 si ya está Escalado, Resuelto o Cerrado. | TDSI-207 |
 
 ### Qué compara (TDSI-972)
 
