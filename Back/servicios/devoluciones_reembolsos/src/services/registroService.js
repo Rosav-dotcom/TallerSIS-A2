@@ -1,5 +1,6 @@
 const { AppError } = require("../utils/AppError");
 const devolucionesRepo = require("../data/devolucionesRepo");
+const motivosRepo = require("../data/motivosRepo");
 const { facturaDisponible } = require("./comprobantesService");
 const { plazoDeComprobante } = require("./plazoService");
 const { aDetalle } = require("./devolucionesService");
@@ -50,7 +51,21 @@ function validarPedido(body) {
   if (body.creado_por !== undefined && body.creado_por !== null) {
     creadoPor = String(body.creado_por).trim().slice(0, 60) || null;
   }
-  return { facturaNumero, items, creadoPor };
+
+  // TDSI-71/1103: motivo (id del catalogo, GET /api/devoluciones/motivos) y observaciones
+  let motivoId = null;
+  if (body.motivo_id !== undefined && body.motivo_id !== null && body.motivo_id !== "") {
+    motivoId = Number(body.motivo_id);
+    if (!Number.isSafeInteger(motivoId) || motivoId < 1) {
+      throw new AppError("El motivo no es válido.", 400, { motivo_id: body.motivo_id });
+    }
+  }
+  let observaciones = null;
+  if (body.observaciones !== undefined && body.observaciones !== null) {
+    if (typeof body.observaciones !== "string") throw new AppError("Las observaciones deben ser texto.", 400);
+    observaciones = body.observaciones.trim() || null;
+  }
+  return { facturaNumero, items, creadoPor, motivoId, observaciones };
 }
 
 /**
@@ -124,6 +139,8 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
       tipo,
       metodo_pago_original: (metodos.length ? metodos.join(" + ") : "No registrado").slice(0, 60),
       monto_total: aNumero(montoC),
+      motivo_id: pedido.motivoId,
+      observaciones: pedido.observaciones,
       creado_por: pedido.creadoPor,
     },
     items: items.map(({ _subtotalC, ...it }) => it),
@@ -132,13 +149,21 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
 
 /**
  * POST /api/devoluciones -- TDSI-70/1001.
- * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], creado_por? }
+ * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id, observaciones?,
+ *          creado_por? }
  * item_id es el de cada item del comprobante (GET /api/devoluciones/comprobantes/:numero).
  * El motivo (TDSI-71), la opcion de reembolso (TDSI-72) y la autorizacion del supervisor
  * (TDSI-80) se suman en sus historias.
  */
 async function registrarDevolucion(body) {
   const pedido = validarPedido(body);
+
+  // TDSI-71/1103: el motivo tiene que ser uno de los activos del catalogo
+  let motivo = null;
+  if (pedido.motivoId !== null) {
+    motivo = await motivosRepo.buscarActivo(pedido.motivoId);
+    if (!motivo) throw new AppError("El motivo no es válido.", 400, { motivo_id: pedido.motivoId });
+  }
 
   // 404/409 si la factura no existe, esta anulada o tiene una anulacion pendiente (TDSI-68)
   const factura = await facturaDisponible(pedido.facturaNumero);
@@ -157,7 +182,7 @@ async function registrarDevolucion(body) {
   const registrada = await devolucionesRepo.registrar(factura.numero, (yaDevuelto) =>
     construirDevolucion({ factura, pedido, plazo, yaDevuelto })
   );
-  return aDetalle(registrada);
+  return aDetalle({ ...registrada, motivo_nombre: motivo ? motivo.nombre : null });
 }
 
 module.exports = { registrarDevolucion, construirDevolucion, validarPedido, MAS_DE_LO_COMPRADO };

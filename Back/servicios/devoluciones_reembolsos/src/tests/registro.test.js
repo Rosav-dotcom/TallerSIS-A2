@@ -37,6 +37,7 @@ const FACTURAS = Object.fromEntries([
   factura("H", [], { subtotal: "10", total: "10" }), // venta sin items
   factura("I", [["Fideo", 4, 5]], { metodosPago: [{ metodo: "Efectivo", monto: "8" }, { metodo: "QR", monto: "12" }] }),
   factura("J", [["Gaseosa 2L", 2, 14]]), // concurrencia
+  factura("K", [["Yogurt 1L", 5, 10]]), // motivo y observaciones (TDSI-71)
 ].map((f) => [f.numero, f]));
 
 const falso = express();
@@ -219,6 +220,62 @@ test("TDSI-1001: el comprobante trae item_id para armar el pedido", async () => 
   // (lo usa la pantalla: GET /comprobantes/:numero -> items[].item_id)
   const { cuerpo } = await pedir(`/comprobantes/${N("A")}`);
   assert.deepEqual(cuerpo.data.items.map((i) => i.item_id), [idDe("A", 0), idDe("A", 1)]);
+});
+
+// ---------- TDSI-71/1103: motivo y observaciones ----------
+async function motivoId(nombre) {
+  const { rows } = await query("SELECT id FROM devoluciones.motivos WHERE nombre = $1", [nombre]);
+  return Number(rows[0].id);
+}
+
+test("TDSI-1103: el motivo y las observaciones se guardan y vuelven en el detalle y en la lista", async () => {
+  const vencido = await motivoId("Producto vencido");
+  const { status, cuerpo } = await registrar({
+    factura_numero: N("K"), items: [{ item_id: idDe("K"), cantidad: 1 }],
+    motivo_id: vencido, observaciones: "  Fecha de vencimiento 20/11, el cliente trae el ticket.  ",
+  });
+  assert.equal(status, 201);
+  const d = cuerpo.data;
+  assert.equal(d.motivo_id, vencido);
+  assert.deepEqual(d.motivo, { id: vencido, nombre: "Producto vencido" });
+  assert.equal(d.observaciones, "Fecha de vencimiento 20/11, el cliente trae el ticket.");
+
+  // guardado: el detalle por codigo trae lo mismo, y la lista muestra el motivo
+  assert.deepEqual((await pedir(`/${d.codigo}`)).cuerpo.data, d);
+  const fila = (await pedir(`?codigo=${d.codigo}`)).cuerpo.data[0];
+  assert.equal(fila.motivo, "Producto vencido");
+
+  // observaciones vacias quedan en null; el motivo se puede mandar como texto numerico
+  const otra = await registrar({
+    factura_numero: N("K"), items: [{ item_id: idDe("K"), cantidad: 1 }],
+    motivo_id: String(await motivoId("Cambio de producto")), observaciones: "   ",
+  });
+  assert.equal(otra.status, 201);
+  assert.equal(otra.cuerpo.data.motivo.nombre, "Cambio de producto");
+  assert.equal(otra.cuerpo.data.observaciones, null);
+});
+
+test("TDSI-1103: un motivo que no existe o esta desactivado no se acepta", async () => {
+  // un motivo desactivado propio de la prueba (en una BD nueva no hay otro inactivo)
+  const { rows } = await query(
+    "INSERT INTO devoluciones.motivos (nombre, activo) VALUES ($1, false) RETURNING id", [`Inactivo ${SUF}`]
+  );
+  const desactivado = Number(rows[0].id);
+  try {
+    for (const motivo_id of [desactivado, 999999, "abc", -1, 1.5]) {
+      const r = await registrar({ factura_numero: N("K"), items: [{ item_id: idDe("K"), cantidad: 1 }], motivo_id });
+      assert.equal(r.status, 400, String(motivo_id));
+      assert.equal(r.cuerpo.mensaje, "El motivo no es válido.");
+    }
+  } finally {
+    await query("DELETE FROM devoluciones.motivos WHERE id = $1", [desactivado]);
+  }
+  const noTexto = await registrar({
+    factura_numero: N("K"), items: [{ item_id: idDe("K"), cantidad: 1 }],
+    motivo_id: await motivoId("Producto vencido"), observaciones: 123,
+  });
+  assert.equal(noTexto.status, 400);
+  assert.equal(noTexto.cuerpo.mensaje, "Las observaciones deben ser texto.");
 });
 
 test("TDSI-70: la lista se filtra por estado y por fecha", async () => {

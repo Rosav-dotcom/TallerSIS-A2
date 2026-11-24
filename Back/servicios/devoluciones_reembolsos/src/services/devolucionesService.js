@@ -14,8 +14,14 @@ function aResumen(d) {
     tipo: d.tipo,
     estado: d.estado,
     monto_total: num(d.monto_total),
+    motivo: d.motivo_nombre ?? null, // TDSI-71/1103
   };
 }
+
+/** TDSI-71/1103: { id, nombre } del motivo elegido; null en devoluciones sin motivo. */
+const aMotivo = (d) => (d.motivo_id === null || d.motivo_id === undefined
+  ? null
+  : { id: Number(d.motivo_id), nombre: d.motivo_nombre ?? null });
 
 function aDetalle(d) {
   return {
@@ -27,8 +33,9 @@ function aDetalle(d) {
     fecha: d.fecha_solicitud,
     dentro_de_plazo: d.dentro_de_plazo,
     tipo: d.tipo,
-    motivo_id: d.motivo_id,
-    observaciones: d.observaciones,
+    motivo_id: num(d.motivo_id),
+    motivo: aMotivo(d),
+    observaciones: d.observaciones ?? null,
     metodo_pago_original: d.metodo_pago_original,
     monto_total: num(d.monto_total),
     estado: d.estado,

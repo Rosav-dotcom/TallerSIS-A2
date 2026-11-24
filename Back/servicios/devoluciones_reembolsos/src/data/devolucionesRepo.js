@@ -81,11 +81,17 @@ async function registrar(facturaNumero, construir) {
   });
 }
 
-const RESUMEN = "codigo, factura_numero, cliente_nit, fecha_solicitud, tipo, estado, monto_total";
+const RESUMEN = "d.codigo, d.factura_numero, d.cliente_nit, d.fecha_solicitud, d.tipo, d.estado, d.monto_total, m.nombre AS motivo_nombre";
 
 /** TDSI-76/1112: la devolucion con ese codigo exacto (ya normalizado) y sus items; null si no existe. */
 async function buscarPorCodigo(codigo) {
-  const { rows } = await query("SELECT * FROM devoluciones.devoluciones WHERE codigo = $1", [codigo]);
+  const { rows } = await query(
+    `SELECT d.*, m.nombre AS motivo_nombre
+       FROM devoluciones.devoluciones d
+       LEFT JOIN devoluciones.motivos m ON m.id = d.motivo_id
+      WHERE d.codigo = $1`,
+    [codigo]
+  );
   if (!rows[0]) return null;
   const items = await query(
     `SELECT ${COLUMNAS_ITEM} FROM devoluciones.devolucion_items WHERE devolucion_id = $1 ORDER BY id`,
@@ -100,12 +106,14 @@ async function buscarPorCodigo(codigo) {
  */
 async function listar({ codigo = null, estado = null, desde = null, hasta = null, limite = 100 } = {}) {
   const { rows } = await query(
-    `SELECT ${RESUMEN} FROM devoluciones.devoluciones
-      WHERE ($1::TEXT IS NULL OR codigo = $1)
-        AND ($3::TEXT IS NULL OR estado = $3)
-        AND ($4::TIMESTAMPTZ IS NULL OR fecha_solicitud >= $4)
-        AND ($5::TIMESTAMPTZ IS NULL OR fecha_solicitud <= $5)
-      ORDER BY length(codigo) DESC, codigo DESC LIMIT $2`, // orden del correlativo, no del id (DEV-1000000 despues de DEV-999999)
+    `SELECT ${RESUMEN}
+       FROM devoluciones.devoluciones d
+       LEFT JOIN devoluciones.motivos m ON m.id = d.motivo_id
+      WHERE ($1::TEXT IS NULL OR d.codigo = $1)
+        AND ($3::TEXT IS NULL OR d.estado = $3)
+        AND ($4::TIMESTAMPTZ IS NULL OR d.fecha_solicitud >= $4)
+        AND ($5::TIMESTAMPTZ IS NULL OR d.fecha_solicitud <= $5)
+      ORDER BY length(d.codigo) DESC, d.codigo DESC LIMIT $2`, // orden del correlativo, no del id (DEV-1000000 despues de DEV-999999)
     [codigo, limite, estado, desde, hasta]
   );
   return rows;
