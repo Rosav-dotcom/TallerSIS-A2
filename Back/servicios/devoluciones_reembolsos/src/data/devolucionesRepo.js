@@ -4,7 +4,7 @@ const { pool, query } = require("../config/db");
 const COLUMNAS_CABECERA = [
   "factura_numero", "venta_id", "cliente_nit", "fecha_venta", "dentro_de_plazo", "tipo", "motivo_id",
   "observaciones", "metodo_pago_original", "monto_total", "estado", "requiere_autorizacion",
-  "autorizado_por", "autorizado_en", "creado_por",
+  "autorizado_por", "autorizado_en", "creado_por", "opcion_reembolso",
 ];
 
 const COLUMNAS_ITEM = "factura_item_id, codigo_producto, descripcion, cantidad, precio_unitario, subtotal, condicion";

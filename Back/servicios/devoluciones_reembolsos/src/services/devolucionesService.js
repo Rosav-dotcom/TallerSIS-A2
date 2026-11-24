@@ -1,6 +1,7 @@
 const { AppError } = require("../utils/AppError");
 const { normalizarCodigo } = require("../utils/codigoDevolucion");
 const devolucionesRepo = require("../data/devolucionesRepo");
+const { OPCIONES } = require("./opcionesReembolsoService");
 
 const NO_ENCONTRADA = "Devolución no encontrada";
 const num = (v) => (v === null || v === undefined ? null : Number(v));
@@ -17,6 +18,13 @@ function aResumen(d) {
     motivo: d.motivo_nombre ?? null, // TDSI-71/1103
   };
 }
+
+/** TDSI-72/1106: { codigo, nombre } de la opcion de reembolso elegida; null si no tiene. */
+const aOpcion = (codigo) => {
+  if (!codigo) return null;
+  const opcion = OPCIONES.find((o) => o.codigo === codigo);
+  return { codigo, nombre: opcion ? opcion.nombre : codigo };
+};
 
 /** TDSI-71/1103: { id, nombre } del motivo elegido; null en devoluciones sin motivo. */
 const aMotivo = (d) => (d.motivo_id === null || d.motivo_id === undefined
@@ -37,6 +45,7 @@ function aDetalle(d) {
     motivo: aMotivo(d),
     observaciones: d.observaciones ?? null,
     metodo_pago_original: d.metodo_pago_original,
+    opcion_reembolso: aOpcion(d.opcion_reembolso), // TDSI-72/1106
     monto_total: num(d.monto_total),
     estado: d.estado,
     motivo_rechazo: d.motivo_rechazo,

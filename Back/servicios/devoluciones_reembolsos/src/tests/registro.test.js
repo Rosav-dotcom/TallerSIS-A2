@@ -49,9 +49,14 @@ falso.get("/api/facturas/:numero", (req, res) => {
 let servidorFalso, servidor, base, query, pool, correlativoInicial, MOTIVO_POR_DEFECTO;
 const idDe = (letra, i = 0) => Number(FACTURAS[N(letra)].items[i].id);
 
-// TDSI-1009: el motivo es obligatorio; las pruebas que no tratan del motivo usan uno por defecto
+// TDSI-1009/1106: el motivo y la opcion de reembolso son obligatorios; las pruebas que no
+// tratan de ellos usan un motivo por defecto y Vale (que se permite con cualquier pago)
 async function registrar(cuerpo) {
-  const conMotivo = "motivo_id" in cuerpo ? cuerpo : { ...cuerpo, motivo_id: MOTIVO_POR_DEFECTO };
+  const conMotivo = {
+    ...("motivo_id" in cuerpo ? {} : { motivo_id: MOTIVO_POR_DEFECTO }),
+    ...("opcion_reembolso" in cuerpo ? {} : { opcion_reembolso: "VALE" }),
+    ...cuerpo,
+  };
   const r = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(conMotivo) });
   return { status: r.status, cuerpo: await r.json() };
 }

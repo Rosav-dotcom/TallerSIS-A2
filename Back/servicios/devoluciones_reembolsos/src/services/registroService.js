@@ -4,6 +4,7 @@ const motivosRepo = require("../data/motivosRepo");
 const { facturaDisponible } = require("./comprobantesService");
 const { plazoDeComprobante } = require("./plazoService");
 const { aDetalle } = require("./devolucionesService");
+const { CODIGOS: OPCIONES_REEMBOLSO, opcionesDeFactura } = require("./opcionesReembolsoService");
 
 // TDSI-70/1001: registro de una devolucion total o parcial eligiendo items y cantidades.
 const MAS_DE_LO_COMPRADO = "No se puede devolver más unidades de las compradas";
@@ -12,6 +13,7 @@ const MAX_ITEMS = 200;
 // TDSI-71/1009: textos de la PA y de la pantalla (paso 3 "Motivo")
 const SIN_MOTIVO = "Seleccione un motivo";
 const MAX_OBSERVACIONES = 300;
+const SIN_OPCION = "Elija cómo se devuelve el dinero (Efectivo, Reversión electrónica o Vale).";
 
 // Montos y cantidades en enteros (centavos / centesimas) para no arrastrar errores de coma flotante.
 const aCentesimas = (v) => Math.round(Number(v) * 100);
@@ -75,7 +77,14 @@ function validarPedido(body) {
       throw new AppError(`Las observaciones no pueden tener más de ${MAX_OBSERVACIONES} caracteres.`, 400, { largo });
     }
   }
-  return { facturaNumero, items, creadoPor, motivoId, observaciones };
+
+  // TDSI-72/1106: como se devuelve el dinero (paso 4): EFECTIVO, REVERSION_TARJETA o VALE
+  const opcion = typeof body.opcion_reembolso === "string" ? body.opcion_reembolso.trim().toUpperCase() : "";
+  if (!opcion) throw new AppError(SIN_OPCION, 400);
+  if (!OPCIONES_REEMBOLSO.includes(opcion)) {
+    throw new AppError(`La opción de reembolso debe ser ${OPCIONES_REEMBOLSO.join(", ")}.`, 400, { opcion_reembolso: body.opcion_reembolso });
+  }
+  return { facturaNumero, items, creadoPor, motivoId, observaciones, opcion };
 }
 
 /**
@@ -150,6 +159,7 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
       metodo_pago_original: (metodos.length ? metodos.join(" + ") : "No registrado").slice(0, 60),
       monto_total: aNumero(montoC),
       motivo_id: pedido.motivoId,
+      opcion_reembolso: pedido.opcion,
       observaciones: pedido.observaciones,
       creado_por: pedido.creadoPor,
     },
@@ -160,7 +170,7 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
 /**
  * POST /api/devoluciones -- TDSI-70/1001.
  * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id,
- *          observaciones? (hasta 300), creado_por? }
+ *          observaciones? (hasta 300), opcion_reembolso, creado_por? }
  * item_id es el de cada item del comprobante (GET /api/devoluciones/comprobantes/:numero).
  * El motivo (TDSI-71), la opcion de reembolso (TDSI-72) y la autorizacion del supervisor
  * (TDSI-80) se suman en sus historias.
@@ -186,10 +196,20 @@ async function registrarDevolucion(body) {
     });
   }
 
+  // TDSI-72/1106: la opcion tiene que estar habilitada para como se pago la compra (TDSI-1077);
+  // si no, el mismo texto que la pantalla muestra en el tooltip.
+  const reembolso = await opcionesDeFactura(factura);
+  const elegida = reembolso.opciones.find((o) => o.codigo === pedido.opcion);
+  if (!elegida.habilitada) {
+    throw new AppError(elegida.explicacion, 422, { opcion_reembolso: pedido.opcion, metodo_pago: reembolso.metodo_pago });
+  }
+
   const registrada = await devolucionesRepo.registrar(factura.numero, (yaDevuelto) =>
     construirDevolucion({ factura, pedido, plazo, yaDevuelto })
   );
   return aDetalle({ ...registrada, motivo_nombre: motivo.nombre });
 }
 
-module.exports = { registrarDevolucion, construirDevolucion, validarPedido, MAS_DE_LO_COMPRADO, SIN_MOTIVO, MAX_OBSERVACIONES };
+module.exports = {
+  registrarDevolucion, construirDevolucion, validarPedido, MAS_DE_LO_COMPRADO, SIN_MOTIVO, MAX_OBSERVACIONES, SIN_OPCION,
+};
