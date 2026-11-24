@@ -9,6 +9,12 @@ const { crearGestionPagosClient } = require("./clients/gestionPagosClient");
 const { crearTransaccionesService } = require("./services/transaccionesService");
 const { crearComparacionService } = require("./services/comparacionService");
 const { crearSoporteRoutes } = require("./routes/soporteRoutes");
+const { crearTicketsService } = require("./services/ticketsService");
+const ticketsRepo = require("./data/ticketsRepo");
+const { crearGestionTicketsService } = require("./services/gestionTicketsService");
+const gestionTicketsRepo = require("./data/gestionTicketsRepo");
+const { crearGestionCajaClient } = require("./clients/gestionCajaClient");
+const { crearRequireRol, ROLES_SOPORTE } = require("./middlewares/requireRol");
 
 // TDSI-203: microservicio de Soporte (Sprint 4, Equipo 2). Atiende los reclamos de
 // facturas y pagos: consulta en solo lectura lo que guardan Facturación y Gestión de
@@ -32,7 +38,16 @@ app.get("/health", async (req, res) => {
 const facturasService = crearFacturasService({ facturacionClient: crearFacturacionClient() });
 const transaccionesService = crearTransaccionesService({ gestionPagosClient: crearGestionPagosClient() });
 const comparacionService = crearComparacionService({ facturasService, transaccionesService });
-app.use("/api/soporte", crearSoporteRoutes({ facturasService, transaccionesService, comparacionService }));
+const ticketsService = crearTicketsService({ repo: ticketsRepo });
+const gestionTicketsService = crearGestionTicketsService({ repo: gestionTicketsRepo });
+// TDSI-665: todo /api/soporte pide el token del login de administracion con rol
+// USUARIO_SOPORTE o ADMINISTRADOR (/health queda libre para docker y monitoreo)
+const requireRol = crearRequireRol({ cajaClient: crearGestionCajaClient() });
+app.use(
+  "/api/soporte",
+  requireRol(...ROLES_SOPORTE),
+  crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService, gestionTicketsService })
+);
 
 app.use(errorHandler);
 

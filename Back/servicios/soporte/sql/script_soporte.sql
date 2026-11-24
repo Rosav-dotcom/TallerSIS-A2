@@ -47,3 +47,56 @@ CREATE INDEX IF NOT EXISTS idx_incidentes_estado     ON soporte.incidentes (esta
 CREATE INDEX IF NOT EXISTS idx_incidentes_tipo       ON soporte.incidentes (tipo);
 CREATE INDEX IF NOT EXISTS idx_incidentes_referencia ON soporte.incidentes (referencia_tipo, referencia);
 CREATE INDEX IF NOT EXISTS idx_incidentes_creado_en  ON soporte.incidentes (creado_en DESC);
+
+-- --------------------------------------------------------------------------
+-- TDSI-209 (TDSI-66): el historial por usuario muestra la solución de cada
+-- incidente. La registra TDSI-205 (TDSI-64) al marcarlo como Resuelto.
+-- --------------------------------------------------------------------------
+ALTER TABLE soporte.incidentes
+    ADD COLUMN IF NOT EXISTS solucion                TEXT,
+    ADD COLUMN IF NOT EXISTS solucion_registrada_por VARCHAR(100);
+
+CREATE INDEX IF NOT EXISTS idx_incidentes_usuario_afectado
+    ON soporte.incidentes (lower(usuario_afectado), creado_en DESC);
+
+-- --------------------------------------------------------------------------
+-- TDSI-64: historial de cambios de cada incidente (tipo, prioridad y estado),
+-- con quién lo hizo y cuándo. Lo llenan TDSI-677, TDSI-680, TDSI-693 y TDSI-205.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS soporte.incidentes_historial (
+    id              BIGSERIAL PRIMARY KEY,
+    incidente_id    BIGINT       NOT NULL REFERENCES soporte.incidentes (id),
+    campo           VARCHAR(20)  NOT NULL CHECK (campo IN ('tipo','prioridad','estado')),
+    valor_anterior  VARCHAR(30),
+    valor_nuevo     VARCHAR(30)  NOT NULL,
+    usuario         VARCHAR(100) NOT NULL,
+    cambiado_en     TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_incidentes_historial_incidente
+    ON soporte.incidentes_historial (incidente_id, cambiado_en);
+
+-- --------------------------------------------------------------------------
+-- TDSI-968 (TDSI-64): comentarios de cada ticket, con autor y fecha.
+-- No se pueden editar ni borrar: el trigger lo impide incluso desde SQL.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS soporte.incidentes_comentarios (
+    id            BIGSERIAL PRIMARY KEY,
+    incidente_id  BIGINT       NOT NULL REFERENCES soporte.incidentes (id),
+    autor         VARCHAR(100) NOT NULL,
+    texto         TEXT         NOT NULL CHECK (length(trim(texto)) > 0),
+    creado_en     TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_incidentes_comentarios_incidente
+    ON soporte.incidentes_comentarios (incidente_id, creado_en);
+
+CREATE OR REPLACE FUNCTION soporte.comentarios_no_se_modifican() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'Los comentarios de un ticket no se pueden editar ni borrar';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_comentarios_no_se_modifican ON soporte.incidentes_comentarios;
+CREATE TRIGGER trg_comentarios_no_se_modifican
+    BEFORE UPDATE OR DELETE ON soporte.incidentes_comentarios
+    FOR EACH ROW EXECUTE FUNCTION soporte.comentarios_no_se_modifican();
