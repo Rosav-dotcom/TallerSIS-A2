@@ -23,6 +23,11 @@ import DiferenciasCaja from './pages/DiferenciasCaja.jsx'
 import VentasOnline from './pages/VentasOnline.jsx'
 import LibroVentas from './pages/LibroVentas.jsx'
 import Usuarios from './pages/Usuarios.jsx'
+import RutaPorRol from './components/RutaPorRol.jsx'
+import { FEATURES } from './config/features.js'
+import MenuRol from './modules/devoluciones/MenuRol.jsx'
+import NuevaDevolucion from './modules/devoluciones/NuevaDevolucion.jsx'
+import SoporteInicio from './modules/devoluciones/SoporteInicio.jsx'
 import './App.css'
 
 function RutaProtegida({ children }) {
@@ -39,16 +44,22 @@ function App() {
   const { pathname } = useLocation()
   const esPantallaLogin = pathname === '/login'
   const esSeccionAdmin = pathname.startsWith('/admin')
+  const esSeccionEspecial = pathname.startsWith('/devoluciones') || pathname.startsWith('/soporte')
   // TDSI-38: pagina publica (sin login) a la que lleva el QR de la factura.
   const esPaginaPublica = pathname.startsWith('/facturas/verificar/')
 
   return (
     <>
-      {!esPantallaLogin && !esPaginaPublica && (esSeccionAdmin ? <AdminNavbar /> : <Navbar />)}
-      <main className={esPantallaLogin || esPaginaPublica ? undefined : esSeccionAdmin ? 'container container-ancho con-barra-lateral' : 'container'}>
+      {!esPantallaLogin && !esPaginaPublica && (esSeccionEspecial ? <MenuRol /> : esSeccionAdmin ? <AdminNavbar /> : <Navbar />)}
+      <main className={esPantallaLogin || esPaginaPublica ? undefined : esSeccionAdmin || esSeccionEspecial ? 'container container-ancho con-barra-lateral' : 'container'}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/facturas/verificar/:token" element={<VerificarFactura />} />
+
+          {FEATURES.devoluciones && <Route path="/devoluciones" element={<Navigate to="/devoluciones/nueva" replace />} />}
+          {FEATURES.devoluciones && <Route path="/devoluciones/nueva" element={<RutaPorRol roles={['ENCARGADO_DEVOLUCIONES']}><NuevaDevolucion /></RutaPorRol>} />}
+
+          <Route path="/soporte" element={<RutaPorRol roles={['USUARIO_SOPORTE']}><SoporteInicio /></RutaPorRol>} />
 
           {/* Rutas del cajero */}
           <Route path="/" element={<RutaProtegida><Home /></RutaProtegida>} />

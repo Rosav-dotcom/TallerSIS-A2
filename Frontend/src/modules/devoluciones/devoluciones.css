@@ -1,0 +1,25 @@
+.dev-pagina { display: flex; flex-direction: column; gap: var(--espacio-4); }
+.dev-pagina > h1 { margin: 0; }
+.dev-descripcion { color: var(--muted); margin: 0; }
+.dev-columnas { display: grid; grid-template-columns: minmax(0, 2fr) minmax(270px, 1fr); gap: var(--espacio-5); align-items: start; }
+.dev-principal { min-width: 0; display: flex; flex-direction: column; gap: var(--espacio-4); }
+.dev-resumen { position: sticky; top: var(--espacio-5); }
+.dev-resumen p, .dev-datos p { display: flex; justify-content: space-between; gap: var(--espacio-3); margin: 0; padding: var(--espacio-2) 0; }
+.dev-resumen p > span, .dev-datos p > span { text-align: right; }
+.dev-resumen-total { border-top: 1px solid var(--border); margin-top: var(--espacio-3) !important; }
+.dev-nota { color: var(--muted); font-size: 0.875rem; }
+.dev-busqueda { display: flex; flex-direction: column; gap: var(--espacio-2); }
+.dev-busqueda label { font-weight: 500; }
+.dev-busqueda small { color: var(--muted); }
+.dev-busqueda-fila { display: flex; gap: var(--espacio-2); }
+.dev-control { flex: 1; min-width: 0; display: flex; align-items: center; gap: var(--espacio-2); min-height: 44px; padding: 0 var(--espacio-3); border: 1px solid var(--border); border-radius: var(--radio-control); background: var(--surface); }
+.dev-control:focus-within { outline: 2px solid var(--navy); outline-offset: 1px; }
+.dev-control input { border: none; background: transparent; width: 100%; min-width: 0; font: inherit; outline: none; }
+.dev-datos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 var(--espacio-4); }
+.dev-subtitulo { margin: var(--espacio-5) 0 var(--espacio-2); }
+.dev-totales, .dev-metodos { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--espacio-3); padding-top: var(--espacio-3); }
+.dev-totales strong { color: var(--navy); }
+.dev-acciones { display: flex; justify-content: flex-end; }
+.dev-menu-pendiente { opacity: 0.58; cursor: not-allowed; display: flex; align-items: center; gap: var(--espacio-2); }
+@media (max-width: 900px) { .dev-columnas { grid-template-columns: 1fr; } .dev-resumen { position: static; } }
+@media (max-width: 600px) { .dev-busqueda-fila { flex-direction: column; } .dev-datos { grid-template-columns: 1fr; } .acceso-perfiles-lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
