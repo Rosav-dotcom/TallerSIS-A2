@@ -7,6 +7,7 @@ Sprint 4 · Equipo 2. Historias TDSI-63 a TDSI-67 (perfil **Usuario de Soporte**
 | **Puerto** | 4007 |
 | **Esquema de base de datos** | `soporte` (`sql/script_soporte.sql`) |
 | **Lee de** | Facturación (`FACTURACION_URL`) y Gestión de pagos (`GESTION_PAGOS_URL`, con token), solo lectura |
+| **Acceso** | Solo Usuario de Soporte y Administrador; el rol lo da gestion_caja (`GESTION_CAJA_URL`) |
 
 ## Base de datos
 
@@ -52,6 +53,24 @@ No necesitan base de datos ni los otros servicios (usan datos y `fetch` simulado
 | `test/comparacionService.test.js` | Uso del `venta_id`, prioridad del ID enviado, 400 sin datos, 404 como diferencia y 503 propagado |
 | `test/clientes.test.js` | Token de gestion_pagos: cache, renovación, reintento con 401, credenciales faltantes o rechazadas; servicio caído |
 | `test/rutas.test.js` | Los tres endpoints por HTTP con sus códigos 200/400/404 |
+
+## Acceso (TDSI-665)
+
+Todo `/api/soporte/*` pide el token del **login de administración** (`POST /api/auth/login-administrador` de gestion_caja, el `access_token` que guarda `AdminAuthContext`):
+
+```
+Authorization: Bearer <administrador.access_token>
+```
+
+Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caja.administradores.rol`, TDSI-992). Soporte no guarda cuentas: le pregunta el rol a gestion_caja con `GET /api/auth/perfil` y recuerda la respuesta 60 s (un cambio de rol o una desactivación tarda hasta 1 minuto en notarse).
+
+| Código | Cuándo |
+|---|---|
+| 401 | Sin token, token inválido o vencido |
+| 403 | La cuenta es de otro rol (Encargado de Devoluciones, cajero) o está desactivada |
+| 503 | gestion_caja no responde |
+
+`/health` no pide token. Variable nueva: `GESTION_CAJA_URL` (`http://localhost:4004`; en docker-compose, `http://gestion_caja:4004`).
 
 ## Endpoints (solo lectura)
 
