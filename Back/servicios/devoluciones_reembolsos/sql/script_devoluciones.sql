@@ -357,3 +357,41 @@ ALTER TABLE devoluciones.historial_estados ADD CONSTRAINT historial_estados_esta
 
 CREATE INDEX IF NOT EXISTS idx_historial_estados_devolucion
     ON devoluciones.historial_estados (devolucion_id, cambiado_en, id);
+
+-- ==========================================================================
+-- TDSI-81/239: el historial no se puede editar ni borrar
+-- --------------------------------------------------------------------------
+-- devoluciones.historial_estados es de solo agregar (append-only):
+-- - UPDATE: siempre se rechaza.
+-- - DELETE: se rechaza. Unica excepcion: cuando se borra la devolucion
+--   completa (ON DELETE CASCADE), su historial se va con ella. No hay ningun
+--   endpoint que borre devoluciones; solo lo hacen las pruebas para limpiar.
+-- - TRUNCATE: se rechaza.
+-- El error es SQLSTATE DV002 (el microservicio lo responde como 409), venga
+-- de la API, de otro servicio o del editor de Supabase. Idempotente.
+-- ==========================================================================
+CREATE OR REPLACE FUNCTION devoluciones.proteger_historial()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+BEGIN
+  IF TG_OP = 'DELETE' AND NOT EXISTS (
+    SELECT 1 FROM devoluciones.devoluciones d WHERE d.id = OLD.devolucion_id
+  ) THEN
+    RETURN OLD; -- la devolucion ya se borro: es el ON DELETE CASCADE
+  END IF;
+  RAISE EXCEPTION 'El historial de la devolucion no se puede editar ni borrar (%)', TG_OP
+    USING ERRCODE = 'DV002';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_historial_inmutable ON devoluciones.historial_estados;
+CREATE TRIGGER trg_historial_inmutable
+  BEFORE UPDATE OR DELETE ON devoluciones.historial_estados
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.proteger_historial();
+
+DROP TRIGGER IF EXISTS trg_historial_sin_truncate ON devoluciones.historial_estados;
+CREATE TRIGGER trg_historial_sin_truncate
+  BEFORE TRUNCATE ON devoluciones.historial_estados
+  FOR EACH STATEMENT EXECUTE FUNCTION devoluciones.proteger_historial();

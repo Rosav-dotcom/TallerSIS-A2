@@ -3,6 +3,7 @@ const { AppError } = require("../utils/AppError");
 // TDSI-76/1111: errores de la BD que tienen respuesta propia (no son un 500).
 const ERRORES_BD = {
   DV001: { status: 409, mensaje: "El código de la devolución no se puede editar." }, // trigger trg_devoluciones_codigo_inmutable
+  DV002: { status: 409, mensaje: "El historial de la devolución no se puede editar ni borrar." }, // TDSI-81/239
   23505: { status: 409, mensaje: "Ya existe un registro con ese código." }, // UNIQUE
 };
 
