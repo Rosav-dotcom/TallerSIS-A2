@@ -546,3 +546,14 @@ BEGIN
   RETURN NULL;
 END;
 $$;
+
+-- ==========================================================================
+-- TDSI-80/1069: caja donde se atendio la devolucion
+-- --------------------------------------------------------------------------
+-- caja_id es el codigo de la caja (caja.cajas.codigo de gestion_caja, p. ej.
+-- CAJA-01) donde se atendio / pago la devolucion. Es opcional: sin caja la
+-- devolucion se muestra como "Sin caja". gestion_caja lo lee por HTTP para
+-- el resumen del dia por caja (no entra a este esquema). Idempotente.
+-- ==========================================================================
+ALTER TABLE devoluciones.devoluciones ADD COLUMN IF NOT EXISTS caja_id VARCHAR(20);
+CREATE INDEX IF NOT EXISTS idx_devoluciones_fecha_caja ON devoluciones.devoluciones (fecha_solicitud, caja_id);

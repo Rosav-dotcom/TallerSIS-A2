@@ -45,6 +45,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/caja/recaudado", recaudadoRoutes);
 app.use("/api/caja/comparacion", comparacionRoutes);
 app.use("/api/caja/reportes", reportesRoutes); // TDSI-36 (antes de /api/caja)
+app.use("/api/caja/devoluciones", require("./routes/devolucionesCajaRoutes")); // TDSI-80/1069 (antes de /api/caja)
 app.use("/api/caja", turnosRoutes);
 app.use("/api/caja", cajasRoutes);
 app.use("/api/caja/operaciones-especiales", operacionesEspecialesRoutes); // TDSI-62/201/955

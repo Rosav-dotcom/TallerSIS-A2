@@ -1,5 +1,7 @@
 const { Router } = require("express");
-const { listarDevoluciones, obtenerDevolucion, obtenerHistorial } = require("../services/devolucionesService");
+const {
+  listarDevoluciones, obtenerDevolucion, obtenerHistorial, devolucionesDelDia,
+} = require("../services/devolucionesService");
 const { registrarDevolucion } = require("../services/registroService");
 const { rechazarDevolucion } = require("../services/rechazoService");
 
@@ -12,6 +14,12 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(nex
 router.get("/", wrap(async (req, res) => {
   const { codigo, estado, desde, hasta } = req.query;
   res.json({ ok: true, data: await listarDevoluciones({ codigo, estado, desde, hasta }) });
+}));
+
+// TDSI-80/1069: devoluciones del dia (sin rechazadas) para el resumen por caja de gestion_caja.
+// Va antes de /:codigo para que "del-dia" no se lea como un codigo DEV-.
+router.get("/del-dia", wrap(async (req, res) => {
+  res.json({ ok: true, data: await devolucionesDelDia({ fecha: req.query.fecha }) });
 }));
 
 // TDSI-70/1001: registra una devolucion total o parcial con los items y cantidades elegidos.

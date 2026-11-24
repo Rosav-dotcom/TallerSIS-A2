@@ -19,7 +19,7 @@ function factura(letra, precio) {
 }
 const FACTURAS = Object.fromEntries([
   factura("ALTA", 600), factura("JUSTO", 500), factura("BAJA", 120), factura("CONF", 600),
-  factura("AUT", 750), factura("PIN", 600), factura("BLOQ", 600), factura("CAIDA", 600), factura("BAJA2", 100),
+  factura("AUT", 750), factura("PIN", 600), factura("BLOQ", 600), factura("CAIDA", 600), factura("BAJA2", 100), factura("CAJA", 80),
 ].map((f) => [f.numero, f]));
 
 const falso = express();
@@ -186,4 +186,12 @@ test("TDSI-1085: hasta el limite no se pide ni se valida el PIN", async () => {
   assert.equal(r.cuerpo.data.requiere_autorizacion, false);
   assert.equal(r.cuerpo.data.autorizacion, null);
   assert.equal(validaciones.length, antes);
+});
+
+test("TDSI-1069: el registro guarda la caja donde se atendio (opcional)", async () => {
+  const r = await registrar("CAJA", { caja_id: "caja-01" });
+  assert.equal(r.status, 201);
+  assert.equal(r.cuerpo.data.caja_id, "CAJA-01");
+  assert.equal((await (await fetch(`${base}/${r.cuerpo.data.codigo}`)).json()).data.caja_id, "CAJA-01");
+  assert.equal((await registrar("CAJA", { caja_id: "CAJA 01" })).status, 400);
 });

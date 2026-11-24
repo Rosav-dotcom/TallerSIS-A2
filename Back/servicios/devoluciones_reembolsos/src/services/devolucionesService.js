@@ -47,6 +47,7 @@ function aDetalle(d) {
     motivo: aMotivo(d),
     observaciones: d.observaciones ?? null,
     metodo_pago_original: d.metodo_pago_original,
+    caja_id: d.caja_id ?? null, // TDSI-80/1069
     opcion_reembolso: aOpcion(d.opcion_reembolso), // TDSI-72/1106
     monto_total: num(d.monto_total),
     estado: d.estado,
@@ -147,4 +148,34 @@ async function obtenerHistorial(codigo) {
   };
 }
 
-module.exports = { listarDevoluciones, obtenerDevolucion, obtenerHistorial, aDetalle, ESTADOS, NO_ENCONTRADA };
+/**
+ * GET /api/devoluciones/del-dia?fecha=AAAA-MM-DD -- TDSI-80/1069: las devoluciones del dia
+ * (de Bolivia; por defecto hoy) que reintegran dinero, para el resumen por caja que arma
+ * gestion_caja (TDSI-1069). Sin las RECHAZADAS.
+ */
+async function devolucionesDelDia({ fecha } = {}) {
+  const dia = vacio(fecha)
+    ? new Intl.DateTimeFormat("en-CA", { timeZone: "America/La_Paz" }).format(new Date())
+    : String(fecha).trim();
+  const desde = limiteDelDia(dia, "fecha", false);
+  const hasta = limiteDelDia(dia, "fecha", true);
+  const filas = await devolucionesRepo.delPeriodo(desde, hasta);
+  return {
+    fecha: dia,
+    devoluciones: filas.map((d) => ({
+      codigo: d.codigo,
+      caja_id: d.caja_id ?? null,
+      fecha: d.fecha_solicitud,
+      estado: d.estado,
+      monto_total: num(d.monto_total),
+      opcion_reembolso: aOpcion(d.opcion_reembolso),
+      autorizado_por: d.autorizado_por ?? null,
+      autorizado_por_nombre: d.autorizado_por_nombre ?? null,
+      registrado_por: d.creado_por ?? null,
+    })),
+  };
+}
+
+module.exports = {
+  listarDevoluciones, obtenerDevolucion, obtenerHistorial, devolucionesDelDia, aDetalle, ESTADOS, NO_ENCONTRADA,
+};

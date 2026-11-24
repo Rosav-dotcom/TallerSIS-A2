@@ -4,7 +4,7 @@ const { pool, query } = require("../config/db");
 const COLUMNAS_CABECERA = [
   "factura_numero", "venta_id", "cliente_nit", "fecha_venta", "dentro_de_plazo", "tipo", "motivo_id",
   "observaciones", "metodo_pago_original", "monto_total", "estado", "requiere_autorizacion",
-  "autorizado_por", "autorizado_en", "creado_por", "opcion_reembolso", "autorizado_por_nombre",
+  "autorizado_por", "autorizado_en", "creado_por", "opcion_reembolso", "autorizado_por_nombre", "caja_id",
 ];
 
 const COLUMNAS_ITEM = "factura_item_id, codigo_producto, descripcion, cantidad, precio_unitario, subtotal, condicion";
@@ -154,4 +154,20 @@ async function cambiarEstado(codigo, estado, { usuario, comentario = null, extra
   });
 }
 
-module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado };
+/**
+ * TDSI-80/1069: devoluciones registradas entre dos instantes (un dia de Bolivia), sin las
+ * RECHAZADAS (no reintegran dinero), para el resumen por caja de gestion_caja.
+ */
+async function delPeriodo(desde, hasta) {
+  const { rows } = await query(
+    `SELECT codigo, caja_id, fecha_solicitud, estado, monto_total, opcion_reembolso,
+            autorizado_por, autorizado_por_nombre, creado_por
+       FROM devoluciones.devoluciones
+      WHERE fecha_solicitud >= $1 AND fecha_solicitud <= $2 AND estado <> 'RECHAZADA'
+      ORDER BY caja_id NULLS LAST, length(codigo), codigo`,
+    [desde, hasta]
+  );
+  return rows;
+}
+
+module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado, delPeriodo };

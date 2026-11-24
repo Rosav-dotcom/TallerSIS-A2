@@ -13,6 +13,7 @@ classDiagram
     class DevolucionesRoutes {
         <<router /api/devoluciones>>
         +GET / ?codigo&estado&desde&hasta
+        +GET /del-dia ?fecha
         +POST /
         +GET /:codigo
         +GET /:codigo/historial
@@ -28,6 +29,7 @@ classDiagram
     class ConfiguracionRoutes {
         <<router /api/devoluciones/configuracion>>
         +GET /plazo
+        +GET /limite-autorizacion
     }
     class MotivosRoutes {
         <<router /api/devoluciones/motivos>>
@@ -47,6 +49,7 @@ classDiagram
         +listarDevoluciones(codigo, estado, desde, hasta) ResumenDevolucion[]
         +obtenerDevolucion(codigo) DetalleDevolucion
         +obtenerHistorial(codigo) LineaDeTiempo
+        +devolucionesDelDia(fecha) DevolucionesDelDia
         +aDetalle(fila) DetalleDevolucion
     }
     class ComprobantesService {
@@ -66,6 +69,8 @@ classDiagram
     class ConfiguracionService {
         +PLAZO_POR_DEFECTO = 7
         +obtenerPlazoDias() PlazoConfigurado
+        +LIMITE_POR_DEFECTO = 500
+        +obtenerLimiteAutorizacion() LimiteConfigurado
     }
 
     class DevolucionesRepo {
@@ -94,6 +99,7 @@ classDiagram
         -FACTURACION_URL
         +buscarFacturas(q) ResultadoFacturacion
         +obtenerFactura(numero) Factura
+        +validarSupervisor(supervisor_id, pin) Supervisor
     }
 
     class DiasHabiles {
@@ -127,6 +133,12 @@ classDiagram
         <<microservicio externo :4002>>
         GET /api/facturas/buscar?q
         GET /api/facturas/:numero
+        POST /api/supervisores/validar
+    }
+    class GestionCaja {
+        <<microservicio externo :4004>>
+        GET /api/caja/devoluciones?fecha
+        lee GET /api/devoluciones/del-dia
     }
 
     DevolucionesRoutes --> DevolucionesService
@@ -141,6 +153,8 @@ classDiagram
     RegistroService --> ComprobantesService : facturaDisponible
     RegistroService --> PlazoService
     RegistroService --> MotivosRepo : buscarActivo
+    RegistroService --> ConfiguracionService : limite
+    RegistroService --> FacturacionClient : validarSupervisor sobre el limite
     RegistroService --> OpcionesReembolsoService : opcion permitida
     ComprobantesService --> OpcionesReembolsoService
     OpcionesReembolsoService --> ReglasReembolsoRepo
@@ -162,6 +176,7 @@ classDiagram
     ReglasReembolsoRepo --> Db
     HistorialRepo --> Db
     FacturacionClient ..> Facturacion : HTTP
+    GestionCaja ..> DevolucionesRoutes : HTTP del-dia
 
     RegistroService ..> AppError : lanza
     RechazoService ..> AppError : lanza
@@ -196,7 +211,10 @@ classDiagram
         +estado : PENDIENTE, APROBADA, RECHAZADA o PROCESADA
         +motivo_rechazo : string
         +requiere_autorizacion : boolean
-        +autorizado_por : string
+        +autorizado_por : supervisor_id
+        +autorizado_por_nombre : string
+        +autorizado_en : timestamptz
+        +caja_id : CAJA-01
         +envio_comprobante_id : string
         +creado_por : string
     }
@@ -217,8 +235,8 @@ classDiagram
     }
     class Configuracion {
         <<devoluciones.configuracion>>
-        +clave : plazo_dias_habiles
-        +valor : 1 a 60, por defecto 7
+        +clave : plazo_dias_habiles o limite_autorizacion
+        +valor : plazo 1 a 60 (7) o limite en Bs (500)
         +actualizado_en
         +actualizado_por
     }
@@ -279,6 +297,7 @@ classDiagram
 | El código `DEV-NNNNNN` lo pone la BD al insertar, seguido y sin huecos | trigger `trg_devoluciones_codigo` + tabla `correlativos` (TDSI-229) |
 | El código es único, con formato fijo y no se puede editar | `UNIQUE`, `CHECK devoluciones_codigo_formato` y trigger `trg_devoluciones_codigo_inmutable` (TDSI-1111) |
 | El plazo es un entero de 1 a 60 | `CHECK configuracion_plazo_valido` (TDSI-1097) |
+| El límite de autorización es un monto mayor a 0 | `CHECK configuracion_limite_valido` (TDSI-237) |
 | Una opción de reembolso bloqueada siempre explica por qué | `CHECK (permitido OR explicacion IS NOT NULL)` en `reglas_reembolso` (TDSI-221) |
 | Las observaciones tienen hasta 300 caracteres | `VARCHAR(300)`; el servicio responde 400 antes de llegar a la BD (TDSI-1009) |
 | Cada cambio de estado queda en el historial, con usuario y hora | trigger `trg_devoluciones_historial` (TDSI-1057) |

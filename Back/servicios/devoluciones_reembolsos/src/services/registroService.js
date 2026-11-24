@@ -99,7 +99,16 @@ function validarPedido(body) {
     if (!supervisorId) throw new AppError("Indique el usuario del supervisor que autoriza.", 400);
     autorizacion = { supervisor_id: supervisorId, pin: typeof a.pin === "string" ? a.pin : String(a.pin ?? "") };
   }
-  return { facturaNumero, items, creadoPor, motivoId, observaciones, opcion, autorizacion };
+
+  // TDSI-80/1069: caja donde se atiende la devolucion (codigo de gestion_caja, p. ej. CAJA-01); opcional
+  let cajaId = null;
+  if (body.caja_id !== undefined && body.caja_id !== null && body.caja_id !== "") {
+    cajaId = typeof body.caja_id === "string" ? body.caja_id.trim().toUpperCase() : "";
+    if (!/^[A-Z0-9_-]{1,20}$/.test(cajaId)) {
+      throw new AppError("La caja (caja_id) debe ser su código, por ejemplo CAJA-01.", 400, { caja_id: body.caja_id });
+    }
+  }
+  return { facturaNumero, items, creadoPor, motivoId, observaciones, opcion, autorizacion, cajaId };
 }
 
 /**
@@ -175,6 +184,7 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
       monto_total: aNumero(montoC),
       motivo_id: pedido.motivoId,
       opcion_reembolso: pedido.opcion,
+      caja_id: pedido.cajaId,
       observaciones: pedido.observaciones,
       creado_por: pedido.creadoPor,
     },
@@ -204,7 +214,8 @@ async function exigirAutorizacion(nueva, limite, autorizacion) {
 /**
  * POST /api/devoluciones -- TDSI-70/1001.
  * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id,
- *          observaciones? (hasta 300), opcion_reembolso, creado_por, autorizacion? { supervisor_id, pin } }
+ *          observaciones? (hasta 300), opcion_reembolso, creado_por, autorizacion? { supervisor_id, pin },
+ *          caja_id? }
  * item_id es el de cada item del comprobante (GET /api/devoluciones/comprobantes/:numero).
  * El motivo (TDSI-71), la opcion de reembolso (TDSI-72) y la autorizacion del supervisor
  * (TDSI-80) se suman en sus historias.

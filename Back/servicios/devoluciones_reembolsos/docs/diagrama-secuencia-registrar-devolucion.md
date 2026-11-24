@@ -2,7 +2,7 @@
 
 TDSI-1004 (historia TDSI-70). Qué pasa desde que el Encargado de Devoluciones busca el comprobante hasta que la devolución queda registrada con su código `DEV-NNNNNN`. Los nombres son los módulos reales de `devoluciones_reembolsos` (ver [diagrama-clases.md](diagrama-clases.md)).
 
-El motivo y las observaciones (TDSI-71) y la opción de reembolso (TDSI-72) ya están en el flujo. La autorización del supervisor sobre el límite (TDSI-80) se suma en su historia.
+El motivo y las observaciones (TDSI-71) y la opción de reembolso (TDSI-72) ya están en el flujo. Sobre el monto límite hace falta el usuario y PIN de un supervisor (TDSI-80), que valida Facturación.
 
 ## 1. Buscar el comprobante y ver el plazo (paso 1 de "Nueva devolución")
 
@@ -62,7 +62,7 @@ sequenceDiagram
     UI->>MR: GET /api/devoluciones/motivos (paso 3)
     MR-->>UI: los 4 motivos activos
     E->>UI: elige ítems, cantidades, condición, motivo, observaciones y opción de reembolso, y confirma
-    UI->>DR: POST /api/devoluciones {factura_numero, items[...], motivo_id, observaciones, opcion_reembolso}
+    UI->>DR: POST /api/devoluciones {factura_numero, items[...], motivo_id, observaciones, opcion_reembolso, creado_por, caja_id?, autorizacion?}
     DR->>RS: registrarDevolucion(body)
     RS->>RS: validarPedido(body)
     alt pedido inválido
@@ -93,6 +93,20 @@ sequenceDiagram
     DB-->>REPO: yaDevuelto
     REPO->>RS: construir(yaDevuelto)
     RS->>RS: construirDevolucion: valida cantidades, calcula tipo y monto
+    opt monto > limite_autorizacion
+        alt sin autorizacion
+            RS-->>UI: 403 "Requiere autorización del Supervisor"
+        else con supervisor_id y PIN
+            RS->>F: POST /api/supervisores/validar
+            alt PIN incorrecto
+                F-->>RS: 401
+                RS-->>UI: 401 "PIN inválido" (ROLLBACK)
+            else válido
+                F-->>RS: supervisor_id, nombre
+                RS->>RS: guarda autorizado_por, nombre y hora
+            end
+        end
+    end
     alt más de lo comprado
         RS-->>REPO: error 422
         REPO->>DB: ROLLBACK
