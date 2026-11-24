@@ -1,6 +1,6 @@
 # Diagrama de clases · Microservicio Devoluciones y reembolsos
 
-TDSI-1003 (historia TDSI-70). Microservicio `devoluciones_reembolsos` (puerto 4008), del Encargado de Devoluciones. Muestra cómo se busca el comprobante original en Facturación (TDSI-68), se valida el plazo en días hábiles (TDSI-69) y se registra la devolución con su código `DEV-NNNNNN` (TDSI-70 y TDSI-76). Actualizado en TDSI-1043 con el aviso a Inventario por Pub/Sub (TDSI-77; secuencia en [diagrama-secuencia-inventario.md](diagrama-secuencia-inventario.md)).
+TDSI-1003 (historia TDSI-70). Microservicio `devoluciones_reembolsos` (puerto 4008), del Encargado de Devoluciones. Muestra cómo se busca el comprobante original en Facturación (TDSI-68), se valida el plazo en días hábiles (TDSI-69) y se registra la devolución con su código `DEV-NNNNNN` (TDSI-70 y TDSI-76). Actualizado en TDSI-1043 con el aviso a Inventario por Pub/Sub (TDSI-77; secuencia en [diagrama-secuencia-inventario.md](diagrama-secuencia-inventario.md)) y en TDSI-1088 con el reporte exportable a Excel (TDSI-82).
 
 Las "clases" son módulos de Node.js (CommonJS): cada uno exporta funciones y recibe lo que necesita por `require`. Las entidades de abajo son las tablas del esquema `devoluciones` (`sql/script_devoluciones.sql`).
 
@@ -33,6 +33,12 @@ classDiagram
         <<router /api/devoluciones/configuracion>>
         +GET /plazo
         +GET /limite-autorizacion
+    }
+    class ReportesRoutes {
+        <<router /api/devoluciones/reportes>>
+        +GET /filtros
+        +GET / ?desde&hasta&sucursal&estado&motivo_id&metodo
+        +GET /excel ?mismos filtros
     }
     class MotivosRoutes {
         <<router /api/devoluciones/motivos>>
@@ -75,6 +81,17 @@ classDiagram
         <<job cada 30 s>>
         +procesarAcuses() ResultadoAcuse[]
         +iniciar()
+    }
+    class ReportesService {
+        +MAX_DIAS = 366
+        +validarFiltros(query) Filtros
+        +obtenerReporte(query) Reporte
+        +opcionesDeFiltros() OpcionesFiltros
+    }
+    class ReportesExcelService {
+        <<exceljs>>
+        +generarReporteExcel(reporte) Buffer
+        +nombreArchivo(filtros) string
     }
     class DevolucionesService {
         +listarDevoluciones(codigo, estado, desde, hasta) ResumenDevolucion[]
@@ -135,6 +152,10 @@ classDiagram
         +confirmar(ackIds, suscripcion)
         +liberar(ackIds, suscripcion)
     }
+    class ReportesRepo {
+        +devoluciones(filtros) Fila[]
+        +notasCredito(filtros) Fila[]
+    }
     class ConfiguracionRepo {
         +obtener(clave) Configuracion
     }
@@ -147,6 +168,8 @@ classDiagram
     class MotivosRepo {
         +listarActivos() Motivo[]
         +buscarActivo(id) Motivo
+        +listarTodos() Motivo[]
+        +buscar(id) Motivo
     }
     class FacturacionClient {
         -FACTURACION_URL
@@ -229,6 +252,12 @@ classDiagram
     ComprobantesRoutes --> ComprobantesService
     ConfiguracionRoutes --> ConfiguracionService
     MotivosRoutes --> MotivosRepo
+    ReportesRoutes --> ReportesService
+    ReportesRoutes --> ReportesExcelService : excel
+    ReportesService --> ReportesRepo
+    ReportesService --> MotivosRepo : buscar, listarTodos
+    ReportesService --> DevolucionesService : limiteDelDia, ESTADOS
+    ReportesService --> OpcionesReembolsoService : OPCIONES
 
     RegistroService --> ComprobantesService : facturaDisponible
     RegistroService --> PlazoService
@@ -255,6 +284,7 @@ classDiagram
     MotivosRepo --> Db
     ReglasReembolsoRepo --> Db
     HistorialRepo --> Db
+    ReportesRepo --> Db
     NotificacionesInventarioRepo --> Db
     FacturacionClient ..> Facturacion : HTTP
     GestionCaja ..> DevolucionesRoutes : HTTP del-dia
@@ -262,6 +292,7 @@ classDiagram
     RegistroService ..> AppError : lanza
     RechazoService ..> AppError : lanza
     ComprobantesService ..> AppError : lanza
+    ReportesService ..> AppError : lanza
     DevolucionesService ..> AppError : lanza
     FacturacionClient ..> AppError : lanza
     ErrorHandler ..> AppError : responde status y mensaje
