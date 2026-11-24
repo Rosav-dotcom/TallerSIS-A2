@@ -11,11 +11,16 @@ const { errorHandler } = require("../middlewares/errorHandler");
 
 const FACTURA = `T81-${String(Date.now()).slice(-8)}`;
 let servidor, base, correlativoInicial;
+const creados = []; // numeros DEV- creados (una prueba borra su devolucion: no alcanza con los que quedan)
 
-const crear = (creado_por = "encargado@test.com") => devolucionesRepo.crear({
-  factura_numero: FACTURA, fecha_venta: new Date(), dentro_de_plazo: true, tipo: "PARCIAL",
-  metodo_pago_original: "Efectivo", monto_total: 10, opcion_reembolso: "VALE", creado_por,
-}, [{ descripcion: "Aceite", cantidad: 1, precio_unitario: 10, subtotal: 10 }]);
+async function crear(creado_por = "encargado@test.com") {
+  const d = await devolucionesRepo.crear({
+    factura_numero: FACTURA, fecha_venta: new Date(), dentro_de_plazo: true, tipo: "PARCIAL",
+    metodo_pago_original: "Efectivo", monto_total: 10, opcion_reembolso: "VALE", creado_por,
+  }, [{ descripcion: "Aceite", cantidad: 1, precio_unitario: 10, subtotal: 10 }]);
+  creados.push(Number(d.codigo.slice(4)));
+  return d;
+}
 
 const pedir = async (ruta, opciones) => {
   const r = await fetch(`${base}${ruta}`, opciones);
@@ -32,10 +37,10 @@ test.before(async () => {
 
 test.after(async () => {
   await new Promise((ok) => servidor.close(ok));
-  const { rows } = await query("DELETE FROM devoluciones.devoluciones WHERE factura_numero = $1 RETURNING codigo", [FACTURA]);
-  if (rows.length) {
-    const ultimoMio = Math.max(...rows.map((r) => Number(r.codigo.slice(4))));
-    await query("UPDATE devoluciones.correlativos SET ultimo = $1 WHERE nombre = 'devolucion' AND ultimo = $2", [correlativoInicial, ultimoMio]);
+  await query("DELETE FROM devoluciones.devoluciones WHERE factura_numero = $1", [FACTURA]);
+  if (creados.length) {
+    await query("UPDATE devoluciones.correlativos SET ultimo = $1 WHERE nombre = 'devolucion' AND ultimo = $2",
+      [correlativoInicial, Math.max(...creados)]);
   }
   await pool.end();
 });

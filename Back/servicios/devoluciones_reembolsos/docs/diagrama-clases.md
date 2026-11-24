@@ -16,6 +16,7 @@ classDiagram
         +POST /
         +GET /:codigo
         +GET /:codigo/historial
+        +POST /:codigo/rechazo
     }
     class ComprobantesRoutes {
         <<router /api/devoluciones/comprobantes>>
@@ -37,6 +38,10 @@ classDiagram
         +registrarDevolucion(body) DetalleDevolucion
         +validarPedido(body) Pedido
         +construirDevolucion(factura, pedido, plazo, yaDevuelto) NuevaDevolucion
+    }
+    class RechazoService {
+        +rechazarDevolucion(codigo, motivo, usuario) DetalleDevolucion
+        +verificarRechazable(devolucion, cliente)
     }
     class DevolucionesService {
         +listarDevoluciones(codigo, estado, desde, hasta) ResumenDevolucion[]
@@ -68,7 +73,7 @@ classDiagram
         +registrar(facturaNumero, construir) Devolucion
         +buscarPorCodigo(codigo) Devolucion
         +listar(filtros) Devolucion[]
-        +cambiarEstado(codigo, estado, usuario, comentario) Devolucion
+        +cambiarEstado(codigo, estado, usuario, comentario, validar) Devolucion
         -insertar(cliente, datos, items)
         -enTransaccion(trabajo)
     }
@@ -126,6 +131,9 @@ classDiagram
 
     DevolucionesRoutes --> DevolucionesService
     DevolucionesRoutes --> RegistroService
+    DevolucionesRoutes --> RechazoService
+    RechazoService --> DevolucionesRepo : cambiarEstado con validar
+    RechazoService --> DevolucionesService : obtenerDevolucion
     ComprobantesRoutes --> ComprobantesService
     ConfiguracionRoutes --> ConfiguracionService
     MotivosRoutes --> MotivosRepo
@@ -156,6 +164,7 @@ classDiagram
     FacturacionClient ..> Facturacion : HTTP
 
     RegistroService ..> AppError : lanza
+    RechazoService ..> AppError : lanza
     ComprobantesService ..> AppError : lanza
     DevolucionesService ..> AppError : lanza
     FacturacionClient ..> AppError : lanza
@@ -274,6 +283,8 @@ classDiagram
 | Las observaciones tienen hasta 300 caracteres | `VARCHAR(300)`; el servicio responde 400 antes de llegar a la BD (TDSI-1009) |
 | Cada cambio de estado queda en el historial, con usuario y hora | trigger `trg_devoluciones_historial` (TDSI-1057) |
 | El historial no se puede editar ni borrar (solo se va si se borra la devolución completa) | triggers `trg_historial_inmutable` y `trg_historial_sin_truncate`, SQLSTATE DV002 (TDSI-239) |
+| Una devolución RECHAZADA no genera reembolso, nota de crédito ni aviso a Inventario | triggers `trg_*_no_rechazada` en `reembolsos`, `notas_credito` y `notificaciones_inventario`, SQLSTATE DV003 (TDSI-1116) |
+| No se rechaza una devolución procesada o con reembolso / nota de crédito emitidos | `RechazoService.verificarRechazable` dentro de la transacción, con la devolución bloqueada (TDSI-1116) |
 | No se devuelve dos veces la misma unidad | `DevolucionesRepo.registrar` bloquea la factura con `pg_advisory_xact_lock` mientras suma lo ya devuelto (TDSI-1001) |
 
 Los vales, la reversión con tarjeta y el correo del comprobante los hace `gestion_pagos` (acuerdo de equipo, contrato TDSI-1027): Devoluciones solo guarda la referencia (`reembolsos.referencia`, `devoluciones.envio_comprobante_id`).
