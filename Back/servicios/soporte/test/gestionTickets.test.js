@@ -34,6 +34,15 @@ function repoFalso(inicial = {}) {
       Object.assign(ticket, { solucion, solucion_registrada_por: usuario, estado: "Resuelto", resuelto_en: "ahora" });
       return { ...ticket };
     },
+    async listarComentarios(numero) {
+      return numero === ticket.numero ? [...comentarios] : null;
+    },
+    async agregarComentario(numero, { autor, texto }) {
+      if (numero !== ticket.numero) return null;
+      const c = { id: comentarios.length + 1, autor, texto, creado_en: `2026-11-24T11:0${comentarios.length}:00Z` };
+      comentarios.push(c);
+      return c;
+    },
     async historial(numero, { soloEstado }) {
       if (numero !== ticket.numero) return null;
       return historial
@@ -260,6 +269,43 @@ test("ruta POST /tickets/:numero/solucion", async () => {
     assert.equal(r.cuerpo.data.estado, "Resuelto");
     assert.equal((await pedir("/tickets/INC-000001/solucion", "POST", { solucion: "Otra" })).status, 409);
     assert.equal((await pedir("/tickets/INC-000001/solucion", "POST", {})).status, 400);
+  } finally {
+    servidor.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// TDSI-968: comentarios
+// ---------------------------------------------------------------------------
+
+test("comentarios: el autor es el de la sesión y se listan del más antiguo al más nuevo", async () => {
+  const s = crearGestionTicketsService({ repo: repoFalso() });
+  const c = await s.comentar("INC-000001", { texto: "  Llamé al cliente  ", autor: "otro@x.bo" }, SESION);
+  assert.deepEqual({ autor: c.autor, texto: c.texto }, { autor: "soporte@tallersis.bo", texto: "Llamé al cliente" });
+  assert.ok(c.creado_en);
+  await s.comentar("INC-000001", { texto: "Pidió la factura de nuevo" }, SESION);
+  assert.deepEqual((await s.listarComentarios("INC-000001")).map((x) => x.texto), ["Llamé al cliente", "Pidió la factura de nuevo"]);
+});
+
+test("comentarios: vacío o muy largo 400; ticket inexistente 404; sin sesión 401", async () => {
+  const s = crearGestionTicketsService({ repo: repoFalso() });
+  await assert.rejects(s.comentar("INC-000001", { texto: "  " }, SESION), (e) => e.status === 400);
+  await assert.rejects(s.comentar("INC-000001", { texto: "x".repeat(1001) }, SESION), (e) => e.status === 400);
+  await assert.rejects(s.comentar("INC-000404", { texto: "hola" }, SESION), (e) => e.status === 404);
+  await assert.rejects(s.listarComentarios("INC-000404"), (e) => e.status === 404);
+  await assert.rejects(s.comentar("INC-000001", { texto: "hola" }, null), (e) => e.status === 401);
+});
+
+test("rutas de comentarios: GET y POST; no existe PUT ni DELETE", async () => {
+  const { servidor, pedir } = await levantar(crearGestionTicketsService({ repo: repoFalso() }));
+  try {
+    const nuevo = await pedir("/tickets/INC-000001/comentarios", "POST", { texto: "Primer comentario" });
+    assert.equal(nuevo.status, 201);
+    assert.equal(nuevo.cuerpo.data.autor, "soporte@tallersis.bo");
+    const lista = await pedir("/tickets/INC-000001/comentarios");
+    assert.equal(lista.cuerpo.total, 1);
+    const borrar = await fetch(`http://127.0.0.1:${servidor.address().port}/api/soporte/tickets/INC-000001/comentarios/1`, { method: "DELETE" });
+    assert.equal(borrar.status, 404);
   } finally {
     servidor.close();
   }

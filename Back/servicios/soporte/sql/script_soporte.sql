@@ -74,3 +74,29 @@ CREATE TABLE IF NOT EXISTS soporte.incidentes_historial (
 );
 CREATE INDEX IF NOT EXISTS idx_incidentes_historial_incidente
     ON soporte.incidentes_historial (incidente_id, cambiado_en);
+
+-- --------------------------------------------------------------------------
+-- TDSI-968 (TDSI-64): comentarios de cada ticket, con autor y fecha.
+-- No se pueden editar ni borrar: el trigger lo impide incluso desde SQL.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS soporte.incidentes_comentarios (
+    id            BIGSERIAL PRIMARY KEY,
+    incidente_id  BIGINT       NOT NULL REFERENCES soporte.incidentes (id),
+    autor         VARCHAR(100) NOT NULL,
+    texto         TEXT         NOT NULL CHECK (length(trim(texto)) > 0),
+    creado_en     TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_incidentes_comentarios_incidente
+    ON soporte.incidentes_comentarios (incidente_id, creado_en);
+
+CREATE OR REPLACE FUNCTION soporte.comentarios_no_se_modifican() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+    RAISE EXCEPTION 'Los comentarios de un ticket no se pueden editar ni borrar';
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_comentarios_no_se_modifican ON soporte.incidentes_comentarios;
+CREATE TRIGGER trg_comentarios_no_se_modifican
+    BEFORE UPDATE OR DELETE ON soporte.incidentes_comentarios
+    FOR EACH ROW EXECUTE FUNCTION soporte.comentarios_no_se_modifican();

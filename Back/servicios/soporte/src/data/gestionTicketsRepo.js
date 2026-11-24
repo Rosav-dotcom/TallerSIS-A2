@@ -126,4 +126,36 @@ async function registrarSolucion(numero, { solucion, usuario }, validar) {
   });
 }
 
-module.exports = { obtener, cambiarCampo, cambiarEstado, registrarSolucion, historial, COLUMNAS_DETALLE };
+/** TDSI-968: comentarios del ticket, del más antiguo al más nuevo. null si el ticket no existe. */
+async function listarComentarios(numero) {
+  const { rows: ticket } = await query(`SELECT id FROM soporte.incidentes WHERE numero = $1`, [numero]);
+  if (!ticket[0]) return null;
+  const { rows } = await query(
+    `SELECT id, autor, texto, creado_en FROM soporte.incidentes_comentarios
+      WHERE incidente_id = $1 ORDER BY creado_en, id`,
+    [ticket[0].id]
+  );
+  return rows.map((r) => ({ ...r, id: Number(r.id) }));
+}
+
+/** TDSI-968: agrega un comentario. null si el ticket no existe. */
+async function agregarComentario(numero, { autor, texto }) {
+  const { rows } = await query(
+    `INSERT INTO soporte.incidentes_comentarios (incidente_id, autor, texto)
+     SELECT id, $2, $3 FROM soporte.incidentes WHERE numero = $1
+     RETURNING id, autor, texto, creado_en`,
+    [numero, autor, texto]
+  );
+  return rows[0] ? { ...rows[0], id: Number(rows[0].id) } : null;
+}
+
+module.exports = {
+  obtener,
+  cambiarCampo,
+  cambiarEstado,
+  registrarSolucion,
+  historial,
+  listarComentarios,
+  agregarComentario,
+  COLUMNAS_DETALLE,
+};

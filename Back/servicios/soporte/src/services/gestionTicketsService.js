@@ -22,6 +22,7 @@ function quien(usuario) {
 }
 
 const SOLUCION_MAX = 2000;
+const COMENTARIO_MAX = 1000;
 
 const noExiste = (numero) => new AppError(`No hay ningún incidente con el número ${numero}.`, 404);
 
@@ -83,6 +84,23 @@ function crearGestionTicketsService({ repo }) {
       });
       if (!ticket) throw noExiste(n);
       return ticket;
+    },
+
+    /** TDSI-968: comentarios del ticket con autor y fecha, del más antiguo al más nuevo. */
+    async listarComentarios(numero) {
+      const n = numeroValido(numero);
+      const comentarios = await repo.listarComentarios(n);
+      if (!comentarios) throw noExiste(n);
+      return comentarios;
+    },
+
+    /** TDSI-968: agrega un comentario. El autor es el usuario de la sesión; no se edita ni se borra. */
+    async comentar(numero, datos = {}, usuario = null) {
+      const n = numeroValido(numero);
+      const contenido = texto(datos.texto, "texto", { requerido: true, max: COMENTARIO_MAX });
+      const comentario = await repo.agregarComentario(n, { autor: quien(usuario), texto: contenido });
+      if (!comentario) throw noExiste(n);
+      return comentario;
     },
 
     /**

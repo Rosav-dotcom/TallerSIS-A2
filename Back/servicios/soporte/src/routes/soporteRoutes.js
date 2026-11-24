@@ -119,6 +119,25 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     )
   );
 
+  // TDSI-968: comentarios del ticket (no hay rutas para editarlos ni borrarlos)
+  router.get(
+    "/tickets/:numero/comentarios",
+    wrap(async (req, res) => {
+      const data = await gestionTicketsService.listarComentarios(req.params.numero);
+      res.json({ ok: true, total: data.length, data });
+    })
+  );
+  router.post(
+    "/tickets/:numero/comentarios",
+    wrap(async (req, res) =>
+      res.status(201).json({
+        ok: true,
+        mensaje: "Comentario agregado",
+        data: await gestionTicketsService.comentar(req.params.numero, req.body, req.usuario),
+      })
+    )
+  );
+
   return router;
 }
 
