@@ -3,7 +3,7 @@ const express = require("express");
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
 // Rutas del Usuario de Soporte. Todas son de solo lectura sobre otros servicios.
-function crearSoporteRoutes({ facturasService, transaccionesService, comparacionService }) {
+function crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService }) {
   const router = express.Router();
 
   // TDSI-1064: consultar una factura (solo lectura, vía facturación)
@@ -24,6 +24,14 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     "/comparacion",
     wrap(async (req, res) =>
       res.json({ ok: true, data: await comparacionService.comparar({ factura: req.query.factura, transaccion: req.query.transaccion }) })
+    )
+  );
+
+  // TDSI-668: registrar un ticket (nace Abierto, con número INC-NNNNNN)
+  router.post(
+    "/tickets",
+    wrap(async (req, res) =>
+      res.status(201).json({ ok: true, mensaje: "Ticket registrado", data: await ticketsService.crearTicket(req.body, req.usuario) })
     )
   );
 

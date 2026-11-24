@@ -9,6 +9,8 @@ const { crearGestionPagosClient } = require("./clients/gestionPagosClient");
 const { crearTransaccionesService } = require("./services/transaccionesService");
 const { crearComparacionService } = require("./services/comparacionService");
 const { crearSoporteRoutes } = require("./routes/soporteRoutes");
+const { crearTicketsService } = require("./services/ticketsService");
+const ticketsRepo = require("./data/ticketsRepo");
 const { crearGestionCajaClient } = require("./clients/gestionCajaClient");
 const { crearRequireRol, ROLES_SOPORTE } = require("./middlewares/requireRol");
 
@@ -34,13 +36,14 @@ app.get("/health", async (req, res) => {
 const facturasService = crearFacturasService({ facturacionClient: crearFacturacionClient() });
 const transaccionesService = crearTransaccionesService({ gestionPagosClient: crearGestionPagosClient() });
 const comparacionService = crearComparacionService({ facturasService, transaccionesService });
+const ticketsService = crearTicketsService({ repo: ticketsRepo });
 // TDSI-665: todo /api/soporte pide el token del login de administracion con rol
 // USUARIO_SOPORTE o ADMINISTRADOR (/health queda libre para docker y monitoreo)
 const requireRol = crearRequireRol({ cajaClient: crearGestionCajaClient() });
 app.use(
   "/api/soporte",
   requireRol(...ROLES_SOPORTE),
-  crearSoporteRoutes({ facturasService, transaccionesService, comparacionService })
+  crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService })
 );
 
 app.use(errorHandler);

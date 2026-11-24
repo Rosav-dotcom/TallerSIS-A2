@@ -72,13 +72,14 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 
 `/health` no pide token. Variable nueva: `GESTION_CAJA_URL` (`http://localhost:4004`; en docker-compose, `http://gestion_caja:4004`).
 
-## Endpoints (solo lectura)
+## Endpoints
 
 | Método | Ruta | Qué hace | Subtarea |
 |---|---|---|---|
 | GET | `/api/soporte/facturas/:numero` | Consulta una factura en Facturación (`GET /api/facturas/:numero`) y la devuelve con cliente, totales, ítems y métodos de pago. 400 si el número es inválido, 404 si no existe, 503 si Facturación no responde. | TDSI-1064 |
 | GET | `/api/soporte/transacciones/:id` | Consulta una transacción en Gestión de pagos (`GET /transacciones/:id` y `/historial`, con token) y devuelve métodos, montos, total, cliente, caja, estado e historial. | TDSI-1066 |
 | GET | `/api/soporte/comparacion?factura=F-000123&transaccion=TX-1` | Compara la factura con su transacción y marca las diferencias (`coincide`, `diferencias`, `avisos`). `transaccion` es opcional: si falta se usa la de la factura (`venta_id`). | TDSI-972 |
+| POST | `/api/soporte/tickets` | Registra un ticket. Cuerpo: `tipo` (Facturacion, Pagos, Acceso, Error del sistema, Otro), `descripcion` (obligatoria, máx. 2000), `prioridad` (Baja, Media, Alta, Critica; por defecto Media), `usuario_afectado`, `referencia_tipo` (factura/transaccion) + `referencia` (van juntos). Nace en **Abierto** con número `INC-NNNNNN`; `registrado_por` es el usuario de la sesión. 201 con el ticket, 400 si falta algo. | TDSI-668 |
 
 ### Qué compara (TDSI-972)
 
