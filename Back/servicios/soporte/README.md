@@ -88,6 +88,8 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | GET | `/api/soporte/tickets/:numero` | Detalle de un ticket (`INC-000123`) con su solución. 400 si el número es inválido, 404 si no existe. | TDSI-677 |
 | PATCH | `/api/soporte/tickets/:numero/tipo` | Cuerpo `{ tipo }`. Cambia el tipo y lo deja en el historial con el usuario de la sesión y la hora. Responde el ticket actualizado. | TDSI-677 |
 | PATCH | `/api/soporte/tickets/:numero/prioridad` | Cuerpo `{ prioridad }` (Baja, Media, Alta, Critica). Cambia la prioridad y registra el cambio en el historial (valor anterior, nuevo, usuario y hora). | TDSI-680 |
+| PATCH | `/api/soporte/tickets/:numero/estado` | Cuerpo `{ estado }`. Aplica las reglas de transición (ver abajo); 409 con `detalle.permitidos` si no se permite. Marca `resuelto_en` / `cerrado_en` y lo deja en el historial. | TDSI-693 |
+| GET | `/api/soporte/tickets/:numero/historial` | Cambios de estado del más antiguo al más nuevo: `[{ id, estado_anterior, estado_nuevo, usuario, cambiado_en }]`. Con `?campo=todos` también los de tipo y prioridad (`campo`, `valor_anterior`, `valor_nuevo`). | TDSI-693 |
 
 ### Qué compara (TDSI-972)
 
@@ -102,6 +104,19 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | `estado_pago` | Factura Emitida con pago PENDIENTE o RECHAZADA |
 
 En `avisos` van los casos que no son error pero conviene revisar: factura sin métodos de pago, en borrador o con anulación solicitada. La regla está en `src/domain/compararFacturaYTransaccion.js` (función pura, sin base de datos).
+
+### Reglas de transición del estado (TDSI-693)
+
+| Desde | Puede pasar a |
+|---|---|
+| Abierto | En proceso, Pendiente, Resuelto* |
+| En proceso | Pendiente, Resuelto* |
+| Pendiente | En proceso, Resuelto* |
+| Escalado | En proceso (vuelve del Administrador, TDSI-65) |
+| Resuelto | Cerrado, En proceso (reabrir) |
+| Cerrado | — (estado final) |
+
+\* Resuelto exige que el ticket ya tenga la solución aplicada. Escalado no se elige a mano. Las reglas están en `src/domain/transicionesEstado.js`.
 
 ### Credenciales para Gestión de pagos (TDSI-1066)
 

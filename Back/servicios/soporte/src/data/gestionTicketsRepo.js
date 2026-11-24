@@ -44,4 +44,54 @@ async function cambiarCampo(numero, campo, valor, usuario) {
   });
 }
 
-module.exports = { obtener, cambiarCampo, COLUMNAS_DETALLE };
+/**
+ * TDSI-693: cambia el estado con la fila bloqueada. validar({ actual, tieneSolucion }) lanza
+ * un error si no se permite. Marca resuelto_en / cerrado_en y lo deja en el historial.
+ * Devuelve null si el ticket no existe.
+ */
+async function cambiarEstado(numero, nuevo, usuario, validar) {
+  return withTransaction(async (client) => {
+    const { rows } = await client.query(
+      `SELECT id, estado, solucion FROM soporte.incidentes WHERE numero = $1 FOR UPDATE`,
+      [numero]
+    );
+    const fila = rows[0];
+    if (!fila) return null;
+    validar({ actual: fila.estado, tieneSolucion: Boolean(fila.solucion) });
+
+    const { rows: actualizado } = await client.query(
+      `UPDATE soporte.incidentes
+          SET estado = $2::varchar,
+              actualizado_en = now(),
+              resuelto_en = CASE WHEN $2::varchar = 'Resuelto' THEN now()
+                                 WHEN $2::varchar IN ('En proceso','Pendiente','Abierto') THEN NULL
+                                 ELSE resuelto_en END,
+              cerrado_en  = CASE WHEN $2::varchar = 'Cerrado' THEN now() ELSE cerrado_en END
+        WHERE id = $1
+        RETURNING ${COLUMNAS_DETALLE}`,
+      [fila.id, nuevo]
+    );
+    await client.query(
+      `INSERT INTO soporte.incidentes_historial (incidente_id, campo, valor_anterior, valor_nuevo, usuario)
+       VALUES ($1, 'estado', $2, $3, $4)`,
+      [fila.id, fila.estado, nuevo, usuario]
+    );
+    return formatear(actualizado[0]);
+  });
+}
+
+/** TDSI-693: historial del ticket, del más antiguo al más nuevo. null si el ticket no existe. */
+async function historial(numero, { soloEstado = true } = {}) {
+  const { rows: ticket } = await query(`SELECT id FROM soporte.incidentes WHERE numero = $1`, [numero]);
+  if (!ticket[0]) return null;
+  const { rows } = await query(
+    `SELECT id, campo, valor_anterior, valor_nuevo, usuario, cambiado_en
+       FROM soporte.incidentes_historial
+      WHERE incidente_id = $1 AND ($2::boolean = false OR campo = 'estado')
+      ORDER BY cambiado_en, id`,
+    [ticket[0].id, soloEstado]
+  );
+  return rows.map((r) => ({ ...r, id: Number(r.id) }));
+}
+
+module.exports = { obtener, cambiarCampo, cambiarEstado, historial, COLUMNAS_DETALLE };

@@ -88,6 +88,25 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     )
   );
 
+  // TDSI-693: cambiar el estado (reglas de transición) y ver su historial
+  router.patch(
+    "/tickets/:numero/estado",
+    wrap(async (req, res) =>
+      res.json({
+        ok: true,
+        mensaje: "Estado actualizado",
+        data: await gestionTicketsService.cambiarEstado(req.params.numero, req.body, req.usuario),
+      })
+    )
+  );
+  router.get(
+    "/tickets/:numero/historial",
+    wrap(async (req, res) => {
+      const data = await gestionTicketsService.historialTicket(req.params.numero, req.query);
+      res.json({ ok: true, total: data.length, data });
+    })
+  );
+
   return router;
 }
 

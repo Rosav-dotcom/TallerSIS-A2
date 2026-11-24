@@ -1,5 +1,6 @@
 const { AppError } = require("../utils/AppError");
 const { TIPOS, PRIORIDADES, ESTADOS, texto, deLista } = require("./ticketsService");
+const { validarTransicion } = require("../domain/transicionesEstado");
 
 // TDSI-64: gestionar cada ticket (detalle, tipo, prioridad, estado, solución y comentarios).
 // Quien hace cada cambio sale de la sesión (req.usuario, TDSI-665), nunca del cuerpo del pedido.
@@ -53,6 +54,41 @@ function crearGestionTicketsService({ repo }) {
     /** TDSI-680: cambia la prioridad y registra el cambio (valor anterior, nuevo, usuario y hora). */
     cambiarPrioridad(numero, datos = {}, usuario = null) {
       return cambiar(numero, "prioridad", PRIORIDADES, datos.prioridad, usuario);
+    },
+
+    /** TDSI-693: cambia el estado siguiendo las reglas de transición y lo deja en el historial. */
+    async cambiarEstado(numero, datos = {}, usuario = null) {
+      const n = numeroValido(numero);
+      const nuevo = deLista(datos.estado, "estado", ESTADOS, { requerido: true });
+      const ticket = await repo.cambiarEstado(n, nuevo, quien(usuario), ({ actual, tieneSolucion }) => {
+        const error = validarTransicion({ actual, nuevo, tieneSolucion });
+        if (error) throw new AppError(error.mensaje, error.status, { estado_actual: actual, permitidos: error.permitidos });
+      });
+      if (!ticket) throw noExiste(n);
+      return ticket;
+    },
+
+    /**
+     * TDSI-693: historial del ticket, del más antiguo al más nuevo.
+     * Por defecto solo los cambios de estado: [{ id, estado_anterior, estado_nuevo, usuario, cambiado_en }].
+     * Con ?campo=todos también los de tipo y prioridad (con campo, valor_anterior y valor_nuevo).
+     */
+    async historialTicket(numero, consulta = {}) {
+      const n = numeroValido(numero);
+      const campo = texto(consulta.campo, "campo", { max: 10 });
+      if (campo && !["estado", "todos"].includes(campo)) throw new AppError("El parámetro 'campo' debe ser estado o todos.", 400);
+      const filas = await repo.historial(n, { soloEstado: campo !== "todos" });
+      if (!filas) throw noExiste(n);
+      return filas.map((f) => ({
+        id: f.id,
+        campo: f.campo,
+        valor_anterior: f.valor_anterior,
+        valor_nuevo: f.valor_nuevo,
+        estado_anterior: f.campo === "estado" ? f.valor_anterior : undefined,
+        estado_nuevo: f.campo === "estado" ? f.valor_nuevo : undefined,
+        usuario: f.usuario,
+        cambiado_en: f.cambiado_en,
+      }));
     },
   };
 }

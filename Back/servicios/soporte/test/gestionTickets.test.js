@@ -15,10 +15,23 @@ function repoFalso(inicial = {}) {
   const comentarios = [];
   return {
     ticket,
-    historial,
+    cambios: historial,
     comentarios,
     async obtener(numero) {
       return numero === ticket.numero ? { ...ticket } : null;
+    },
+    async cambiarEstado(numero, nuevo, usuario, validar) {
+      if (numero !== ticket.numero) return null;
+      validar({ actual: ticket.estado, tieneSolucion: Boolean(ticket.solucion) });
+      historial.push({ campo: "estado", valor_anterior: ticket.estado, valor_nuevo: nuevo, usuario });
+      ticket.estado = nuevo;
+      return { ...ticket };
+    },
+    async historial(numero, { soloEstado }) {
+      if (numero !== ticket.numero) return null;
+      return historial
+        .filter((h) => !soloEstado || h.campo === "estado")
+        .map((h, i) => ({ id: i + 1, cambiado_en: `2026-11-24T10:0${i}:00Z`, ...h }));
     },
     async cambiarCampo(numero, campo, valor, usuario) {
       if (numero !== ticket.numero) return null;
@@ -72,14 +85,14 @@ test("cambiar tipo: guarda el nuevo y lo registra con el usuario de la sesión (
   const repo = repoFalso();
   const t = await crearGestionTicketsService({ repo }).cambiarTipo("INC-000001", { tipo: "Acceso", usuario: "otro@x.bo" }, SESION);
   assert.equal(t.tipo, "Acceso");
-  assert.deepEqual(repo.historial, [{ campo: "tipo", valor_anterior: "Pagos", valor_nuevo: "Acceso", usuario: "soporte@tallersis.bo" }]);
+  assert.deepEqual(repo.cambios, [{ campo: "tipo", valor_anterior: "Pagos", valor_nuevo: "Acceso", usuario: "soporte@tallersis.bo" }]);
 });
 
 test("cambiar tipo: el mismo tipo no agrega historial; tipo inválido o faltante 400; sin sesión 401", async () => {
   const repo = repoFalso();
   const s = crearGestionTicketsService({ repo });
   await s.cambiarTipo("INC-000001", { tipo: "Pagos" }, SESION);
-  assert.equal(repo.historial.length, 0);
+  assert.equal(repo.cambios.length, 0);
   await assert.rejects(s.cambiarTipo("INC-000001", { tipo: "Hardware" }, SESION), (e) => e.status === 400);
   await assert.rejects(s.cambiarTipo("INC-000001", {}, SESION), (e) => e.status === 400);
   await assert.rejects(s.cambiarTipo("INC-000001", { tipo: "Otro" }, null), (e) => e.status === 401);
@@ -113,7 +126,7 @@ test("cambiar prioridad: guarda el cambio con valor anterior, nuevo y usuario", 
   const t = await s.cambiarPrioridad("INC-000001", { prioridad: "Critica" }, SESION);
   assert.equal(t.prioridad, "Critica");
   await s.cambiarPrioridad("INC-000001", { prioridad: "Alta" }, SESION);
-  assert.deepEqual(repo.historial, [
+  assert.deepEqual(repo.cambios, [
     { campo: "prioridad", valor_anterior: "Media", valor_nuevo: "Critica", usuario: "soporte@tallersis.bo" },
     { campo: "prioridad", valor_anterior: "Critica", valor_nuevo: "Alta", usuario: "soporte@tallersis.bo" },
   ]);
@@ -125,7 +138,7 @@ test("cambiar prioridad: valor inválido 400 (Crítica con tilde no es el valor 
   await assert.rejects(s.cambiarPrioridad("INC-000001", { prioridad: "Urgente" }, SESION), (e) => e.status === 400);
   await assert.rejects(s.cambiarPrioridad("INC-000001", { prioridad: "Crítica" }, SESION), (e) => e.status === 400);
   await s.cambiarPrioridad("INC-000001", { prioridad: "Media" }, SESION);
-  assert.equal(repo.historial.length, 0);
+  assert.equal(repo.cambios.length, 0);
 });
 
 test("ruta PATCH /tickets/:numero/prioridad", async () => {
@@ -135,6 +148,67 @@ test("ruta PATCH /tickets/:numero/prioridad", async () => {
     assert.equal(r.status, 200);
     assert.equal(r.cuerpo.data.prioridad, "Baja");
     assert.equal((await pedir("/tickets/INC-000001/prioridad", "PATCH", {})).status, 400);
+  } finally {
+    servidor.close();
+  }
+});
+
+// ---------------------------------------------------------------------------
+// TDSI-693: estado e historial
+// ---------------------------------------------------------------------------
+
+test("cambiar estado: sigue las reglas y deja cada cambio en el historial con usuario", async () => {
+  const repo = repoFalso();
+  const s = crearGestionTicketsService({ repo });
+  assert.equal((await s.cambiarEstado("INC-000001", { estado: "En proceso" }, SESION)).estado, "En proceso");
+  await s.cambiarEstado("INC-000001", { estado: "Pendiente" }, SESION);
+  const h = await s.historialTicket("INC-000001");
+  assert.deepEqual(h.map((x) => [x.estado_anterior, x.estado_nuevo, x.usuario]), [
+    ["Abierto", "En proceso", "soporte@tallersis.bo"],
+    ["En proceso", "Pendiente", "soporte@tallersis.bo"],
+  ]);
+  assert.ok(h[0].cambiado_en && h[0].id);
+});
+
+test("cambiar estado: no permitido 409 con los permitidos; Resuelto sin solución 409; estado inválido 400", async () => {
+  const s = crearGestionTicketsService({ repo: repoFalso() });
+  await assert.rejects(
+    s.cambiarEstado("INC-000001", { estado: "Cerrado" }, SESION),
+    (e) => e.status === 409 && e.detalle.estado_actual === "Abierto" && e.detalle.permitidos.includes("En proceso")
+  );
+  await assert.rejects(s.cambiarEstado("INC-000001", { estado: "Resuelto" }, SESION), (e) => e.status === 409 && /solución/.test(e.message));
+  await assert.rejects(s.cambiarEstado("INC-000001", { estado: "Borrado" }, SESION), (e) => e.status === 400);
+  await assert.rejects(s.cambiarEstado("INC-000404", { estado: "Pendiente" }, SESION), (e) => e.status === 404);
+});
+
+test("cambiar estado: con solución registrada sí se puede pasar a Resuelto", async () => {
+  const s = crearGestionTicketsService({ repo: repoFalso({ estado: "En proceso", solucion: "Se corrigió el NIT" }) });
+  assert.equal((await s.cambiarEstado("INC-000001", { estado: "Resuelto" }, SESION)).estado, "Resuelto");
+});
+
+test("historial: por defecto solo estado; con campo=todos también tipo y prioridad; campo inválido 400", async () => {
+  const repo = repoFalso();
+  const s = crearGestionTicketsService({ repo });
+  await s.cambiarTipo("INC-000001", { tipo: "Acceso" }, SESION);
+  await s.cambiarEstado("INC-000001", { estado: "En proceso" }, SESION);
+  assert.equal((await s.historialTicket("INC-000001")).length, 1);
+  const todos = await s.historialTicket("INC-000001", { campo: "todos" });
+  assert.deepEqual(todos.map((x) => x.campo), ["tipo", "estado"]);
+  assert.equal(todos[0].estado_nuevo, undefined);
+  await assert.rejects(s.historialTicket("INC-000001", { campo: "otro" }), (e) => e.status === 400);
+  await assert.rejects(s.historialTicket("INC-000404"), (e) => e.status === 404);
+});
+
+test("rutas PATCH /estado y GET /historial", async () => {
+  const { servidor, pedir } = await levantar(crearGestionTicketsService({ repo: repoFalso() }));
+  try {
+    const r = await pedir("/tickets/INC-000001/estado", "PATCH", { estado: "En proceso" });
+    assert.equal(r.status, 200);
+    assert.equal(r.cuerpo.data.estado, "En proceso");
+    assert.equal((await pedir("/tickets/INC-000001/estado", "PATCH", { estado: "Abierto" })).status, 409);
+    const h = await pedir("/tickets/INC-000001/historial");
+    assert.equal(h.cuerpo.total, 1);
+    assert.equal(h.cuerpo.data[0].estado_nuevo, "En proceso");
   } finally {
     servidor.close();
   }
