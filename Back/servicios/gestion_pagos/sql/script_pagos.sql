@@ -593,6 +593,37 @@ WHERE NOT EXISTS (SELECT 1 FROM pagos.tipo_cambio);
 ALTER TABLE pagos.tipo_cambio ENABLE ROW LEVEL SECURITY;
 
 -- ==========================================================================
+-- TDSI-75/227: vales de compra (saldo a favor) con codigo unico y vencimiento.
+-- Acuerdo de equipo (un dato, un dueño): es la UNICA tabla de vales del
+-- sistema. Devoluciones no tiene la suya (devoluciones.vales_compra se retira
+-- en TDSI-217): solo guarda el codigo del vale como referencia.
+--   codigo      VAL-XXXX-XXXX, unico (lo genera gestion_pagos, TDSI-1032)
+--   monto       valor con el que se emitio; saldo = lo que queda por usar
+--   expira_en   ultimo dia en que se puede usar (dia de Bolivia, incluido)
+--   estado      Activo -> Usado (saldo 0) | Expirado (vencido, TDSI-1109)
+-- ==========================================================================
+CREATE TABLE IF NOT EXISTS pagos.vales_compra (
+    id              BIGSERIAL PRIMARY KEY,
+    codigo          VARCHAR(20)   NOT NULL UNIQUE,
+    monto           NUMERIC(14,2) NOT NULL CHECK (monto > 0),
+    saldo           NUMERIC(14,2) NOT NULL CHECK (saldo >= 0),
+    emitido_en      TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    expira_en       DATE          NOT NULL,
+    estado          VARCHAR(20)   NOT NULL DEFAULT 'Activo'
+                    CHECK (estado IN ('Activo','Usado','Expirado')),
+    devolucion_id   VARCHAR(60),               -- devolucion del Equipo 1 que lo genero
+    emitido_por     VARCHAR(100)  NOT NULL,
+    actualizado_en  TIMESTAMPTZ   NOT NULL DEFAULT now(),
+    CONSTRAINT vale_saldo_hasta_monto CHECK (saldo <= monto),
+    CONSTRAINT vale_usado_sin_saldo   CHECK (estado <> 'Usado' OR saldo = 0),
+    CONSTRAINT vale_expira_despues    CHECK (expira_en >= (emitido_en AT TIME ZONE 'America/La_Paz')::date)
+);
+CREATE INDEX IF NOT EXISTS idx_vales_compra_estado     ON pagos.vales_compra (estado, expira_en);
+CREATE INDEX IF NOT EXISTS idx_vales_compra_devolucion ON pagos.vales_compra (devolucion_id);
+
+ALTER TABLE pagos.vales_compra ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================================================
 -- TDSI-42/813: faltaba guardar con que moneda pago el cliente cuando elige
 -- "Efectivo en dolares" -- el endpoint de calcular-vuelto (TDSI-812) y la
 -- leyenda del PDF (TDSI-814) ya existian, pero la venta nunca guardaba estos

@@ -664,3 +664,7 @@ http://localhost:4005
 | `POST` | `/api/clientes`                    | Registra o actualiza un cliente        |
 | `GET`  | `/api/pagos/historial-cajeros`     | Historial de operaciones de cajeros con resumen por cajero y por día |
 | `GET`  | `/api/pagos/metodos`               | Monitoreo por método de pago (cantidad, monto, porcentaje y mixtos desglosados) |
+
+# Vales de compra (TDSI-75)
+
+Tabla `pagos.vales_compra` (TDSI-227): código único `VAL-XXXX-XXXX`, monto, saldo, fecha de emisión y de expiración, estado (`Activo`, `Usado`, `Expirado`) y la devolución que lo generó. Es la única tabla de vales del sistema: Devoluciones solo guarda el código.
