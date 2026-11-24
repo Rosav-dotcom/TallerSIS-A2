@@ -1,5 +1,7 @@
 import { Alerta, AreaTexto, Boton, Modal, Selector } from '../../components/ui'
-import { PRIORIDADES, TIPOS, useRegistrarIncidente } from './useRegistrarIncidente.js'
+import SelectorTipo from './SelectorTipo.jsx'
+import { PRIORIDADES } from './catalogos.js'
+import { useRegistrarIncidente } from './useRegistrarIncidente.js'
 
 const ID_FORMULARIO = 'sop-incidente'
 
@@ -26,13 +28,7 @@ function RegistrarIncidenteModal({ resultado, registradoPor, onCerrar, onRegistr
         <p className="sop-nota">
           Referencia: {f.referencia.referencia_tipo === 'factura' ? 'factura' : 'pago'} {f.referencia.referencia}
         </p>
-        <Selector etiqueta="Tipo" value={f.tipo} onChange={(e) => f.setTipo(e.target.value)}>
-          {TIPOS.map((t) => (
-            <option key={t.valor} value={t.valor}>
-              {t.texto}
-            </option>
-          ))}
-        </Selector>
+        <SelectorTipo value={f.tipo} onCambiar={f.setTipo} />
         <Selector etiqueta="Prioridad" value={f.prioridad} onChange={(e) => f.setPrioridad(e.target.value)}>
           {PRIORIDADES.map((p) => (
             <option key={p.valor} value={p.valor}>

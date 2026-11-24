@@ -2,21 +2,6 @@ import { useState } from 'react'
 import { registrarIncidente } from './api.js'
 import { mensajeDeError } from './consultas.js'
 
-// Valores de la tabla soporte.incidentes (TDSI-971).
-export const TIPOS = [
-  { valor: 'Facturacion', texto: 'Facturación' },
-  { valor: 'Pagos', texto: 'Pagos' },
-  { valor: 'Acceso', texto: 'Acceso' },
-  { valor: 'Error del sistema', texto: 'Error del sistema' },
-  { valor: 'Otro', texto: 'Otro' },
-]
-export const PRIORIDADES = [
-  { valor: 'Baja', texto: 'Baja' },
-  { valor: 'Media', texto: 'Media' },
-  { valor: 'Alta', texto: 'Alta' },
-  { valor: 'Critica', texto: 'Crítica' },
-]
-
 function referenciaDe({ factura, transaccion }) {
   return factura
     ? { referencia_tipo: 'factura', referencia: factura.numero }

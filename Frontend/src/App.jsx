@@ -12,7 +12,7 @@ import CierreCaja from './pages/CierreCaja.jsx'
 import VerificarFactura from './pages/VerificarFactura.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useAdminAuth } from './context/AdminAuthContext.jsx'
-import { Soporte, SOPORTE_ACTIVO } from './modules/soporte'
+import { DETALLE_ACTIVO, Soporte, SOPORTE_ACTIVO, SoporteIncidente } from './modules/soporte'
 import CierreDiario from './pages/CierreDiario.jsx'
 import HistorialOperaciones from './pages/HistorialOperaciones.jsx'
 import MetasVenta from './pages/MetasVenta.jsx'
@@ -49,6 +49,7 @@ function App() {
       <main className={esPantallaLogin || esPaginaPublica ? undefined : esSeccionAdmin ? 'container container-ancho con-barra-lateral' : 'container'}>
         <Routes>
           {SOPORTE_ACTIVO && <Route path="/soporte" element={<Soporte />} />}
+          {DETALLE_ACTIVO && <Route path="/soporte/incidentes/:numero" element={<SoporteIncidente />} />}
           <Route path="/login" element={<Login />} />
           <Route path="/facturas/verificar/:token" element={<VerificarFactura />} />
 

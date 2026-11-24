@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import {
   Aviso,
@@ -72,7 +73,10 @@ function BuscarFacturaOPago() {
 
       {registrado && (
         <Aviso tono="exito" titulo="Incidente registrado" onCerrar={() => setRegistrado(null)}>
-          {registrado.numero && `Se guardó con el número ${registrado.numero}.`}
+          {registrado.numero && `Se guardó con el número ${registrado.numero}. `}
+          {registrado.numero && FEATURES.soporteDetalle && (
+            <Link to={`/soporte/incidentes/${encodeURIComponent(registrado.numero)}`}>Ver detalle</Link>
+          )}
         </Aviso>
       )}
 

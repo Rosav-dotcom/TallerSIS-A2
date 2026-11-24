@@ -5,5 +5,6 @@ export const FEATURES = {
   devoluciones: false, // TDSI-68 a TDSI-82 (Equipo 1)
   soporte: false, // TDSI-63 a TDSI-67 (Equipo 2)
   soporteIncidentes: false, // "Registrar incidente" de TDSI-63: espera POST /api/soporte/tickets (TDSI-668)
+  soporteDetalle: false, // Detalle del incidente (TDSI-64): espera TDSI-205, 677, 680, 693 y 968
   tableroKpis: false, // TDSI-639 y TDSI-640
 }
