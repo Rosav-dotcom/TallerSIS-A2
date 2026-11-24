@@ -17,6 +17,7 @@ function aResumen(d) {
     estado: d.estado,
     monto_total: num(d.monto_total),
     motivo: d.motivo_nombre ?? null, // TDSI-71/1103
+    motivo_rechazo: d.motivo_rechazo ?? null, // TDSI-78/1117: chip RECHAZADA y su motivo en la lista
   };
 }
 
@@ -50,6 +51,10 @@ function aDetalle(d) {
     monto_total: num(d.monto_total),
     estado: d.estado,
     motivo_rechazo: d.motivo_rechazo,
+    // TDSI-78/1117: bloque "Motivo del rechazo" del detalle (null si no esta rechazada)
+    rechazo: d.estado === "RECHAZADA"
+      ? { motivo: d.motivo_rechazo, usuario: d.rechazado_por ?? null, fecha: d.rechazado_en ?? null }
+      : null,
     requiere_autorizacion: d.requiere_autorizacion,
     autorizado_por: d.autorizado_por,
     autorizado_en: d.autorizado_en,

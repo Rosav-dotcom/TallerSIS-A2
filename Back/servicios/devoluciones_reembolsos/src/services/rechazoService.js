@@ -68,7 +68,8 @@ async function rechazarDevolucion(codigo, body) {
   const normalizado = normalizarCodigo(codigo);
   const fila = normalizado
     ? await devolucionesRepo.cambiarEstado(normalizado, "RECHAZADA", {
-        usuario, extra: { motivo_rechazo: motivo }, validar: verificarRechazable,
+        // TDSI-78/1117: el historial guarda quien, cuando (lo pone la BD) y el motivo
+        usuario, comentario: motivo, extra: { motivo_rechazo: motivo }, validar: verificarRechazable,
       })
     : null;
   if (!fila) throw new AppError(NO_ENCONTRADA, 404, { codigo });

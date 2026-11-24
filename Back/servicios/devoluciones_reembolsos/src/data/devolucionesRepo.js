@@ -81,14 +81,20 @@ async function registrar(facturaNumero, construir) {
   });
 }
 
-const RESUMEN = "d.codigo, d.factura_numero, d.cliente_nit, d.fecha_solicitud, d.tipo, d.estado, d.monto_total, m.nombre AS motivo_nombre";
+const RESUMEN = "d.codigo, d.factura_numero, d.cliente_nit, d.fecha_solicitud, d.tipo, d.estado, d.monto_total, m.nombre AS motivo_nombre, d.motivo_rechazo";
 
 /** TDSI-76/1112: la devolucion con ese codigo exacto (ya normalizado) y sus items; null si no existe. */
 async function buscarPorCodigo(codigo) {
   const { rows } = await query(
-    `SELECT d.*, m.nombre AS motivo_nombre
+    `SELECT d.*, m.nombre AS motivo_nombre, r.cambiado_por AS rechazado_por, r.cambiado_en AS rechazado_en
        FROM devoluciones.devoluciones d
        LEFT JOIN devoluciones.motivos m ON m.id = d.motivo_id
+       -- TDSI-78/1117: quien y cuando la rechazo, del historial (el ultimo rechazo)
+       LEFT JOIN LATERAL (
+         SELECT h.cambiado_por, h.cambiado_en FROM devoluciones.historial_estados h
+          WHERE h.devolucion_id = d.id AND h.estado_nuevo = 'RECHAZADA'
+          ORDER BY h.cambiado_en DESC, h.id DESC LIMIT 1
+       ) r ON d.estado = 'RECHAZADA'
       WHERE d.codigo = $1`,
     [codigo]
   );
