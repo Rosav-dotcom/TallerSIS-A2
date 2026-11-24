@@ -20,4 +20,22 @@ async function obtenerDevolucionesDelDia(fecha) {
   return datos.data;
 }
 
-module.exports = { obtenerDevolucionesDelDia };
+/**
+ * TDSI-639/1130 (KPI-9): GET /api/devoluciones/reportes?desde=&hasta= (TDSI-82) -> devoluciones
+ * registradas en el periodo con su estado, tipo, motivo, monto y caja.
+ */
+async function obtenerReporteDevoluciones({ desde, hasta }) {
+  let respuesta;
+  try {
+    respuesta = await fetch(`${DEVOLUCIONES_URL}/api/devoluciones/reportes?${new URLSearchParams({ desde, hasta })}`);
+  } catch (e) {
+    throw new AppError("No se pudo consultar a Devoluciones en este momento. Intente de nuevo.", 502);
+  }
+  const datos = await respuesta.json().catch(() => null);
+  if (!respuesta.ok || !datos?.data) {
+    throw new AppError("Devoluciones no pudo responder el reporte del periodo.", 502, { status: respuesta.status });
+  }
+  return datos.data;
+}
+
+module.exports = { obtenerDevolucionesDelDia, obtenerReporteDevoluciones };
