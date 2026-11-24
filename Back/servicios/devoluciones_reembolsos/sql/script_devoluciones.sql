@@ -23,7 +23,7 @@ CREATE TABLE IF NOT EXISTS devoluciones.devoluciones (
     tipo                  VARCHAR(10)  NOT NULL CHECK (tipo IN ('TOTAL','PARCIAL')),  -- TDSI-70
     motivo_id             BIGINT       REFERENCES devoluciones.motivos(id),           -- TDSI-71
     observaciones         VARCHAR(300),
-    metodo_pago_original  VARCHAR(20)  NOT NULL,                 -- TDSI-72: define opciones de reembolso
+    metodo_pago_original  VARCHAR(60)  NOT NULL,                 -- TDSI-72: define opciones de reembolso ("Efectivo + QR")
     monto_total           NUMERIC(14,2) NOT NULL CHECK (monto_total > 0),
     estado                VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE'
                            CHECK (estado IN ('PENDIENTE','APROBADA','RECHAZADA','PROCESADA')),  -- TDSI-78
@@ -41,8 +41,12 @@ CREATE INDEX IF NOT EXISTS idx_devoluciones_fecha    ON devoluciones.devolucione
 CREATE TABLE IF NOT EXISTS devoluciones.devolucion_items (
     id              BIGSERIAL PRIMARY KEY,
     devolucion_id   BIGINT NOT NULL REFERENCES devoluciones.devoluciones(id) ON DELETE CASCADE,
+    factura_item_id BIGINT,                                       -- TDSI-217: facturacion.factura_items.id
+    codigo_producto VARCHAR(60),                                  -- TDSI-217: para Inventario (TDSI-77)
     descripcion     VARCHAR(200) NOT NULL,
     cantidad        NUMERIC(10,2) NOT NULL CHECK (cantidad > 0),
+    condicion       VARCHAR(10)  NOT NULL DEFAULT 'REINGRESO'
+                     CHECK (condicion IN ('REINGRESO','MERMA')),  -- TDSI-217/77: vuelve al stock o se da de baja
     precio_unitario NUMERIC(14,2) NOT NULL,
     subtotal        NUMERIC(14,2) NOT NULL
 );
@@ -61,20 +65,11 @@ CREATE TABLE IF NOT EXISTS devoluciones.historial_estados (
 CREATE TABLE IF NOT EXISTS devoluciones.reembolsos (
     id                  BIGSERIAL PRIMARY KEY,
     devolucion_id       BIGINT NOT NULL REFERENCES devoluciones.devoluciones(id) ON DELETE CASCADE,
-    tipo                VARCHAR(20)  NOT NULL CHECK (tipo IN ('EFECTIVO','REVERSION_TARJETA','REVERSION_QR')),
+    tipo                VARCHAR(20)  NOT NULL CHECK (tipo IN ('EFECTIVO','REVERSION_TARJETA','REVERSION_QR','VALE')),
+    referencia          VARCHAR(60),   -- TDSI-217: reversion_id o vale_codigo que devuelve gestion_pagos
     monto               NUMERIC(14,2) NOT NULL CHECK (monto > 0),
     estado              VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE','PROCESADO','ERROR')),
     procesado_en        TIMESTAMPTZ
-);
-
--- TDSI-74: envio de anulacion/reversion a la pasarela de pagos (con reintentos)
-CREATE TABLE IF NOT EXISTS devoluciones.envios_pasarela (
-    id              BIGSERIAL PRIMARY KEY,
-    reembolso_id    BIGINT NOT NULL REFERENCES devoluciones.reembolsos(id) ON DELETE CASCADE,
-    pasarela        VARCHAR(60),
-    estado          VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE','ENVIADO','ERROR')),
-    intentos        INT NOT NULL DEFAULT 0,
-    enviado_en      TIMESTAMPTZ
 );
 
 -- TDSI-73/79: notas de credito electronicas
@@ -87,28 +82,6 @@ CREATE TABLE IF NOT EXISTS devoluciones.notas_credito (
     emitida_en      TIMESTAMPTZ  NOT NULL DEFAULT now(),
     enviada_por_correo BOOLEAN   NOT NULL DEFAULT false,          -- TDSI-79
     enviada_en      TIMESTAMPTZ
-);
-
--- TDSI-75: vales de compra / tarjetas de saldo digitales
-CREATE TABLE IF NOT EXISTS devoluciones.vales_compra (
-    id                BIGSERIAL PRIMARY KEY,
-    devolucion_id     BIGINT NOT NULL REFERENCES devoluciones.devoluciones(id) ON DELETE CASCADE,
-    codigo            VARCHAR(30)  NOT NULL UNIQUE,
-    monto             NUMERIC(14,2) NOT NULL CHECK (monto > 0),
-    saldo_disponible  NUMERIC(14,2) NOT NULL,
-    estado            VARCHAR(20)  NOT NULL DEFAULT 'ACTIVO' CHECK (estado IN ('ACTIVO','USADO','EXPIRADO')),
-    emitido_en        TIMESTAMPTZ  NOT NULL DEFAULT now(),
-    expira_en         TIMESTAMPTZ
-);
-
--- TDSI-79: envio de comprobante digital (nota de credito o reembolso) por correo
-CREATE TABLE IF NOT EXISTS devoluciones.envios_comprobante (
-    id              BIGSERIAL PRIMARY KEY,
-    devolucion_id   BIGINT NOT NULL REFERENCES devoluciones.devoluciones(id) ON DELETE CASCADE,
-    email_destino   VARCHAR(150),
-    tipo            VARCHAR(20)  NOT NULL CHECK (tipo IN ('NOTA_CREDITO','REEMBOLSO','VALE')),
-    estado          VARCHAR(20)  NOT NULL DEFAULT 'PENDIENTE' CHECK (estado IN ('PENDIENTE','ENVIADO','ERROR')),
-    enviado_en      TIMESTAMPTZ
 );
 
 -- TDSI-77: notificacion al subsistema de inventario
@@ -128,10 +101,7 @@ ALTER TABLE devoluciones.devoluciones               ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.devolucion_items           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.historial_estados          ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.reembolsos                 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE devoluciones.envios_pasarela            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.notas_credito              ENABLE ROW LEVEL SECURITY;
-ALTER TABLE devoluciones.vales_compra               ENABLE ROW LEVEL SECURITY;
-ALTER TABLE devoluciones.envios_comprobante         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE devoluciones.notificaciones_inventario  ENABLE ROW LEVEL SECURITY;
 -- ==========================================================================
 -- TDSI-76/229: codigo DEV-NNNNNN correlativo de cada devolucion
@@ -251,3 +221,56 @@ VALUES ('plazo_dias_habiles', '7',
         'Dias habiles (lunes a viernes) para devolver una compra, desde la emision de la factura',
         'SISTEMA')
 ON CONFLICT (clave) DO NOTHING;
+
+-- ==========================================================================
+-- TDSI-70/217: correcciones del esquema para el registro de devoluciones
+-- --------------------------------------------------------------------------
+-- Para las BD donde el script ya se corrio (en una nueva, el CREATE de arriba
+-- ya trae todo esto). Idempotente.
+-- - devolucion_items: item de la factura que se devuelve (para validar lo ya
+--   devuelto), codigo de producto (Inventario, TDSI-77) y condicion
+--   REINGRESO (vuelve al stock) o MERMA (se da de baja).
+-- - metodo_pago_original de 20 a 60: un pago mixto "Efectivo + Tarjeta + QR"
+--   no entraba.
+-- - reembolsos: opcion VALE y la referencia que devuelve gestion_pagos.
+-- - Acuerdo de equipo (un dato, un dueño): los vales, la reversion con
+--   tarjeta y el correo del comprobante los hace gestion_pagos (TDSI-74, 75 y
+--   79, contrato TDSI-1027). Devoluciones solo guarda la referencia
+--   (reembolsos.referencia y devoluciones.envio_comprobante_id), asi que se
+--   retiran vales_compra, envios_pasarela y envios_comprobante. Solo se
+--   borran si estan vacias; si tienen filas se avisa y se dejan.
+-- ==========================================================================
+ALTER TABLE devoluciones.devolucion_items
+  ADD COLUMN IF NOT EXISTS factura_item_id BIGINT,
+  ADD COLUMN IF NOT EXISTS codigo_producto VARCHAR(60),
+  ADD COLUMN IF NOT EXISTS condicion       VARCHAR(10) NOT NULL DEFAULT 'REINGRESO';
+ALTER TABLE devoluciones.devolucion_items DROP CONSTRAINT IF EXISTS devolucion_items_condicion_check;
+ALTER TABLE devoluciones.devolucion_items ADD CONSTRAINT devolucion_items_condicion_check
+  CHECK (condicion IN ('REINGRESO','MERMA'));
+CREATE INDEX IF NOT EXISTS idx_devolucion_items_factura_item ON devoluciones.devolucion_items (factura_item_id);
+
+ALTER TABLE devoluciones.devoluciones ALTER COLUMN metodo_pago_original TYPE VARCHAR(60);
+ALTER TABLE devoluciones.devoluciones ADD COLUMN IF NOT EXISTS envio_comprobante_id VARCHAR(60);
+
+ALTER TABLE devoluciones.reembolsos ADD COLUMN IF NOT EXISTS referencia VARCHAR(60);
+ALTER TABLE devoluciones.reembolsos DROP CONSTRAINT IF EXISTS reembolsos_tipo_check;
+ALTER TABLE devoluciones.reembolsos ADD CONSTRAINT reembolsos_tipo_check
+  CHECK (tipo IN ('EFECTIVO','REVERSION_TARJETA','REVERSION_QR','VALE'));
+
+DO $$
+DECLARE
+  tabla TEXT;
+  filas BIGINT;
+BEGIN
+  FOREACH tabla IN ARRAY ARRAY['envios_pasarela', 'vales_compra', 'envios_comprobante'] LOOP
+    IF to_regclass('devoluciones.' || tabla) IS NOT NULL THEN
+      EXECUTE format('SELECT count(*) FROM devoluciones.%I', tabla) INTO filas;
+      IF filas = 0 THEN
+        EXECUTE format('DROP TABLE devoluciones.%I', tabla);
+      ELSE
+        RAISE NOTICE 'devoluciones.% tiene % filas: no se borra (pasar los datos a gestion_pagos)', tabla, filas;
+      END IF;
+    END IF;
+  END LOOP;
+END;
+$$;
