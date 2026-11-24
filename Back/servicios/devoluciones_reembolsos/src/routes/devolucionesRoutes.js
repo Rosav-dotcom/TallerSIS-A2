@@ -5,6 +5,7 @@ const {
 const { registrarDevolucion } = require("../services/registroService");
 const { rechazarDevolucion } = require("../services/rechazoService");
 const { emitirNotaCreditoDeDevolucion } = require("../services/notaCreditoService");
+const { procesarDevolucion } = require("../services/procesoService");
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
@@ -40,6 +41,12 @@ router.post("/:codigo/rechazo", wrap(async (req, res) => {
 router.post("/:codigo/nota-credito", wrap(async (req, res) => {
   const nota = await emitirNotaCreditoDeDevolucion(req.params.codigo, req.body);
   res.status(201).json({ ok: true, mensaje: `Nota de crédito ${nota.numero} emitida.`, data: nota });
+}));
+
+// TDSI-77/231: procesar la devolucion y avisar a Inventario. Cuerpo: { usuario }.
+router.post("/:codigo/procesar", wrap(async (req, res) => {
+  const devolucion = await procesarDevolucion(req.params.codigo, req.body);
+  res.json({ ok: true, mensaje: `Devolución ${devolucion.codigo} procesada.`, data: devolucion });
 }));
 
 // TDSI-81/1057: linea de tiempo (historial de estados con usuario y hora). Solo lectura.

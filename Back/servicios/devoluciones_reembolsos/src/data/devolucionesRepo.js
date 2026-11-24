@@ -1,4 +1,5 @@
 const { pool, query } = require("../config/db");
+const notificacionesInventarioRepo = require("./notificacionesInventarioRepo");
 
 // Columnas que el registro puede mandar. "codigo" NO esta: lo pone la BD (TDSI-76).
 const COLUMNAS_CABECERA = [
@@ -81,14 +82,17 @@ async function registrar(facturaNumero, construir) {
   });
 }
 
-const RESUMEN = "d.codigo, d.factura_numero, d.cliente_nit, d.fecha_solicitud, d.tipo, d.estado, d.monto_total, m.nombre AS motivo_nombre, d.motivo_rechazo";
+const RESUMEN = "d.codigo, d.factura_numero, d.cliente_nit, d.fecha_solicitud, d.tipo, d.estado, d.monto_total, m.nombre AS motivo_nombre, d.motivo_rechazo, ni.estado AS inv_estado";
 
 /** TDSI-76/1112: la devolucion con ese codigo exacto (ya normalizado) y sus items; null si no existe. */
 async function buscarPorCodigo(codigo) {
   const { rows } = await query(
     `SELECT d.*, m.nombre AS motivo_nombre, r.cambiado_por AS rechazado_por, r.cambiado_en AS rechazado_en,
             nc.numero AS nota_credito_numero, nc.monto AS nota_credito_monto, nc.estado AS nota_credito_estado,
-            nc.emitida_en AS nota_credito_emitida_en
+            nc.emitida_en AS nota_credito_emitida_en,
+            ni.estado AS inv_estado, ni.intentos AS inv_intentos, ni.version AS inv_version,
+            ni.ultimo_error AS inv_ultimo_error, ni.resultado_motivo AS inv_resultado_motivo,
+            ni.enviado_en AS inv_enviado_en, ni.resultado_en AS inv_resultado_en
        FROM devoluciones.devoluciones d
        LEFT JOIN devoluciones.motivos m ON m.id = d.motivo_id
        -- TDSI-78/1117: quien y cuando la rechazo, del historial (el ultimo rechazo)
@@ -102,6 +106,8 @@ async function buscarPorCodigo(codigo) {
          SELECT n.numero, n.monto, n.estado, n.emitida_en FROM devoluciones.notas_credito n
           WHERE n.devolucion_id = d.id ORDER BY (n.estado = 'EMITIDA') DESC, n.id DESC LIMIT 1
        ) nc ON true
+       -- TDSI-77/231: aviso a Inventario (uno por devolucion)
+       LEFT JOIN devoluciones.notificaciones_inventario ni ON ni.devolucion_id = d.id
       WHERE d.codigo = $1`,
     [codigo]
   );
@@ -122,6 +128,7 @@ async function listar({ codigo = null, estado = null, desde = null, hasta = null
     `SELECT ${RESUMEN}
        FROM devoluciones.devoluciones d
        LEFT JOIN devoluciones.motivos m ON m.id = d.motivo_id
+       LEFT JOIN devoluciones.notificaciones_inventario ni ON ni.devolucion_id = d.id
       WHERE ($1::TEXT IS NULL OR d.codigo = $1)
         AND ($3::TEXT IS NULL OR d.estado = $3)
         AND ($4::TIMESTAMPTZ IS NULL OR d.fecha_solicitud >= $4)
@@ -203,4 +210,34 @@ async function registrarNotaCredito(codigo, emitir) {
   });
 }
 
-module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado, delPeriodo, registrarNotaCredito };
+/**
+ * TDSI-77/231: procesa la devolucion (-> PROCESADA) y guarda su aviso a Inventario en la MISMA
+ * transaccion (outbox): si despues Pub/Sub falla, el aviso no se pierde. Con la devolucion
+ * bloqueada: validar(fila) decide si se puede procesar y armarPayload(fila, items) arma el
+ * mensaje. El historial lo escribe la BD (TDSI-81). Devuelve { devolucion, notificacionId } o
+ * null si no existe.
+ */
+async function procesar(codigo, { usuario, validar, armarPayload }) {
+  return enTransaccion(async (cliente) => {
+    const actual = await cliente.query("SELECT * FROM devoluciones.devoluciones WHERE codigo = $1 FOR UPDATE", [codigo]);
+    if (!actual.rows[0]) return null;
+    await validar(actual.rows[0]);
+    const items = await cliente.query(
+      `SELECT ${COLUMNAS_ITEM} FROM devoluciones.devolucion_items WHERE devolucion_id = $1 ORDER BY id`,
+      [actual.rows[0].id]
+    );
+    await cliente.query(
+      "SELECT set_config('devoluciones.usuario', $1, true), set_config('devoluciones.comentario', $2, true)",
+      [usuario, "Devolución procesada · aviso a Inventario"]
+    );
+    const { rows } = await cliente.query(
+      "UPDATE devoluciones.devoluciones SET estado = 'PROCESADA' WHERE id = $1 RETURNING *",
+      [actual.rows[0].id]
+    );
+    const payload = armarPayload(rows[0], items.rows);
+    const notificacionId = await notificacionesInventarioRepo.crearEnTransaccion(cliente, { devolucionId: rows[0].id, payload });
+    return { devolucion: rows[0], notificacionId, payload };
+  });
+}
+
+module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado, delPeriodo, registrarNotaCredito, procesar };

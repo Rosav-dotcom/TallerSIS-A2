@@ -3,6 +3,7 @@ const { normalizarCodigo } = require("../utils/codigoDevolucion");
 const devolucionesRepo = require("../data/devolucionesRepo");
 const historialRepo = require("../data/historialRepo");
 const { OPCIONES } = require("./opcionesReembolsoService");
+const { estadoInventario } = require("./inventarioService");
 
 const NO_ENCONTRADA = "Devolución no encontrada";
 const num = (v) => (v === null || v === undefined ? null : Number(v));
@@ -18,6 +19,7 @@ function aResumen(d) {
     monto_total: num(d.monto_total),
     motivo: d.motivo_nombre ?? null, // TDSI-71/1103
     motivo_rechazo: d.motivo_rechazo ?? null, // TDSI-78/1117: chip RECHAZADA y su motivo en la lista
+    inventario: d.inv_estado ?? null, // TDSI-77: columna "Inventario" (null = todavia no se proceso)
   };
 }
 
@@ -59,6 +61,13 @@ function aDetalle(d) {
     requiere_autorizacion: d.requiere_autorizacion,
     autorizado_por: d.autorizado_por,
     autorizado_en: d.autorizado_en,
+    // TDSI-77/231: tarjeta "Aviso a Inventario" (null = todavia no se proceso)
+    inventario: d.inv_estado
+      ? estadoInventario({
+          estado: d.inv_estado, intentos: d.inv_intentos, version: d.inv_version, ultimo_error: d.inv_ultimo_error,
+          resultado_motivo: d.inv_resultado_motivo, enviado_en: d.inv_enviado_en, resultado_en: d.inv_resultado_en,
+        })
+      : null,
     // TDSI-73/1016: referencia a la nota de credito (el documento vive en Facturacion)
     nota_credito: d.nota_credito_numero
       ? {

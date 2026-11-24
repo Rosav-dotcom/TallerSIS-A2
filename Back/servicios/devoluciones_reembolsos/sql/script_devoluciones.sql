@@ -557,3 +557,37 @@ $$;
 -- ==========================================================================
 ALTER TABLE devoluciones.devoluciones ADD COLUMN IF NOT EXISTS caja_id VARCHAR(20);
 CREATE INDEX IF NOT EXISTS idx_devoluciones_fecha_caja ON devoluciones.devoluciones (fecha_solicitud, caja_id);
+
+-- ==========================================================================
+-- TDSI-77/231: aviso a Inventario (devolucion_stock)
+-- --------------------------------------------------------------------------
+-- devoluciones.notificaciones_inventario es la bandeja de salida (outbox) del
+-- aviso: se guarda en la misma transaccion en que la devolucion pasa a
+-- PROCESADA, y despues se publica en Pub/Sub. Si la publicacion falla, el
+-- aviso no se pierde: queda Pendiente y lo reintenta el worker (TDSI-1039).
+-- - Una devolucion tiene un solo aviso (UNIQUE): Inventario no recibe el
+--   mismo aviso dos veces. "version" sube en cada "Reenviar" (TDSI-1041) y
+--   forma el mensaje_id DEV-000123-<version> (clave de idempotencia).
+-- - Estados: PENDIENTE -> ENVIADO -> CONFIRMADO / RECHAZADO, o ERROR.
+-- Idempotente.
+-- ==========================================================================
+ALTER TABLE devoluciones.notificaciones_inventario
+  ADD COLUMN IF NOT EXISTS version             INT          NOT NULL DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS payload             JSONB,
+  ADD COLUMN IF NOT EXISTS intentos            INT          NOT NULL DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS ultimo_intento_en   TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS ultimo_error        VARCHAR(400),
+  ADD COLUMN IF NOT EXISTS proximo_intento_en  TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS pubsub_message_id   VARCHAR(100),
+  ADD COLUMN IF NOT EXISTS resultado_motivo    VARCHAR(400),
+  ADD COLUMN IF NOT EXISTS resultado_en        TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS creado_en           TIMESTAMPTZ  NOT NULL DEFAULT now();
+
+ALTER TABLE devoluciones.notificaciones_inventario DROP CONSTRAINT IF EXISTS notificaciones_inventario_estado_check;
+ALTER TABLE devoluciones.notificaciones_inventario ADD CONSTRAINT notificaciones_inventario_estado_check
+  CHECK (estado IN ('PENDIENTE','ENVIADO','CONFIRMADO','RECHAZADO','ERROR'));
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_notificacion_inventario_devolucion
+    ON devoluciones.notificaciones_inventario (devolucion_id);
+CREATE INDEX IF NOT EXISTS idx_notificaciones_inventario_pendientes
+    ON devoluciones.notificaciones_inventario (estado, proximo_intento_en);
