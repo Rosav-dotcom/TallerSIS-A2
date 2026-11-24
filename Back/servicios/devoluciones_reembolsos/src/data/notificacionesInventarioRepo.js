@@ -56,16 +56,56 @@ async function marcarEnviado(id, messageId) {
   return obtener(id);
 }
 
-/** El intento fallo: queda PENDIENTE con el error, para el siguiente intento. */
-async function registrarFallo(id, { error }) {
+/**
+ * TDSI-1039: el intento fallo. Si es reintentable y quedan intentos sigue PENDIENTE con espera
+ * creciente (base, base*2, base*4...); si no, o si ya se hicieron maxIntentos, queda en ERROR
+ * (con el boton "Reenviar", TDSI-1041).
+ */
+async function registrarFallo(id, { error, reintentable }, maxIntentos, backoffBaseSeg) {
   await query(
     `UPDATE devoluciones.notificaciones_inventario
-        SET intentos = intentos + 1, ultimo_intento_en = now(), ultimo_error = $2,
-            proximo_intento_en = now() + interval '30 seconds'
+        SET intentos = intentos + 1,
+            ultimo_intento_en = now(),
+            ultimo_error = $2,
+            estado = CASE WHEN NOT $3::boolean OR intentos + 1 >= $4::int THEN 'ERROR' ELSE 'PENDIENTE' END,
+            proximo_intento_en = CASE WHEN NOT $3::boolean OR intentos + 1 >= $4::int THEN NULL
+                                      ELSE now() + make_interval(secs => $5::int * power(2, intentos)) END
       WHERE id = $1`,
-    [id, String(error || "Error desconocido").slice(0, 400)]
+    [id, String(error || "Error desconocido").slice(0, 400), Boolean(reintentable), maxIntentos, backoffBaseSeg]
   );
   return obtener(id);
 }
 
-module.exports = { obtener, obtenerPorCodigo, crearEnTransaccion, marcarEnviado, registrarFallo };
+/** Deja el aviso PENDIENTE para mas tarde sin contar un intento (p. ej. sin topico configurado). */
+async function posponer(id, segundos, motivo) {
+  await query(
+    `UPDATE devoluciones.notificaciones_inventario
+        SET ultimo_error = $3, proximo_intento_en = now() + make_interval(secs => $2::int)
+      WHERE id = $1 AND estado = 'PENDIENTE'`,
+    [id, segundos, motivo]
+  );
+  return obtener(id);
+}
+
+/**
+ * TDSI-1039: toma los avisos PENDIENTES vencidos y los reserva 2 minutos (SKIP LOCKED: dos
+ * workers, o dos instancias del servicio, nunca toman el mismo aviso).
+ */
+async function tomarPendientes(limite = 10) {
+  const { rows } = await query(
+    `UPDATE devoluciones.notificaciones_inventario
+        SET proximo_intento_en = now() + interval '2 minutes'
+      WHERE id IN (
+        SELECT id FROM devoluciones.notificaciones_inventario
+         WHERE estado = 'PENDIENTE' AND proximo_intento_en <= now()
+         ORDER BY proximo_intento_en
+         LIMIT $1
+         FOR UPDATE SKIP LOCKED
+      )
+      RETURNING id`,
+    [limite]
+  );
+  return Promise.all(rows.map((r) => obtener(r.id, { conPayload: true })));
+}
+
+module.exports = { obtener, obtenerPorCodigo, crearEnTransaccion, marcarEnviado, registrarFallo, posponer, tomarPendientes };

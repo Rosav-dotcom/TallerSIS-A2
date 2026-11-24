@@ -1,5 +1,9 @@
 const repo = require("../data/notificacionesInventarioRepo");
 const { publicar } = require("../clients/pubsubPublisher");
+const cfg = require("../config/inventario");
+
+// Sin topico el aviso espera (sin gastar intentos) a que se configure.
+const SIN_TOPICO = "Inventario todavía no está configurado (INVENTARIO_PUBSUB_TOPIC): el aviso se enviará cuando se configure.";
 
 // TDSI-77: aviso a Inventario (Modulo de Gestion de Inventarios y Almacen) por Pub/Sub.
 const fechaBolivia = (v) => new Date(v).toLocaleDateString("en-CA", { timeZone: "America/La_Paz" });
@@ -33,8 +37,12 @@ function armarMensaje({ devolucion, items, version = 1, fecha = new Date() }) {
   };
 }
 
-/** Un intento de publicacion; deja registrado el resultado. */
+/**
+ * Un intento de publicacion; deja registrado el resultado. TDSI-1039: si falla, reintento con
+ * espera creciente hasta INVENTARIO_MAX_INTENTOS (5) y despues ERROR.
+ */
 async function intentarEnvio(notificacion) {
+  if (!cfg.PUBSUB_TOPIC) return repo.posponer(notificacion.id, cfg.BACKOFF_BASE_SEG, SIN_TOPICO);
   const payload = notificacion.payload || (await repo.obtener(notificacion.id, { conPayload: true })).payload;
   const r = await publicar(payload, {
     tipo: "DEVOLUCION_STOCK",
@@ -44,7 +52,7 @@ async function intentarEnvio(notificacion) {
     grupo: "A",
   });
   if (r.ok) return repo.marcarEnviado(notificacion.id, r.messageId);
-  return repo.registrarFallo(notificacion.id, r);
+  return repo.registrarFallo(notificacion.id, r, cfg.MAX_INTENTOS, cfg.BACKOFF_BASE_SEG);
 }
 
 /**
@@ -80,4 +88,4 @@ function estadoInventario(n) {
   };
 }
 
-module.exports = { armarMensaje, mensajeId, intentarEnvio, enviarSeguro, estadoInventario };
+module.exports = { armarMensaje, mensajeId, intentarEnvio, enviarSeguro, estadoInventario, SIN_TOPICO };
