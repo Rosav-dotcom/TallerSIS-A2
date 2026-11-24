@@ -21,6 +21,7 @@ classDiagram
         +GET / ?q
         +GET /:numero
         +GET /:numero/plazo
+        +GET /:numero/opciones-reembolso
     }
     class ConfiguracionRoutes {
         <<router /api/devoluciones/configuracion>>
@@ -47,6 +48,11 @@ classDiagram
         +obtenerPlazo(numero) Plazo
         +facturaDisponible(numero) Factura
     }
+    class OpcionesReembolsoService {
+        +OPCIONES : Efectivo, Reversión electrónica, Vale
+        +calcularOpciones(metodos, reglas) Opcion[]
+        +opcionesDeFactura(factura) OpcionesReembolso
+    }
     class PlazoService {
         +plazoDeComprobante(fechaEmision, plazoDias, hoy) Plazo
     }
@@ -65,6 +71,9 @@ classDiagram
     }
     class ConfiguracionRepo {
         +obtener(clave) Configuracion
+    }
+    class ReglasReembolsoRepo {
+        +reglasDe(metodos) ReglaReembolso[]
     }
     class MotivosRepo {
         +listarActivos() Motivo[]
@@ -118,6 +127,9 @@ classDiagram
     RegistroService --> ComprobantesService : facturaDisponible
     RegistroService --> PlazoService
     RegistroService --> MotivosRepo : buscarActivo
+    RegistroService --> OpcionesReembolsoService : opcion permitida
+    ComprobantesService --> OpcionesReembolsoService
+    OpcionesReembolsoService --> ReglasReembolsoRepo
     RegistroService --> DevolucionesRepo : registrar
     RegistroService --> DevolucionesService : aDetalle
     DevolucionesService --> DevolucionesRepo
@@ -132,6 +144,7 @@ classDiagram
     DevolucionesRepo --> Db
     ConfiguracionRepo --> Db
     MotivosRepo --> Db
+    ReglasReembolsoRepo --> Db
     FacturacionClient ..> Facturacion : HTTP
 
     RegistroService ..> AppError : lanza
@@ -161,6 +174,7 @@ classDiagram
         +motivo_id : bigint
         +observaciones : string 300
         +metodo_pago_original : string
+        +opcion_reembolso : EFECTIVO, REVERSION_TARJETA o VALE
         +monto_total : numeric
         +estado : PENDIENTE, APROBADA, RECHAZADA o PROCESADA
         +motivo_rechazo : string
@@ -197,6 +211,13 @@ classDiagram
         +activo
         +orden
     }
+    class ReglaReembolso {
+        <<devoluciones.reglas_reembolso>>
+        +metodo_pago : Efectivo, Tarjeta o QR
+        +opcion : EFECTIVO, REVERSION_TARJETA o VALE
+        +permitido : boolean
+        +explicacion : texto del tooltip
+    }
     class HistorialEstado {
         <<devoluciones.historial_estados>>
         +estado_anterior
@@ -230,6 +251,7 @@ classDiagram
     Devolucion "1" *-- "0..*" NotificacionInventario : TDSI-77
     Devolucion "0..*" --> "0..1" Motivo : TDSI-71
     Correlativo ..> Devolucion : trigger trg_devoluciones_codigo
+    ReglaReembolso ..> Devolucion : opcion_reembolso permitida
 ```
 
 ## Reglas que viven en la base de datos
@@ -239,6 +261,7 @@ classDiagram
 | El código `DEV-NNNNNN` lo pone la BD al insertar, seguido y sin huecos | trigger `trg_devoluciones_codigo` + tabla `correlativos` (TDSI-229) |
 | El código es único, con formato fijo y no se puede editar | `UNIQUE`, `CHECK devoluciones_codigo_formato` y trigger `trg_devoluciones_codigo_inmutable` (TDSI-1111) |
 | El plazo es un entero de 1 a 60 | `CHECK configuracion_plazo_valido` (TDSI-1097) |
+| Una opción de reembolso bloqueada siempre explica por qué | `CHECK (permitido OR explicacion IS NOT NULL)` en `reglas_reembolso` (TDSI-221) |
 | Las observaciones tienen hasta 300 caracteres | `VARCHAR(300)`; el servicio responde 400 antes de llegar a la BD (TDSI-1009) |
 | No se devuelve dos veces la misma unidad | `DevolucionesRepo.registrar` bloquea la factura con `pg_advisory_xact_lock` mientras suma lo ya devuelto (TDSI-1001) |
 

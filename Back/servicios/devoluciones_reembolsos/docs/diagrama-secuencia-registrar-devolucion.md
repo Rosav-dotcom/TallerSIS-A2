@@ -2,7 +2,7 @@
 
 TDSI-1004 (historia TDSI-70). Qué pasa desde que el Encargado de Devoluciones busca el comprobante hasta que la devolución queda registrada con su código `DEV-NNNNNN`. Los nombres son los módulos reales de `devoluciones_reembolsos` (ver [diagrama-clases.md](diagrama-clases.md)).
 
-El motivo y las observaciones (TDSI-71) ya están en el flujo. La opción de reembolso (TDSI-72) y la autorización del supervisor sobre el límite (TDSI-80) se suman en sus historias.
+El motivo y las observaciones (TDSI-71) y la opción de reembolso (TDSI-72) ya están en el flujo. La autorización del supervisor sobre el límite (TDSI-80) se suma en su historia.
 
 ## 1. Buscar el comprobante y ver el plazo (paso 1 de "Nueva devolución")
 
@@ -38,7 +38,7 @@ sequenceDiagram
         CFG->>DB: SELECT valor FROM configuracion (plazo_dias_habiles)
         DB-->>CFG: 7
         PS-->>CS: dias_transcurridos, fecha_limite, dentro_de_plazo, aviso
-        CS-->>UI: 200 comprobante con items[].item_id y plazo
+        CS-->>UI: 200 comprobante con items[].item_id, plazo y opciones_reembolso (según reglas_reembolso)
     end
     UI-->>E: tarjeta del comprobante y "Todo en orden" / "Revisión pendiente"
 ```
@@ -61,8 +61,8 @@ sequenceDiagram
 
     UI->>MR: GET /api/devoluciones/motivos (paso 3)
     MR-->>UI: los 4 motivos activos
-    E->>UI: elige ítems, cantidades, condición, motivo y observaciones, y confirma
-    UI->>DR: POST /api/devoluciones {factura_numero, items[item_id, cantidad, condicion], motivo_id, observaciones}
+    E->>UI: elige ítems, cantidades, condición, motivo, observaciones y opción de reembolso, y confirma
+    UI->>DR: POST /api/devoluciones {factura_numero, items[...], motivo_id, observaciones, opcion_reembolso}
     DR->>RS: registrarDevolucion(body)
     RS->>RS: validarPedido(body)
     alt pedido inválido
@@ -81,6 +81,10 @@ sequenceDiagram
     RS->>PS: plazoDeComprobante(fecha)
     alt fuera de plazo
         RS-->>UI: 422 "La compra está fuera del plazo de devolución."
+    end
+    RS->>RS: opcionesDeFactura(factura) con reglas_reembolso
+    alt opción no permitida para ese pago
+        RS-->>UI: 422 con la explicación (p. ej. tarjeta -> no en efectivo)
     end
     RS->>REPO: registrar(factura_numero, construir)
     REPO->>DB: BEGIN
