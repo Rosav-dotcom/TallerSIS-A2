@@ -22,4 +22,9 @@ router.get("/caja/tiempo-autorizacion", wrap(async (req, res) => {
   res.json({ ok: true, data: await caja.tiempoAutorizacion(req.query) });
 }));
 
+// TDSI-644: KPI-7 Monto de diferencias de caja
+router.get("/caja/diferencias", wrap(async (req, res) => {
+  res.json({ ok: true, data: await caja.diferencias(req.query) });
+}));
+
 module.exports = router;

@@ -50,4 +50,30 @@ async function autorizacionesResueltas({ inicio, fin, caja_id: cajaId = null, ca
   return rows;
 }
 
-module.exports = { arqueoPorCajero, autorizacionesResueltas };
+/**
+ * TDSI-644 (KPI-7): diferencias de caja (caja.diferencias_resolucion, TDSI-32) de los turnos
+ * cerrados en el periodo, por caja: monto faltante y sobrante (el monto se guarda con signo,
+ * por eso ABS), cuantas se registraron, cuantas estan resueltas y cuantas siguen pendientes.
+ */
+async function diferenciasPorCaja({ inicio, fin, caja_id: cajaId = null, cajero_id: cajeroId = null }) {
+  const { rows } = await query(
+    `SELECT t.caja_id,
+            COALESCE(SUM(ABS(d.monto)) FILTER (WHERE d.tipo = 'FALTANTE'), 0)::float AS faltante,
+            COALESCE(SUM(ABS(d.monto)) FILTER (WHERE d.tipo = 'SOBRANTE'), 0)::float AS sobrante,
+            COUNT(*) FILTER (WHERE d.tipo = 'FALTANTE')::int AS faltantes,
+            COUNT(*) FILTER (WHERE d.tipo = 'SOBRANTE')::int AS sobrantes,
+            COUNT(*)::int AS registradas,
+            COUNT(*) FILTER (WHERE d.estado = 'RESUELTA')::int AS resueltas
+       FROM caja.diferencias_resolucion d
+       JOIN caja.turnos t ON t.id = d.turno_id
+      WHERE t.cerrado_en >= $1 AND t.cerrado_en <= $2
+        AND ($3::TEXT IS NULL OR t.caja_id = $3)
+        AND ($4::TEXT IS NULL OR t.cajero_id = $4)
+      GROUP BY t.caja_id
+      ORDER BY t.caja_id`,
+    [inicio, fin, cajaId, cajeroId]
+  );
+  return rows;
+}
+
+module.exports = { arqueoPorCajero, autorizacionesResueltas, diferenciasPorCaja };

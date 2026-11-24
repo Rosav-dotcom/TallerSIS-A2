@@ -1,6 +1,7 @@
 const kpisRepo = require("../data/kpisRepo");
 const {
-  validarFiltros, filtrosPublicos, semaforoMayorEsMejor, semaforoMenorEsMejor, porcentaje, plural, redondear, tarjeta,
+  validarFiltros, filtrosPublicos, semaforo, semaforoMayorEsMejor, semaforoMenorEsMejor, porcentaje, plural, redondear,
+  bs, tarjeta,
 } = require("./kpiComun");
 
 // TDSI-639: pestaña "Caja" del Tablero de KPIs (KPI-3, KPI-4 y KPI-7).
@@ -112,6 +113,73 @@ async function tiempoAutorizacion(query) {
   return { filtros: filtrosPublicos(filtros), kpi: await calcularTiempoAutorizacion(filtros) };
 }
 
+// ---------- KPI-7 Monto de diferencias de caja (TDSI-644) ----------
+const KPI7 = {
+  kpi: "KPI-7",
+  nombre: "Monto de diferencias de caja",
+  formula: "Faltante = Σ monto FALTANTE · Sobrante = Σ monto SOBRANTE · % resueltas = resueltas ÷ registradas × 100",
+  meta: "Meta: faltante ≤ Bs 100 por semana · Atención: Bs 100 – 300 · Fuera de meta: > Bs 300 o diferencias sin resolver",
+};
+const RANGOS_KPI7 = { meta: 100, atencion: 300 }; // Bs de faltante por semana
+
+/**
+ * Semaforo del KPI-7: cualquier diferencia sin resolver lo deja Fuera de meta; si no, el
+ * faltante por semana del periodo (faltante / semanas, una semana como minimo) contra Bs 100
+ * y Bs 300.
+ */
+function semaforoDiferencias({ faltante, pendientes, dias }) {
+  if (pendientes > 0) return semaforo("FUERA_DE_META");
+  return semaforoMenorEsMejor(faltante / Math.max(1, dias / 7), RANGOS_KPI7);
+}
+
+/**
+ * KPI-7: cuanto dinero esta en juego por diferencias de caja en el periodo: faltantes y
+ * sobrantes por separado, % resueltas y cuantas siguen pendientes (PA TDSI-648). El valor de
+ * la tarjeta es el faltante (Bs). Incluye el detalle por caja para el grafico "Diferencias por
+ * caja" (barras Faltante y Sobrante).
+ */
+async function calcularDiferencias(filtros) {
+  const filas = await kpisRepo.diferenciasPorCaja(filtros);
+  const suma = (campo) => filas.reduce((t, f) => t + f[campo], 0);
+  const faltante = redondear(suma("faltante"), 2);
+  const sobrante = redondear(suma("sobrante"), 2);
+  const registradas = suma("registradas");
+  const resueltas = suma("resueltas");
+  const pendientes = registradas - resueltas;
+  return tarjeta({
+    ...KPI7,
+    valor: faltante,
+    unidad: "Bs",
+    sem: semaforoDiferencias({ faltante, pendientes, dias: filtros.dias }),
+    detalle: `Sobrantes ${bs(sobrante)} · ${plural(pendientes, "pendiente", "pendientes")}`,
+    datos: {
+      faltante,
+      sobrante,
+      faltantes: suma("faltantes"),
+      sobrantes: suma("sobrantes"),
+      registradas,
+      resueltas,
+      pendientes,
+      porcentaje_resueltas: porcentaje(resueltas, registradas),
+      faltante_por_semana: redondear(faltante / Math.max(1, filtros.dias / 7), 2),
+    },
+    por_caja: filas.map((f) => ({
+      caja_id: f.caja_id,
+      faltante: redondear(f.faltante, 2),
+      sobrante: redondear(f.sobrante, 2),
+      registradas: f.registradas,
+      resueltas: f.resueltas,
+      pendientes: f.registradas - f.resueltas,
+    })),
+  });
+}
+
+/** GET /api/kpis/caja/diferencias */
+async function diferencias(query) {
+  const filtros = await validarFiltros(query);
+  return { filtros: filtrosPublicos(filtros), kpi: await calcularDiferencias(filtros) };
+}
+
 /** GET /api/kpis/caja/exactitud-arqueo */
 async function exactitudArqueo(query) {
   const filtros = await validarFiltros(query);
@@ -121,16 +189,18 @@ async function exactitudArqueo(query) {
 /** GET /api/kpis/caja: las tarjetas de la pestaña "Caja" con los mismos filtros. */
 async function pestanaCaja(query) {
   const filtros = await validarFiltros(query);
-  const [exactitud, autorizacion] = await Promise.all([
+  const [exactitud, autorizacion, difs] = await Promise.all([
     calcularExactitudArqueo(filtros),
     calcularTiempoAutorizacion(filtros),
+    calcularDiferencias(filtros),
   ]);
   return {
     filtros: filtrosPublicos(filtros),
-    kpis: { exactitud_arqueo: exactitud, tiempo_autorizacion: autorizacion },
+    kpis: { exactitud_arqueo: exactitud, tiempo_autorizacion: autorizacion, diferencias_caja: difs },
   };
 }
 
 module.exports = {
-  exactitudArqueo, tiempoAutorizacion, pestanaCaja, calcularExactitudArqueo, calcularTiempoAutorizacion, KPI3, KPI4,
+  exactitudArqueo, tiempoAutorizacion, diferencias, pestanaCaja,
+  calcularExactitudArqueo, calcularTiempoAutorizacion, calcularDiferencias, semaforoDiferencias, KPI3, KPI4, KPI7,
 };
