@@ -23,8 +23,33 @@ function validarPedido(body) {
   return { motivo, usuario };
 }
 
-/** Dentro de la transaccion, con la devolucion bloqueada: se puede rechazar? */
-async function verificarRechazable(devolucion) {
+const YA_PROCESADA = "No se puede rechazar una devolución ya procesada: el reembolso ya se emitió.";
+
+/**
+ * Dentro de la transaccion, con la devolucion bloqueada: se puede rechazar?
+ * TDSI-78/1116: no si ya fue procesada, ni si ya tiene un reembolso (en curso o emitido) o una
+ * nota de credito emitida. Un reembolso que fallo (ERROR) o una nota ANULADA no cuentan.
+ */
+async function verificarRechazable(devolucion, cliente) {
+  if (devolucion.estado === "PROCESADA") {
+    throw new AppError(YA_PROCESADA, 409, { codigo: devolucion.codigo, estado: devolucion.estado });
+  }
+  if (cliente) {
+    const { rows } = await cliente.query(
+      `SELECT
+         (SELECT count(*)::int FROM devoluciones.reembolsos WHERE devolucion_id = $1 AND estado <> 'ERROR') AS reembolsos,
+         (SELECT count(*)::int FROM devoluciones.notas_credito WHERE devolucion_id = $1 AND estado = 'EMITIDA') AS notas`,
+      [devolucion.id]
+    );
+    if (rows[0].reembolsos > 0) {
+      throw new AppError("No se puede rechazar: la devolución ya tiene un reembolso emitido o en curso.", 409,
+        { codigo: devolucion.codigo, reembolsos: rows[0].reembolsos });
+    }
+    if (rows[0].notas > 0) {
+      throw new AppError("No se puede rechazar: la devolución ya tiene una nota de crédito emitida.", 409,
+        { codigo: devolucion.codigo, notas_credito: rows[0].notas });
+    }
+  }
   if (!RECHAZABLES.includes(devolucion.estado)) {
     throw new AppError(
       `Solo se puede rechazar una devolución PENDIENTE o APROBADA (${devolucion.codigo} está ${devolucion.estado}).`,
@@ -50,4 +75,4 @@ async function rechazarDevolucion(codigo, body) {
   return obtenerDevolucion(fila.codigo);
 }
 
-module.exports = { rechazarDevolucion, verificarRechazable, SIN_MOTIVO, SIN_USUARIO, MAX_MOTIVO };
+module.exports = { rechazarDevolucion, verificarRechazable, SIN_MOTIVO, SIN_USUARIO, MAX_MOTIVO, YA_PROCESADA };

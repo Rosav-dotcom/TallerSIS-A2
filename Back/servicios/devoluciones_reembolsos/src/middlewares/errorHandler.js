@@ -4,6 +4,7 @@ const { AppError } = require("../utils/AppError");
 const ERRORES_BD = {
   DV001: { status: 409, mensaje: "El código de la devolución no se puede editar." }, // trigger trg_devoluciones_codigo_inmutable
   DV002: { status: 409, mensaje: "El historial de la devolución no se puede editar ni borrar." }, // TDSI-81/239
+  DV003: { status: 409, mensaje: "La devolución está RECHAZADA: no genera reembolso, nota de crédito ni aviso a Inventario." }, // TDSI-78/1116
   23505: { status: 409, mensaje: "Ya existe un registro con ese código." }, // UNIQUE
 };
 

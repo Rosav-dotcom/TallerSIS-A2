@@ -442,3 +442,49 @@ INSERT INTO devoluciones.historial_estados (devolucion_id, estado_anterior, esta
 SELECT d.id, NULL, d.estado, COALESCE(d.creado_por, 'sistema'), d.fecha_solicitud, 'Devolución registrada'
   FROM devoluciones.devoluciones d
  WHERE NOT EXISTS (SELECT 1 FROM devoluciones.historial_estados h WHERE h.devolucion_id = d.id);
+
+-- ==========================================================================
+-- TDSI-78/1116: una devolucion RECHAZADA no genera reembolso, nota de
+-- credito ni aviso a Inventario (PA TDSI-1050)
+-- --------------------------------------------------------------------------
+-- El microservicio ya no deja rechazar una devolucion procesada o con
+-- reembolso / nota de credito emitidos; esto cubre el otro lado: ninguna
+-- historia (TDSI-72/74, 73, 77) ni nadie desde la BD puede crearle un
+-- reembolso, una nota de credito o un aviso a Inventario a una devolucion
+-- RECHAZADA. Lee la devolucion con FOR SHARE: si en ese momento se la esta
+-- rechazando, espera y ve el estado final. Error SQLSTATE DV003 (409 en el
+-- microservicio). Idempotente.
+-- ==========================================================================
+CREATE OR REPLACE FUNCTION devoluciones.bloquear_si_rechazada()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  v_estado  TEXT;
+  v_codigo  TEXT;
+BEGIN
+  SELECT d.estado, d.codigo INTO v_estado, v_codigo
+    FROM devoluciones.devoluciones d WHERE d.id = NEW.devolucion_id FOR SHARE;
+  IF v_estado = 'RECHAZADA' THEN
+    RAISE EXCEPTION 'La devolucion % esta RECHAZADA: no genera reembolso, nota de credito ni aviso a Inventario (%)',
+      v_codigo, TG_TABLE_NAME USING ERRCODE = 'DV003';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_reembolsos_no_rechazada ON devoluciones.reembolsos;
+CREATE TRIGGER trg_reembolsos_no_rechazada
+  BEFORE INSERT ON devoluciones.reembolsos
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.bloquear_si_rechazada();
+
+DROP TRIGGER IF EXISTS trg_notas_credito_no_rechazada ON devoluciones.notas_credito;
+CREATE TRIGGER trg_notas_credito_no_rechazada
+  BEFORE INSERT ON devoluciones.notas_credito
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.bloquear_si_rechazada();
+
+DROP TRIGGER IF EXISTS trg_notificaciones_inventario_no_rechazada ON devoluciones.notificaciones_inventario;
+CREATE TRIGGER trg_notificaciones_inventario_no_rechazada
+  BEFORE INSERT ON devoluciones.notificaciones_inventario
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.bloquear_si_rechazada();
