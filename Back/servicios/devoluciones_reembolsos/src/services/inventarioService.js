@@ -83,9 +83,31 @@ function estadoInventario(n) {
     version: n.version,
     ultimo_error: n.ultimo_error ?? null,
     motivo_rechazo: n.estado === "RECHAZADO" ? n.resultado_motivo ?? null : null,
+    puede_reenviar: n.estado === "ERROR" || n.estado === "RECHAZADO", // TDSI-1041: boton "Reenviar"
     enviado_en: n.enviado_en ?? null,
     resultado_en: n.resultado_en ?? null,
   };
 }
 
-module.exports = { armarMensaje, mensajeId, intentarEnvio, enviarSeguro, estadoInventario, SIN_TOPICO };
+/**
+ * POST /api/devoluciones/:codigo/inventario/reenviar -- TDSI-77/1041: vuelve a enviar el aviso
+ * que quedo en ERROR (Pub/Sub fallo 5 veces) o RECHAZADO por Inventario, con una nueva version, y
+ * hace el primer intento enseguida (PA TDSI-1047). Devuelve el aviso actualizado.
+ */
+async function reenviar(codigo) {
+  const actual = await repo.obtenerPorCodigo(codigo);
+  if (!actual) {
+    throw Object.assign(new Error(`La devolución ${codigo} todavía no se procesó: no tiene aviso a Inventario.`), { status: 409 });
+  }
+  const preparado = await repo.prepararReenvio(actual.id);
+  if (!preparado) {
+    const ahora = await repo.obtener(actual.id);
+    throw Object.assign(
+      new Error(`Solo se reenvía un aviso en Error o Rechazado (el de ${codigo} está ${ahora.estado}).`),
+      { status: 409, detalle: { estado: ahora.estado } }
+    );
+  }
+  return intentarEnvio(preparado);
+}
+
+module.exports = { armarMensaje, mensajeId, intentarEnvio, enviarSeguro, estadoInventario, reenviar, SIN_TOPICO };

@@ -122,6 +122,28 @@ async function registrarAcuse({ id, estado, motivo }) {
   return obtener(id);
 }
 
+/**
+ * TDSI-1041: "Reenviar" un aviso en ERROR o RECHAZADO: misma fila, nueva version (el mensaje_id
+ * pasa a DEV-<codigo>-<version+1>, asi Inventario lo toma como un aviso nuevo y no como un
+ * duplicado), nuevo ciclo de intentos y sin el resultado anterior. Null si no estaba en ERROR ni
+ * RECHAZADO (dos clics a la vez: solo el primero reenvia).
+ */
+async function prepararReenvio(id) {
+  const { rows } = await query(
+    `UPDATE devoluciones.notificaciones_inventario n
+        SET estado = 'PENDIENTE', version = n.version + 1, intentos = 0, ultimo_error = NULL,
+            resultado_motivo = NULL, resultado_en = NULL, pubsub_message_id = NULL, enviado_en = NULL,
+            proximo_intento_en = now() + interval '2 minutes',
+            payload = jsonb_set(n.payload, '{mensaje_id}',
+                                to_jsonb((n.payload->>'referencia_externa') || '-' || (n.version + 1)))
+      WHERE n.id = $1 AND n.estado IN ('ERROR', 'RECHAZADO')
+      RETURNING n.id`,
+    [id]
+  );
+  return rows[0] ? obtener(id, { conPayload: true }) : null;
+}
+
 module.exports = {
   obtener, obtenerPorCodigo, crearEnTransaccion, marcarEnviado, registrarFallo, posponer, tomarPendientes, registrarAcuse,
+  prepararReenvio,
 };

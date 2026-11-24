@@ -6,6 +6,8 @@ const { registrarDevolucion } = require("../services/registroService");
 const { rechazarDevolucion } = require("../services/rechazoService");
 const { emitirNotaCreditoDeDevolucion } = require("../services/notaCreditoService");
 const { procesarDevolucion } = require("../services/procesoService");
+const { reenviar: reenviarAInventario } = require("../services/inventarioService");
+const { normalizarCodigo } = require("../utils/codigoDevolucion");
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
@@ -47,6 +49,15 @@ router.post("/:codigo/nota-credito", wrap(async (req, res) => {
 router.post("/:codigo/procesar", wrap(async (req, res) => {
   const devolucion = await procesarDevolucion(req.params.codigo, req.body);
   res.json({ ok: true, mensaje: `Devolución ${devolucion.codigo} procesada.`, data: devolucion });
+}));
+
+// TDSI-77/1041: "Reenviar" el aviso a Inventario (en Error o Rechazado). Responde el detalle.
+router.post("/:codigo/inventario/reenviar", wrap(async (req, res) => {
+  const codigo = normalizarCodigo(req.params.codigo);
+  const devolucion = await obtenerDevolucion(codigo || req.params.codigo); // 404 si no existe
+  await reenviarAInventario(devolucion.codigo);
+  const actualizada = await obtenerDevolucion(devolucion.codigo);
+  res.json({ ok: true, mensaje: `Aviso de ${devolucion.codigo} reenviado a Inventario.`, data: actualizada });
 }));
 
 // TDSI-81/1057: linea de tiempo (historial de estados con usuario y hora). Solo lectura.
