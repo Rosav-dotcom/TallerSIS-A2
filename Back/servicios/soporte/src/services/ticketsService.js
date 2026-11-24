@@ -168,4 +168,4 @@ function crearTicketsService({ repo }) {
   };
 }
 
-module.exports = { crearTicketsService, construirFiltros, TIPOS, PRIORIDADES, ESTADOS, REFERENCIAS, LIMITE_MAXIMO };
+module.exports = { crearTicketsService, construirFiltros, texto, deLista, TIPOS, PRIORIDADES, ESTADOS, REFERENCIAS, LIMITE_MAXIMO };

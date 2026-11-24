@@ -58,3 +58,19 @@ ALTER TABLE soporte.incidentes
 
 CREATE INDEX IF NOT EXISTS idx_incidentes_usuario_afectado
     ON soporte.incidentes (lower(usuario_afectado), creado_en DESC);
+
+-- --------------------------------------------------------------------------
+-- TDSI-64: historial de cambios de cada incidente (tipo, prioridad y estado),
+-- con quién lo hizo y cuándo. Lo llenan TDSI-677, TDSI-680, TDSI-693 y TDSI-205.
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS soporte.incidentes_historial (
+    id              BIGSERIAL PRIMARY KEY,
+    incidente_id    BIGINT       NOT NULL REFERENCES soporte.incidentes (id),
+    campo           VARCHAR(20)  NOT NULL CHECK (campo IN ('tipo','prioridad','estado')),
+    valor_anterior  VARCHAR(30),
+    valor_nuevo     VARCHAR(30)  NOT NULL,
+    usuario         VARCHAR(100) NOT NULL,
+    cambiado_en     TIMESTAMPTZ  NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_incidentes_historial_incidente
+    ON soporte.incidentes_historial (incidente_id, cambiado_en);

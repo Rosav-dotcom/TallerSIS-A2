@@ -3,7 +3,7 @@ const express = require("express");
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
 // Rutas del Usuario de Soporte. Todas son de solo lectura sobre otros servicios.
-function crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService }) {
+function crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService, gestionTicketsService }) {
   const router = express.Router();
 
   // TDSI-1064: consultar una factura (solo lectura, vía facturación)
@@ -55,6 +55,24 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     "/tickets",
     wrap(async (req, res) =>
       res.status(201).json({ ok: true, mensaje: "Ticket registrado", data: await ticketsService.crearTicket(req.body, req.usuario) })
+    )
+  );
+
+  // ---------- TDSI-64: gestionar cada ticket ----------
+  // TDSI-677: catálogo de tipos, prioridades y estados
+  router.get("/catalogos", (req, res) => res.json({ ok: true, data: gestionTicketsService.catalogos() }));
+
+  // TDSI-677: detalle de un ticket (va después de GET /tickets, que es la bandeja)
+  router.get(
+    "/tickets/:numero",
+    wrap(async (req, res) => res.json({ ok: true, data: await gestionTicketsService.obtenerTicket(req.params.numero) }))
+  );
+
+  // TDSI-677: cambiar el tipo
+  router.patch(
+    "/tickets/:numero/tipo",
+    wrap(async (req, res) =>
+      res.json({ ok: true, mensaje: "Tipo actualizado", data: await gestionTicketsService.cambiarTipo(req.params.numero, req.body, req.usuario) })
     )
   );
 

@@ -84,6 +84,9 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | POST | `/api/soporte/tickets` | Registra un ticket. Cuerpo: `tipo` (Facturacion, Pagos, Acceso, Error del sistema, Otro), `descripcion` (obligatoria, máx. 2000), `prioridad` (Baja, Media, Alta, Critica; por defecto Media), `usuario_afectado`, `referencia_tipo` (factura/transaccion) + `referencia` (van juntos). Nace en **Abierto** con número `INC-NNNNNN`; `registrado_por` es el usuario de la sesión. 201 con el ticket, 400 si falta algo. | TDSI-668 |
 | GET | `/api/soporte/historial?usuario=cajero1@tallersis.bo` | Historial de incidencias de un usuario afectado (mismo valor, sin distinguir mayúsculas), del más reciente al más antiguo: `numero`, `fecha`, `tipo`, `prioridad`, `estado`, `descripcion`, referencia, `solucion`, `resuelto_en`, `cerrado_en`. `resumen: { usuario, total, abiertos, resueltos, mostrados }` (máx. 200 filas). 400 sin `usuario`. | TDSI-209 |
 | GET | `/api/soporte/historial/usuarios?q=` | Usuarios que tienen incidentes (para el buscador): `usuario`, `cantidad`, `ultimo_en`; `q` filtra por parte del nombre o correo. | TDSI-209 |
+| GET | `/api/soporte/catalogos` | Tipos, prioridades y estados válidos (para los selectores). | TDSI-677 |
+| GET | `/api/soporte/tickets/:numero` | Detalle de un ticket (`INC-000123`) con su solución. 400 si el número es inválido, 404 si no existe. | TDSI-677 |
+| PATCH | `/api/soporte/tickets/:numero/tipo` | Cuerpo `{ tipo }`. Cambia el tipo y lo deja en el historial con el usuario de la sesión y la hora. Responde el ticket actualizado. | TDSI-677 |
 
 ### Qué compara (TDSI-972)
 
