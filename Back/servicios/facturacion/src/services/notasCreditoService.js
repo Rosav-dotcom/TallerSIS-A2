@@ -1,5 +1,6 @@
 const repo = require("../data/notasCreditoRepo");
 const { generarPdfNotaCredito } = require("./documentosService");
+const contabilidad = require("./contabilidadService");
 
 function err(mensaje, status = 400, detalle = null) {
   const e = new Error(mensaje);
@@ -139,7 +140,10 @@ async function emitirNotaCredito(body) {
     }
     throw e;
   }
-  return aPublica(await repo.obtener({ id }));
+  // TDSI-73/1018: se publica para Contabilidad; si falla, la nota igual queda emitida (reintentos).
+  // Devuelve { nota, contabilidad } (igual que POST /api/facturas responde la factura y su envio).
+  const envio = await contabilidad.enviarNotaCreditoSeguro(id);
+  return { nota: aPublica(await repo.obtener({ id })), contabilidad: envio };
 }
 
 /** GET /api/notas-credito/:numero -- TDSI-73/1016: la nota con su factura original e items. */

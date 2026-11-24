@@ -1,6 +1,7 @@
 const repo = require("../data/enviosContabilidadRepo");
 const { publicar } = require("../clients/pubsubPublisher");
 const cfg = require("../config/contabilidad");
+const notasCreditoRepo = require("../data/notasCreditoRepo");
 
 function err(mensaje, status = 400, detalle = null) {
   const e = new Error(mensaje);
@@ -9,7 +10,7 @@ function err(mensaje, status = 400, detalle = null) {
   return e;
 }
 
-const TIPOS = { venta: "FACTURA_VENTA", anulacion: "FACTURA_ANULACION" };
+const TIPOS = { venta: "FACTURA_VENTA", anulacion: "FACTURA_ANULACION", nota_credito: "NOTA_CREDITO" }; // TDSI-73/1018
 const ESTADOS = ["Pendiente", "Enviado", "Error"];
 const num = (v) => Math.round(Number(v || 0) * 100) / 100;
 
@@ -25,7 +26,28 @@ const MOTIVO_MINIMO = 10; // Contabilidad rechaza anulaciones con motivo mas cor
  *  - anulacion: tipo_operacion "anulacion_factura" y referencia propia ("ANU-" + numero; si se
  *    repitiera el numero de la venta lo tomarian como duplicado), apuntando a la venta original.
  */
-function armarMensaje({ factura, tipo, anulacion = null }) {
+function armarMensaje({ factura, tipo, anulacion = null, nota = null }) {
+  // TDSI-73/1018: nota de credito -- tipo_operacion "nota_credito" y referencia propia
+  // "NC-<numero>", apuntando a la venta original; monto y motivo de la nota.
+  if (tipo === "nota_credito") {
+    const fecha = fechaBolivia(nota.emitida_en);
+    return {
+      sistema_origen: "FACTURACION",
+      referencia_externa: nota.numero,
+      tipo_operacion: "nota_credito",
+      fecha_documento: fecha,
+      datos: {
+        fecha_documento: fecha,
+        id_documento_original: factura.numero,
+        tipo_documento_original: "venta",
+        nit_cliente: factura.cliente_nit ?? null,
+        nombre_cliente: factura.cliente_nombre || "Consumidor final",
+        monto: num(nota.monto),
+        motivo: String(nota.motivo || "").trim(),
+        modo_impuesto: "incluido",
+      },
+    };
+  }
   if (tipo === "anulacion") {
     return {
       sistema_origen: "FACTURACION",
@@ -65,7 +87,8 @@ function armarMensaje({ factura, tipo, anulacion = null }) {
  * Enviado, la anulacion espera (sin gastar intentos) y el worker la vuelve a revisar.
  */
 async function intentarEnvio(envio) {
-  if (envio.tipo === "anulacion") {
+  // TDSI-73/1018: la nota de credito tambien necesita que la venta ya este en Contabilidad
+  if (envio.tipo === "anulacion" || envio.tipo === "nota_credito") {
     const venta = await repo.obtenerPorFactura(envio.factura_id, "venta");
     if (!venta || venta.estado !== "Enviado") {
       return repo.posponer(envio.id, cfg.BACKOFF_BASE_SEG, "Esperando que la venta llegue a Contabilidad");
@@ -78,7 +101,9 @@ async function intentarEnvio(envio) {
     tipo_operacion: payload.tipo_operacion,
     factura_id: envio.factura_id,
     referencia_externa: payload.referencia_externa,
-    idempotency_key: `factura-${envio.factura_id}-${envio.tipo}`,
+    idempotency_key: envio.nota_credito_id
+      ? `nota-credito-${envio.nota_credito_id}` // TDSI-73/1018: una factura puede tener varias notas
+      : `factura-${envio.factura_id}-${envio.tipo}`,
     origen: "facturacion",
     grupo: "A",
   });
@@ -93,7 +118,7 @@ async function intentarEnvio(envio) {
  * Sin topico configurado no registra nada (desarrollo local sin credenciales).
  */
 async function enviarFactura(facturaId, tipo) {
-  if (!TIPOS[tipo]) throw err(`El tipo de envio debe ser: ${Object.keys(TIPOS).join(", ")}.`);
+  if (!TIPOS[tipo] || tipo === "nota_credito") throw err("El tipo de envio debe ser: venta, anulacion.");
   if (!cfg.PUBSUB_TOPIC) return { publicado: false, motivo: "CONTABILIDAD_PUBSUB_TOPIC no esta configurado" };
 
   const factura = await repo.datosFactura(facturaId);
@@ -129,6 +154,34 @@ async function enviarFacturaSeguro(facturaId, tipo) {
   }
 }
 
+/**
+ * TDSI-73/1018: registra y publica la nota de credito en el topico de Contabilidad, con el mismo
+ * publicador, reintentos (worker) y "Reenviar" que las facturas. Una nota se envia una sola vez.
+ * Si la venta de su factura nunca se envio, primero se envia la venta. Sin topico no registra nada.
+ */
+async function enviarNotaCredito(notaId) {
+  if (!cfg.PUBSUB_TOPIC) return { publicado: false, motivo: "CONTABILIDAD_PUBSUB_TOPIC no esta configurado" };
+  const nota = await notasCreditoRepo.obtener({ id: notaId });
+  if (!nota) throw err(`La nota de credito ${notaId} no existe.`, 404);
+  const factura = await repo.datosFactura(nota.factura_id);
+  if (!(await repo.obtenerPorFactura(factura.id, "venta"))) await enviarFactura(factura.id, "venta");
+
+  const payload = armarMensaje({ factura, tipo: "nota_credito", nota });
+  const { envio, yaExiste } = await repo.crearNotaCredito({ facturaId: factura.id, notaId: nota.id, payload });
+  if (yaExiste) return yaExiste;
+  return intentarEnvio({ ...envio, payload });
+}
+
+/** Al emitir la nota: nunca hace fallar la emision; el worker (o "Reenviar") se encarga despues. */
+async function enviarNotaCreditoSeguro(notaId) {
+  try {
+    return await enviarNotaCredito(notaId);
+  } catch (e) {
+    console.error(`[contabilidad] No se pudo enviar la nota de credito ${notaId}:`, e.message);
+    return { publicado: false, error: e.message };
+  }
+}
+
 async function listarEnvios({ estado, tipo, limite } = {}) {
   const estadoFiltro = estado ? ESTADOS.find((e) => e.toLowerCase() === String(estado).toLowerCase()) : null;
   if (estado && !estadoFiltro) throw err(`El estado debe ser uno de: ${ESTADOS.join(", ")}.`, 400, { estado });
@@ -154,4 +207,7 @@ async function reenviarEnvio(id) {
   return intentarEnvio(envio);
 }
 
-module.exports = { armarMensaje, enviarFactura, enviarFacturaSeguro, intentarEnvio, listarEnvios, reenviarEnvio };
+module.exports = {
+  armarMensaje, enviarFactura, enviarFacturaSeguro, enviarNotaCredito, enviarNotaCreditoSeguro, intentarEnvio, listarEnvios,
+  reenviarEnvio,
+};

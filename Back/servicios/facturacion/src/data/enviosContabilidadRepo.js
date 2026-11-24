@@ -1,13 +1,21 @@
 const { query } = require("../config/db");
 
 // TDSI-22: control de los envios de facturas a Contabilidad (facturacion.factura_envios_contabilidad).
+// TDSI-73/1018: un envio 'nota_credito' apunta a su nota (nota_credito_id / nota_credito_numero).
 const COLUMNAS = `e.id, e.factura_id, f.numero AS factura_numero, e.tipo, e.estado, e.intentos,
                   e.ultimo_intento_en, e.ultimo_error, e.pubsub_message_id, e.proximo_intento_en,
-                  e.enviado_en, e.creado_en, e.resultado, e.numero_asiento, e.resultado_motivo, e.resultado_en`;
+                  e.enviado_en, e.creado_en, e.resultado, e.numero_asiento, e.resultado_motivo, e.resultado_en,
+                  e.nota_credito_id,
+                  (SELECT n.numero FROM facturacion.notas_credito n WHERE n.id = e.nota_credito_id) AS nota_credito_numero`;
 
 function aEnvio(fila) {
   if (!fila) return null;
-  return { ...fila, id: Number(fila.id), factura_id: Number(fila.factura_id) };
+  return {
+    ...fila,
+    id: Number(fila.id),
+    factura_id: Number(fila.factura_id),
+    nota_credito_id: fila.nota_credito_id === null || fila.nota_credito_id === undefined ? null : Number(fila.nota_credito_id),
+  };
 }
 
 async function obtener(id, { conPayload = false } = {}) {
@@ -26,10 +34,36 @@ async function obtenerPorFactura(facturaId, tipo) {
     `SELECT ${COLUMNAS}
      FROM facturacion.factura_envios_contabilidad e
      JOIN facturacion.facturas f ON f.id = e.factura_id
-     WHERE e.factura_id = $1 AND e.tipo = $2`,
+     WHERE e.factura_id = $1 AND e.tipo = $2 AND e.nota_credito_id IS NULL`,
     [facturaId, tipo]
   );
   return aEnvio(rows[0]);
+}
+
+/** TDSI-73/1018: el envio de una nota de credito (a lo sumo uno). */
+async function obtenerPorNota(notaId) {
+  const { rows } = await query(
+    `SELECT ${COLUMNAS}
+     FROM facturacion.factura_envios_contabilidad e
+     JOIN facturacion.facturas f ON f.id = e.factura_id
+     WHERE e.nota_credito_id = $1`,
+    [notaId]
+  );
+  return aEnvio(rows[0]);
+}
+
+/** TDSI-73/1018: registra el envio de la nota (Pendiente); si ya existe devuelve { yaExiste }. */
+async function crearNotaCredito({ facturaId, notaId, payload }) {
+  const { rows } = await query(
+    `INSERT INTO facturacion.factura_envios_contabilidad
+       (factura_id, tipo, nota_credito_id, estado, intentos, payload, proximo_intento_en)
+     VALUES ($1, 'nota_credito', $2, 'Pendiente', 0, $3, now() + interval '2 minutes')
+     ON CONFLICT (nota_credito_id) WHERE nota_credito_id IS NOT NULL DO NOTHING
+     RETURNING id`,
+    [facturaId, notaId, JSON.stringify(payload)]
+  );
+  if (!rows[0]) return { yaExiste: await obtenerPorNota(notaId) };
+  return { envio: await obtener(rows[0].id, { conPayload: true }) };
 }
 
 /**
@@ -42,7 +76,7 @@ async function crear({ facturaId, tipo, payload }) {
     `INSERT INTO facturacion.factura_envios_contabilidad
        (factura_id, tipo, estado, intentos, payload, proximo_intento_en)
      VALUES ($1, $2, 'Pendiente', 0, $3, now() + interval '2 minutes')
-     ON CONFLICT (factura_id, tipo) DO NOTHING
+     ON CONFLICT (factura_id, tipo) WHERE nota_credito_id IS NULL DO NOTHING
      RETURNING id`,
     [facturaId, tipo, JSON.stringify(payload)]
   );
@@ -104,7 +138,7 @@ async function tomarPendientes(limite = 10, { facturaId = null } = {}) {
        LIMIT $1
        FOR UPDATE SKIP LOCKED
      )
-     RETURNING id, factura_id, tipo, payload, intentos`,
+     RETURNING id, factura_id, tipo, nota_credito_id, payload, intentos`,
     [limite, facturaId]
   );
   return rows.map(aEnvio);
@@ -180,6 +214,6 @@ async function anulacionAutorizada(facturaId) {
 }
 
 module.exports = {
-  obtener, obtenerPorFactura, crear, marcarEnviado, registrarFallo, posponer, tomarPendientes,
+  obtener, obtenerPorFactura, obtenerPorNota, crear, crearNotaCredito, marcarEnviado, registrarFallo, posponer, tomarPendientes,
   prepararReenvio, listar, datosFactura, anulacionAutorizada, registrarResultado,
 };

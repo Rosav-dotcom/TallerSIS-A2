@@ -6,8 +6,9 @@ const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(nex
 
 // TDSI-73/1016: emitir la nota de credito vinculada a la factura original.
 router.post("/", wrap(async (req, res) => {
-  const nota = await notas.emitirNotaCredito(req.body);
-  res.status(201).json({ ok: true, mensaje: `Nota de crédito ${nota.numero} emitida.`, data: nota });
+  const { nota, contabilidad } = await notas.emitirNotaCredito(req.body);
+  // TDSI-73/1018: como POST /api/facturas, tambien el resultado del envio a Contabilidad
+  res.status(201).json({ ok: true, mensaje: `Nota de crédito ${nota.numero} emitida.`, data: nota, contabilidad });
 }));
 
 // Notas de una factura: ?factura=F-000123

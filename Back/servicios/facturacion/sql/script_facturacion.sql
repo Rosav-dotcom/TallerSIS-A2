@@ -303,3 +303,28 @@ DROP TRIGGER IF EXISTS trg_notas_credito_tope ON facturacion.notas_credito;
 CREATE TRIGGER trg_notas_credito_tope
   BEFORE INSERT OR UPDATE OF monto, estado, factura_id ON facturacion.notas_credito
   FOR EACH ROW EXECUTE FUNCTION facturacion.verificar_tope_nota_credito();
+
+-- ==========================================================================
+-- TDSI-73/1018: envio de notas de credito a Contabilidad
+-- --------------------------------------------------------------------------
+-- Se reutiliza la misma tabla, el publicador, el worker de reintentos y el
+-- "Reenviar" de las facturas (TDSI-22/52): un envio de tipo 'nota_credito'
+-- apunta a su nota (nota_credito_id). Una factura puede tener varias notas,
+-- asi que "un envio por factura y tipo" pasa a valer solo para venta y
+-- anulacion, y cada nota tiene a lo sumo un envio. Idempotente.
+-- ==========================================================================
+ALTER TABLE facturacion.factura_envios_contabilidad
+  ADD COLUMN IF NOT EXISTS nota_credito_id BIGINT REFERENCES facturacion.notas_credito(id) ON DELETE CASCADE;
+
+ALTER TABLE facturacion.factura_envios_contabilidad DROP CONSTRAINT IF EXISTS factura_envios_contabilidad_tipo_check;
+ALTER TABLE facturacion.factura_envios_contabilidad ADD CONSTRAINT factura_envios_contabilidad_tipo_check
+  CHECK (tipo IN ('venta','anulacion','nota_credito'));
+ALTER TABLE facturacion.factura_envios_contabilidad DROP CONSTRAINT IF EXISTS factura_envios_contabilidad_nota_check;
+ALTER TABLE facturacion.factura_envios_contabilidad ADD CONSTRAINT factura_envios_contabilidad_nota_check
+  CHECK ((tipo = 'nota_credito') = (nota_credito_id IS NOT NULL));
+
+DROP INDEX IF EXISTS facturacion.uq_envio_factura_tipo;
+CREATE UNIQUE INDEX uq_envio_factura_tipo
+  ON facturacion.factura_envios_contabilidad (factura_id, tipo) WHERE nota_credito_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_envio_nota_credito
+  ON facturacion.factura_envios_contabilidad (nota_credito_id) WHERE nota_credito_id IS NOT NULL;
