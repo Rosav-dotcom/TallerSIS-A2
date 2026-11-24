@@ -1,5 +1,7 @@
 const { Router } = require("express");
-const { buscarComprobantes, obtenerComprobante, obtenerPlazo } = require("../services/comprobantesService");
+const {
+  buscarComprobantes, obtenerComprobante, obtenerPlazo, obtenerOpcionesReembolso,
+} = require("../services/comprobantesService");
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
@@ -12,6 +14,11 @@ router.get("/", wrap(async (req, res) => {
 // TDSI-69/1098: si el comprobante esta en plazo de devolucion, dias habiles transcurridos y fecha limite.
 router.get("/:numero/plazo", wrap(async (req, res) => {
   res.json({ ok: true, data: await obtenerPlazo(req.params.numero) });
+}));
+
+// TDSI-72/1077: opciones de reembolso habilitadas segun el metodo de pago original, con la explicacion.
+router.get("/:numero/opciones-reembolso", wrap(async (req, res) => {
+  res.json({ ok: true, data: await obtenerOpcionesReembolso(req.params.numero) });
 }));
 
 // TDSI-68/994: detalle del comprobante elegido de la lista de compras del cliente.

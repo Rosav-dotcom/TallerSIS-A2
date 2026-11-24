@@ -2,6 +2,7 @@ const { AppError } = require("../utils/AppError");
 const facturacion = require("../clients/facturacionClient");
 const { plazoDeComprobante } = require("./plazoService");
 const { obtenerPlazoDias } = require("./configuracionService");
+const { opcionesDeFactura } = require("./opcionesReembolsoService");
 
 // TDSI-68/996: texto exacto que pide la PA para una factura anulada o que no existe.
 const NO_DISPONIBLE = "Comprobante no encontrado o anulado";
@@ -62,10 +63,24 @@ async function facturaDisponible(numero) {
   return factura;
 }
 
-/** GET /api/devoluciones/comprobantes/:numero -- TDSI-69: trae tambien su "plazo". */
+/**
+ * GET /api/devoluciones/comprobantes/:numero -- TDSI-69: trae tambien su "plazo".
+ * TDSI-72: y sus "opciones_reembolso" (las mismas de /:numero/opciones-reembolso).
+ */
 async function obtenerComprobante(numero) {
   const factura = await facturaDisponible(numero);
-  return { ...aComprobante(factura), plazo: await plazoDeComprobante(factura.fecha) };
+  const [plazo, reembolso] = await Promise.all([plazoDeComprobante(factura.fecha), opcionesDeFactura(factura)]);
+  return { ...aComprobante(factura), plazo, opciones_reembolso: reembolso.opciones };
+}
+
+/**
+ * GET /api/devoluciones/comprobantes/:numero/opciones-reembolso -- TDSI-72/1077: que opciones
+ * de reembolso (Efectivo, Reversion electronica, Vale) se habilitan segun como se pago la
+ * compra (facturacion.factura_metodos_pago) y, las que no, por que.
+ */
+async function obtenerOpcionesReembolso(numero) {
+  const factura = await facturaDisponible(numero);
+  return { numero: factura.numero, ...(await opcionesDeFactura(factura)) };
 }
 
 /**
@@ -119,4 +134,6 @@ async function buscarComprobantes(q) {
   return { criterio, compras };
 }
 
-module.exports = { buscarComprobantes, obtenerComprobante, obtenerPlazo, facturaDisponible, NO_DISPONIBLE };
+module.exports = {
+  buscarComprobantes, obtenerComprobante, obtenerPlazo, obtenerOpcionesReembolso, facturaDisponible, NO_DISPONIBLE,
+};
