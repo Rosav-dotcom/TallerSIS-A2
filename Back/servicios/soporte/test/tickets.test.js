@@ -220,3 +220,73 @@ test("listar: los filtros llegan al repositorio junto con la paginación", async
   assert.deepEqual(repo.pedidos[0].params, ["Alta"]);
   assert.equal(repo.pedidos[0].limite, 5);
 });
+
+// ---------------------------------------------------------------------------
+// TDSI-209: historial por usuario
+// ---------------------------------------------------------------------------
+
+function repoHistorial(filas) {
+  const pedidos = [];
+  return {
+    pedidos,
+    async historialPorUsuario(usuario) {
+      pedidos.push(usuario);
+      return { total: filas.length, filas };
+    },
+    async usuariosConIncidentes(patron) {
+      pedidos.push(patron);
+      return [{ usuario: "cajero1@tallersis.bo", cantidad: 3 }];
+    },
+  };
+}
+
+const HISTORIAL = [
+  { numero: "INC-000009", fecha: "2026-11-23T10:00:00Z", estado: "Abierto", solucion: null },
+  { numero: "INC-000004", fecha: "2026-11-20T10:00:00Z", estado: "Resuelto", solucion: "Se reinició el lector QR" },
+  { numero: "INC-000001", fecha: "2026-11-18T10:00:00Z", estado: "Cerrado", solucion: "Se corrigió el NIT" },
+];
+
+test("historial: devuelve las filas del repositorio con el resumen", async () => {
+  const repo = repoHistorial(HISTORIAL);
+  const r = await crearTicketsService({ repo }).historialPorUsuario({ usuario: "  cajero1@tallersis.bo " });
+  assert.deepEqual(repo.pedidos, ["cajero1@tallersis.bo"]);
+  assert.deepEqual(r.data.map((f) => f.numero), ["INC-000009", "INC-000004", "INC-000001"]);
+  assert.equal(r.data[1].solucion, "Se reinició el lector QR");
+  assert.deepEqual(r.resumen, { usuario: "cajero1@tallersis.bo", total: 3, abiertos: 1, resueltos: 2, mostrados: 3 });
+});
+
+test("historial: un usuario sin incidentes devuelve una lista vacía", async () => {
+  const r = await crearTicketsService({ repo: repoHistorial([]) }).historialPorUsuario({ usuario: "nadie@x.bo" });
+  assert.deepEqual(r.data, []);
+  assert.equal(r.resumen.total, 0);
+});
+
+test("historial: sin usuario responde 400", async () => {
+  const servicio = crearTicketsService({ repo: repoHistorial([]) });
+  await assert.rejects(servicio.historialPorUsuario({}), (e) => e.status === 400);
+  await assert.rejects(servicio.historialPorUsuario({ usuario: "   " }), (e) => e.status === 400);
+});
+
+test("usuarios con incidentes: q se busca como parte del texto", async () => {
+  const repo = repoHistorial([]);
+  const servicio = crearTicketsService({ repo });
+  await servicio.usuariosConIncidentes({ q: "caje" });
+  await servicio.usuariosConIncidentes({});
+  assert.deepEqual(repo.pedidos, ["%caje%", null]);
+});
+
+test("GET /historial y /historial/usuarios", async () => {
+  const { servidor, base } = await levantar(crearTicketsService({ repo: repoHistorial(HISTORIAL) }));
+  try {
+    const r = await fetch(`${base}/historial?usuario=cajero1%40tallersis.bo`);
+    const cuerpo = await r.json();
+    assert.equal(r.status, 200);
+    assert.equal(cuerpo.data.length, 3);
+    assert.equal(cuerpo.resumen.abiertos, 1);
+    assert.equal((await fetch(`${base}/historial`)).status, 400);
+    const u = await (await fetch(`${base}/historial/usuarios?q=caj`)).json();
+    assert.equal(u.data[0].cantidad, 3);
+  } finally {
+    servidor.close();
+  }
+});

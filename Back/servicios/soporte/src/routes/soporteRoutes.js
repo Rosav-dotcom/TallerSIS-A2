@@ -37,6 +37,19 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
     })
   );
 
+  // TDSI-209: historial de incidencias de un usuario (?usuario=correo) y usuarios con incidentes (?q=)
+  router.get(
+    "/historial/usuarios",
+    wrap(async (req, res) => res.json({ ok: true, data: await ticketsService.usuariosConIncidentes(req.query) }))
+  );
+  router.get(
+    "/historial",
+    wrap(async (req, res) => {
+      const { data, resumen } = await ticketsService.historialPorUsuario(req.query);
+      res.json({ ok: true, data, resumen });
+    })
+  );
+
   // TDSI-668: registrar un ticket (nace Abierto, con número INC-NNNNNN)
   router.post(
     "/tickets",

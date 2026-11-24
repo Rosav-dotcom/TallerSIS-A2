@@ -11,7 +11,7 @@ Sprint 4 · Equipo 2. Historias TDSI-63 a TDSI-67 (perfil **Usuario de Soporte**
 
 ## Base de datos
 
-Ejecutar una vez `sql/script_soporte.sql` en el SQL Editor de Supabase (es idempotente). Crea el esquema `soporte` con la tabla `incidentes` (TDSI-971):
+Ejecutar `sql/script_soporte.sql` en el SQL Editor de Supabase (es idempotente). Crea el esquema `soporte` con la tabla `incidentes` (TDSI-971):
 
 | Campo | Valores |
 |---|---|
@@ -82,6 +82,8 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | GET | `/api/soporte/tickets?pagina=1&limite=20` | Bandeja de tickets ordenada por prioridad (Critica, Alta, Media, Baja) y, dentro de cada una, del más nuevo al más antiguo. `limite` de 1 a 100 (por defecto 20). Responde `data` y `paginacion: { pagina, limite, total, paginas }`. | TDSI-671 |
 | GET | `/api/soporte/tickets?numero=&usuario=&desde=&hasta=&estado=&prioridad=` | Filtros de la bandeja, combinables entre sí y con la paginación: `numero` (parte del número, p. ej. `12`), `usuario` (parte del usuario afectado), `desde`/`hasta` (AAAA-MM-DD, días en hora de Bolivia, `hasta` incluido), `estado` y `prioridad` (valor exacto). 400 si un valor no es válido. | TDSI-674 |
 | POST | `/api/soporte/tickets` | Registra un ticket. Cuerpo: `tipo` (Facturacion, Pagos, Acceso, Error del sistema, Otro), `descripcion` (obligatoria, máx. 2000), `prioridad` (Baja, Media, Alta, Critica; por defecto Media), `usuario_afectado`, `referencia_tipo` (factura/transaccion) + `referencia` (van juntos). Nace en **Abierto** con número `INC-NNNNNN`; `registrado_por` es el usuario de la sesión. 201 con el ticket, 400 si falta algo. | TDSI-668 |
+| GET | `/api/soporte/historial?usuario=cajero1@tallersis.bo` | Historial de incidencias de un usuario afectado (mismo valor, sin distinguir mayúsculas), del más reciente al más antiguo: `numero`, `fecha`, `tipo`, `prioridad`, `estado`, `descripcion`, referencia, `solucion`, `resuelto_en`, `cerrado_en`. `resumen: { usuario, total, abiertos, resueltos, mostrados }` (máx. 200 filas). 400 sin `usuario`. | TDSI-209 |
+| GET | `/api/soporte/historial/usuarios?q=` | Usuarios que tienen incidentes (para el buscador): `usuario`, `cantidad`, `ultimo_en`; `q` filtra por parte del nombre o correo. | TDSI-209 |
 
 ### Qué compara (TDSI-972)
 

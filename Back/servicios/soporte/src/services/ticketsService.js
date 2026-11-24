@@ -5,6 +5,7 @@ const TIPOS = ["Facturacion", "Pagos", "Acceso", "Error del sistema", "Otro"];
 const PRIORIDADES = ["Baja", "Media", "Alta", "Critica"];
 const ESTADOS = ["Abierto", "En proceso", "Pendiente", "Resuelto", "Cerrado", "Escalado"];
 const REFERENCIAS = ["factura", "transaccion"];
+const ESTADOS_FINALES = ["Resuelto", "Cerrado"];
 const FORMATO_REFERENCIA = /^[A-Za-z0-9_-]{1,60}$/;
 const DESCRIPCION_MAX = 2000;
 const TEXTO_MAX = 100;
@@ -136,6 +137,33 @@ function crearTicketsService({ repo }) {
         data: filas,
         paginacion: { pagina, limite, total, paginas: Math.ceil(total / limite) },
       };
+    },
+
+    /**
+     * TDSI-209: historial de incidencias de un usuario, del más reciente al más antiguo,
+     * con fecha, estado y solución. "usuario" es el usuario afectado tal como se registró
+     * (correo o nombre); se compara sin distinguir mayúsculas.
+     */
+    async historialPorUsuario(consulta = {}) {
+      const usuario = texto(consulta.usuario, "usuario", { requerido: true });
+      const { total, filas } = await repo.historialPorUsuario(usuario);
+      const abiertos = filas.filter((f) => !ESTADOS_FINALES.includes(f.estado)).length;
+      return {
+        data: filas,
+        resumen: {
+          usuario,
+          total,
+          abiertos,
+          resueltos: filas.filter((f) => ESTADOS_FINALES.includes(f.estado)).length,
+          mostrados: filas.length,
+        },
+      };
+    },
+
+    /** TDSI-209: usuarios que tienen incidentes, para el buscador del historial. */
+    async usuariosConIncidentes(consulta = {}) {
+      const q = texto(consulta.q, "q");
+      return repo.usuariosConIncidentes(q ? paraLike(q) : null);
     },
   };
 }

@@ -47,3 +47,14 @@ CREATE INDEX IF NOT EXISTS idx_incidentes_estado     ON soporte.incidentes (esta
 CREATE INDEX IF NOT EXISTS idx_incidentes_tipo       ON soporte.incidentes (tipo);
 CREATE INDEX IF NOT EXISTS idx_incidentes_referencia ON soporte.incidentes (referencia_tipo, referencia);
 CREATE INDEX IF NOT EXISTS idx_incidentes_creado_en  ON soporte.incidentes (creado_en DESC);
+
+-- --------------------------------------------------------------------------
+-- TDSI-209 (TDSI-66): el historial por usuario muestra la solución de cada
+-- incidente. La registra TDSI-205 (TDSI-64) al marcarlo como Resuelto.
+-- --------------------------------------------------------------------------
+ALTER TABLE soporte.incidentes
+    ADD COLUMN IF NOT EXISTS solucion                TEXT,
+    ADD COLUMN IF NOT EXISTS solucion_registrada_por VARCHAR(100);
+
+CREATE INDEX IF NOT EXISTS idx_incidentes_usuario_afectado
+    ON soporte.incidentes (lower(usuario_afectado), creado_en DESC);

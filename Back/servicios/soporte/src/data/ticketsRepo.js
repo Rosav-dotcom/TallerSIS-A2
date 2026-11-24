@@ -51,4 +51,46 @@ async function listar({ condiciones = [], params = [], limite, offset }) {
   return { total: conteo[0].total, filas: [] };
 }
 
-module.exports = { crear, listar, formatear, COLUMNAS };
+const HISTORIAL_MAX = 200;
+
+/**
+ * TDSI-209: incidentes de un usuario afectado (mismo correo o nombre, sin distinguir
+ * mayúsculas), del más reciente al más antiguo, con su solución.
+ */
+async function historialPorUsuario(usuario) {
+  const { rows } = await query(
+    `SELECT numero, creado_en AS fecha, tipo, prioridad, estado, descripcion,
+            referencia_tipo, referencia, solucion, solucion_registrada_por,
+            resuelto_en, cerrado_en, registrado_por,
+            COUNT(*) OVER() AS total
+       FROM soporte.incidentes
+      WHERE lower(usuario_afectado) = lower($1)
+      ORDER BY creado_en DESC, id DESC
+      LIMIT ${HISTORIAL_MAX}`,
+    [usuario]
+  );
+  const total = rows.length ? Number(rows[0].total) : 0;
+  const filas = rows.map((fila) => {
+    const copia = { ...fila };
+    delete copia.total;
+    return copia;
+  });
+  return { total, filas };
+}
+
+/** TDSI-209: usuarios con incidentes (para elegir a quién ver), opcionalmente filtrados por texto. */
+async function usuariosConIncidentes(patron = null) {
+  const { rows } = await query(
+    `SELECT MIN(usuario_afectado) AS usuario, COUNT(*)::int AS cantidad, MAX(creado_en) AS ultimo_en
+       FROM soporte.incidentes
+      WHERE usuario_afectado IS NOT NULL
+        AND ($1::text IS NULL OR usuario_afectado ILIKE $1)
+      GROUP BY lower(usuario_afectado)
+      ORDER BY MAX(creado_en) DESC
+      LIMIT 50`,
+    [patron]
+  );
+  return rows;
+}
+
+module.exports = { crear, listar, historialPorUsuario, usuariosConIncidentes, formatear, COLUMNAS, HISTORIAL_MAX };
