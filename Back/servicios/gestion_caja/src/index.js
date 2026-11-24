@@ -53,6 +53,7 @@ app.use("/api/caja/eventos-autorizacion", eventosAutorizacionRoutes); // TDSI-62
 app.use("/api/metas", metasVentaRoutes); // TDSI-58/773
 app.use("/api/caja", diferenciasRoutes); // TDSI-52/698
 app.use("/api/usuarios", requireAdministrador, usuariosRoutes); // TDSI-47/171/919
+app.use("/api/kpis", requireAdministrador, require("./routes/kpisRoutes")); // TDSI-639: Tablero de KPIs
 app.use(errorHandler);
 
 // TDSI-268: cada minuto revisa y cierra las sesiones inactivas
