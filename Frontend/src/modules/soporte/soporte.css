@@ -1,0 +1,100 @@
+/* Módulo Soporte. Solo variables de index.css. */
+
+/* Las dos tarjetas en columnas necesitan más ancho que el contenedor (960 px) cuando no hay barra lateral. */
+main.container:not(.con-barra-lateral):has(.sop-pagina) {
+  max-width: 1280px;
+}
+
+.sop-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.sop-encabezado h1 {
+  margin: 0;
+  font: var(--texto-titulo-1);
+}
+.sop-encabezado p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Los controles se alinean arriba para que el mensaje de error de un campo no mueva al resto. */
+.sop-buscador,
+.sop-comparar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+.sop-buscador > .ui-campo:nth-child(2),
+.sop-comparar > .ui-campo {
+  flex: 1;
+  min-width: 240px;
+}
+/* Alto de la etiqueta del campo (16 px) más su separación (8 px) */
+.sop-buscador > .ui-boton,
+.sop-comparar > .ui-boton {
+  margin-top: var(--espacio-5);
+}
+
+.sop-columnas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--espacio-5);
+}
+.sop-vista,
+.sop-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.sop-subtitulo {
+  margin: 0;
+  font: var(--texto-subtitulo);
+}
+.sop-nota {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sop-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.sop-dato {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding: var(--espacio-2);
+  border-bottom: 1px solid var(--border);
+}
+.sop-dato dt {
+  color: var(--muted);
+}
+.sop-dato dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.sop-dato--difiere {
+  background: var(--warning-bg);
+}
+.sop-marca {
+  margin-left: var(--espacio-2);
+  font: var(--texto-etiqueta);
+  color: var(--warning);
+}
+
+.sop-acciones {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .sop-columnas {
+    grid-template-columns: 1fr;
+  }
+}
