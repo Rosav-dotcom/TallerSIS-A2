@@ -488,3 +488,26 @@ DROP TRIGGER IF EXISTS trg_notificaciones_inventario_no_rechazada ON devolucione
 CREATE TRIGGER trg_notificaciones_inventario_no_rechazada
   BEFORE INSERT ON devoluciones.notificaciones_inventario
   FOR EACH ROW EXECUTE FUNCTION devoluciones.bloquear_si_rechazada();
+
+-- ==========================================================================
+-- TDSI-80/237: monto limite que exige autorizacion del supervisor
+-- --------------------------------------------------------------------------
+-- limite_autorizacion (Bs): una devolucion de MAS de este monto necesita el
+-- usuario y PIN de un supervisor para registrarse. Por defecto 500. Para
+-- cambiarlo:
+--   UPDATE devoluciones.configuracion SET valor = '800', actualizado_en = now(),
+--          actualizado_por = '<quien>' WHERE clave = 'limite_autorizacion';
+-- El CHECK solo acepta un monto mayor a 0 con hasta 2 decimales. Idempotente:
+-- si ya hay un valor no se pisa.
+-- ==========================================================================
+ALTER TABLE devoluciones.configuracion DROP CONSTRAINT IF EXISTS configuracion_limite_valido;
+ALTER TABLE devoluciones.configuracion ADD CONSTRAINT configuracion_limite_valido CHECK (
+  clave <> 'limite_autorizacion'
+  OR (valor ~ '^[0-9]{1,9}(\.[0-9]{1,2})?$' AND valor !~ '^0+(\.0+)?$')
+);
+
+INSERT INTO devoluciones.configuracion (clave, valor, descripcion, actualizado_por)
+VALUES ('limite_autorizacion', '500',
+        'Monto (Bs) desde el cual una devolucion necesita la autorizacion de un supervisor (usuario y PIN)',
+        'SISTEMA')
+ON CONFLICT (clave) DO NOTHING;

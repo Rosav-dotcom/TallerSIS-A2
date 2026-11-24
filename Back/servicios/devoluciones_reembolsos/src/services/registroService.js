@@ -5,6 +5,7 @@ const { facturaDisponible } = require("./comprobantesService");
 const { plazoDeComprobante } = require("./plazoService");
 const { aDetalle } = require("./devolucionesService");
 const { CODIGOS: OPCIONES_REEMBOLSO, opcionesDeFactura } = require("./opcionesReembolsoService");
+const { obtenerLimiteAutorizacion } = require("./configuracionService");
 
 // TDSI-70/1001: registro de una devolucion total o parcial eligiendo items y cantidades.
 const MAS_DE_LO_COMPRADO = "No se puede devolver más unidades de las compradas";
@@ -13,6 +14,8 @@ const MAX_ITEMS = 200;
 // TDSI-71/1009: textos de la PA y de la pantalla (paso 3 "Motivo")
 const SIN_MOTIVO = "Seleccione un motivo";
 const MAX_OBSERVACIONES = 300;
+// TDSI-80/237: texto de la alerta de la pantalla
+const REQUIERE_AUTORIZACION = "Requiere autorización del Supervisor";
 const SIN_USUARIO = "Indique quién registra la devolución (creado_por): el usuario con que inició sesión.";
 const SIN_OPCION = "Elija cómo se devuelve el dinero (Efectivo, Reversión electrónica o Vale).";
 
@@ -169,6 +172,18 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
 }
 
 /**
+ * TDSI-80/237: una devolucion de MAS del limite (configuracion limite_autorizacion) necesita la
+ * autorizacion de un supervisor; sin ella no se registra (403, PA TDSI-1054). Marca
+ * requiere_autorizacion en la devolucion.
+ */
+async function exigirAutorizacion(nueva, limite) {
+  const monto = nueva.datos.monto_total;
+  nueva.datos.requiere_autorizacion = monto > limite;
+  if (!nueva.datos.requiere_autorizacion) return;
+  throw new AppError(REQUIERE_AUTORIZACION, 403, { monto_total: monto, limite });
+}
+
+/**
  * POST /api/devoluciones -- TDSI-70/1001.
  * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id,
  *          observaciones? (hasta 300), opcion_reembolso, creado_por }
@@ -205,12 +220,18 @@ async function registrarDevolucion(body) {
     throw new AppError(elegida.explicacion, 422, { opcion_reembolso: pedido.opcion, metodo_pago: reembolso.metodo_pago });
   }
 
-  const registrada = await devolucionesRepo.registrar(factura.numero, (yaDevuelto) =>
-    construirDevolucion({ factura, pedido, plazo, yaDevuelto })
-  );
+  // TDSI-80/237: el monto se conoce recien al armar la devolucion (dentro de la transaccion)
+  const { limite } = await obtenerLimiteAutorizacion();
+
+  const registrada = await devolucionesRepo.registrar(factura.numero, async (yaDevuelto) => {
+    const nueva = construirDevolucion({ factura, pedido, plazo, yaDevuelto });
+    await exigirAutorizacion(nueva, limite);
+    return nueva;
+  });
   return aDetalle({ ...registrada, motivo_nombre: motivo.nombre });
 }
 
 module.exports = {
   registrarDevolucion, construirDevolucion, validarPedido, MAS_DE_LO_COMPRADO, SIN_MOTIVO, MAX_OBSERVACIONES, SIN_OPCION,
+  REQUIERE_AUTORIZACION,
 };
