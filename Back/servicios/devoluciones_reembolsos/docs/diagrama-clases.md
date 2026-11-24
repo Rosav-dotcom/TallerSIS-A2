@@ -1,6 +1,6 @@
 # Diagrama de clases · Microservicio Devoluciones y reembolsos
 
-TDSI-1003 (historia TDSI-70). Microservicio `devoluciones_reembolsos` (puerto 4008), del Encargado de Devoluciones. Muestra cómo se busca el comprobante original en Facturación (TDSI-68), se valida el plazo en días hábiles (TDSI-69) y se registra la devolución con su código `DEV-NNNNNN` (TDSI-70 y TDSI-76).
+TDSI-1003 (historia TDSI-70). Microservicio `devoluciones_reembolsos` (puerto 4008), del Encargado de Devoluciones. Muestra cómo se busca el comprobante original en Facturación (TDSI-68), se valida el plazo en días hábiles (TDSI-69) y se registra la devolución con su código `DEV-NNNNNN` (TDSI-70 y TDSI-76). Actualizado en TDSI-1043 con el aviso a Inventario por Pub/Sub (TDSI-77; secuencia en [diagrama-secuencia-inventario.md](diagrama-secuencia-inventario.md)).
 
 Las "clases" son módulos de Node.js (CommonJS): cada uno exporta funciones y recibe lo que necesita por `require`. Las entidades de abajo son las tablas del esquema `devoluciones` (`sql/script_devoluciones.sql`).
 
@@ -19,6 +19,8 @@ classDiagram
         +GET /:codigo/historial
         +POST /:codigo/rechazo
         +POST /:codigo/nota-credito
+        +POST /:codigo/procesar
+        +POST /:codigo/inventario/reenviar
     }
     class ComprobantesRoutes {
         <<router /api/devoluciones/comprobantes>>
@@ -48,6 +50,31 @@ classDiagram
     class RechazoService {
         +rechazarDevolucion(codigo, motivo, usuario) DetalleDevolucion
         +verificarRechazable(devolucion, cliente)
+    }
+    class ProcesoService {
+        +procesarDevolucion(codigo, body) DetalleDevolucion
+    }
+    class InventarioService {
+        +armarMensaje(devolucion, items, version) DevolucionStock
+        +mensajeId(codigo, version) DEV-NNNNNN-v
+        +intentarEnvio(notificacion) NotificacionInventario
+        +enviarSeguro(id, payload) NotificacionInventario
+        +estadoInventario(notificacion) EstadoInventario
+        +reenviar(codigo) NotificacionInventario
+    }
+    class AcusesInventarioService {
+        +interpretar(texto) Acuse
+        +procesarMensaje(mensaje) ResultadoAcuse
+    }
+    class ReintentoInventarioJob {
+        <<job cada 15 s>>
+        +procesarPendientes() NotificacionInventario[]
+        +iniciar()
+    }
+    class AcusesInventarioJob {
+        <<job cada 30 s>>
+        +procesarAcuses() ResultadoAcuse[]
+        +iniciar()
     }
     class DevolucionesService {
         +listarDevoluciones(codigo, estado, desde, hasta) ResumenDevolucion[]
@@ -83,8 +110,30 @@ classDiagram
         +buscarPorCodigo(codigo) Devolucion
         +listar(filtros) Devolucion[]
         +cambiarEstado(codigo, estado, usuario, comentario, validar) Devolucion
+        +procesar(codigo, usuario, validar, armarPayload) Procesada
         -insertar(cliente, datos, items)
         -enTransaccion(trabajo)
+    }
+    class NotificacionesInventarioRepo {
+        +obtener(id) NotificacionInventario
+        +obtenerPorCodigo(codigo) NotificacionInventario
+        +crearEnTransaccion(cliente, devolucionId, payload) id
+        +marcarEnviado(id, messageId)
+        +registrarFallo(id, fallo, maxIntentos, backoffBase)
+        +posponer(id, segundos, motivo)
+        +tomarPendientes(limite) NotificacionInventario[]
+        +registrarAcuse(id, estado, motivo)
+        +prepararReenvio(id) NotificacionInventario
+    }
+    class PubSubPublisher {
+        -INVENTARIO_PUBSUB_TOPIC
+        +publicar(mensaje, atributos) ResultadoPublicacion
+    }
+    class PubSubSubscriber {
+        -INVENTARIO_ACUSES_SUBSCRIPTION
+        +leer(max, suscripcion) Mensaje[]
+        +confirmar(ackIds, suscripcion)
+        +liberar(ackIds, suscripcion)
     }
     class ConfiguracionRepo {
         +obtener(clave) Configuracion
@@ -143,6 +192,11 @@ classDiagram
         POST /api/notas-credito
         GET /api/notas-credito/:numero
     }
+    class GooglePubSub {
+        <<externo>>
+        topico de Inventario : devolucion_stock
+        ucb-sis323-sub-a-sub : acuse_devolucion_stock
+    }
     class GestionCaja {
         <<microservicio externo :4004>>
         GET /api/caja/devoluciones?fecha
@@ -154,6 +208,21 @@ classDiagram
     DevolucionesRoutes --> RechazoService
     DevolucionesRoutes --> NotaCreditoService
     NotaCreditoService --> DevolucionesRepo : registrarNotaCredito
+    DevolucionesRoutes --> ProcesoService
+    DevolucionesRoutes --> InventarioService : reenviar
+    ProcesoService --> DevolucionesRepo : procesar (outbox)
+    ProcesoService --> InventarioService : armarMensaje y enviarSeguro
+    DevolucionesRepo --> NotificacionesInventarioRepo : crearEnTransaccion
+    InventarioService --> NotificacionesInventarioRepo
+    InventarioService --> PubSubPublisher
+    ReintentoInventarioJob --> NotificacionesInventarioRepo : tomarPendientes
+    ReintentoInventarioJob --> InventarioService : intentarEnvio
+    AcusesInventarioJob --> PubSubSubscriber
+    AcusesInventarioJob --> AcusesInventarioService
+    AcusesInventarioService --> NotificacionesInventarioRepo : registrarAcuse
+    DevolucionesService --> InventarioService : estadoInventario
+    PubSubPublisher ..> GooglePubSub : publishMessage
+    PubSubSubscriber ..> GooglePubSub : pull, ack
     NotaCreditoService --> FacturacionClient : emitirNotaCredito
     RechazoService --> DevolucionesRepo : cambiarEstado con validar
     RechazoService --> DevolucionesService : obtenerDevolucion
@@ -186,6 +255,7 @@ classDiagram
     MotivosRepo --> Db
     ReglasReembolsoRepo --> Db
     HistorialRepo --> Db
+    NotificacionesInventarioRepo --> Db
     FacturacionClient ..> Facturacion : HTTP
     GestionCaja ..> DevolucionesRoutes : HTTP del-dia
 
@@ -286,16 +356,26 @@ classDiagram
         +estado
     }
     class NotificacionInventario {
-        <<devoluciones.notificaciones_inventario>>
-        +estado
+        <<devoluciones.notificaciones_inventario, outbox>>
+        +devolucion_id : unico, un aviso por devolución
+        +version : sube con cada Reenviar
+        +payload : jsonb devolucion_stock
+        +estado : PENDIENTE, ENVIADO, CONFIRMADO, RECHAZADO o ERROR
+        +intentos : hasta 5
+        +ultimo_intento_en
+        +ultimo_error
+        +proximo_intento_en : espera creciente
+        +pubsub_message_id
         +enviado_en
+        +resultado_motivo : motivo del rechazo
+        +resultado_en
     }
 
     Devolucion "1" *-- "1..*" DevolucionItem : items
     Devolucion "1" *-- "1..*" HistorialEstado : TDSI-81, trigger trg_devoluciones_historial
     Devolucion "1" *-- "0..*" Reembolso : TDSI-72 y 74
     Devolucion "1" *-- "0..*" NotaCredito : TDSI-73
-    Devolucion "1" *-- "0..*" NotificacionInventario : TDSI-77
+    Devolucion "1" *-- "0..1" NotificacionInventario : TDSI-77
     Devolucion "0..*" --> "0..1" Motivo : TDSI-71
     Correlativo ..> Devolucion : trigger trg_devoluciones_codigo
     ReglaReembolso ..> Devolucion : opcion_reembolso permitida
@@ -315,8 +395,12 @@ classDiagram
 | El historial no se puede editar ni borrar (solo se va si se borra la devolución completa) | triggers `trg_historial_inmutable` y `trg_historial_sin_truncate`, SQLSTATE DV002 (TDSI-239) |
 | Una devolución RECHAZADA no genera reembolso, nota de crédito ni aviso a Inventario | triggers `trg_*_no_rechazada` en `reembolsos`, `notas_credito` y `notificaciones_inventario`, SQLSTATE DV003 (TDSI-1116) |
 | No se rechaza una devolución procesada o con reembolso / nota de crédito emitidos | `RechazoService.verificarRechazable` dentro de la transacción, con la devolución bloqueada (TDSI-1116) |
+| Una devolución tiene un solo aviso a Inventario; reintentos y Reenviar reusan la misma fila | `uq_notificacion_inventario_devolucion` (TDSI-231) |
+| Dos instancias del servicio no envían el mismo aviso | `tomarPendientes` con `FOR UPDATE SKIP LOCKED` (TDSI-1039) |
 | No se devuelve dos veces la misma unidad | `DevolucionesRepo.registrar` bloquea la factura con `pg_advisory_xact_lock` mientras suma lo ya devuelto (TDSI-1001) |
 
 La nota de crédito (con su PDF y su envío a Contabilidad) la emite Facturación (`facturacion.notas_credito`, TDSI-73; ver `facturacion/docs/diagrama-secuencia-nota-credito.md`): Devoluciones guarda solo su número en `devoluciones.notas_credito`.
 
 Los vales, la reversión con tarjeta y el correo del comprobante los hace `gestion_pagos` (acuerdo de equipo, contrato TDSI-1027): Devoluciones solo guarda la referencia (`reembolsos.referencia`, `devoluciones.envio_comprobante_id`).
+
+El aviso a Inventario (TDSI-77) va por Google Pub/Sub con bandeja de salida, reintentos y acuse: ver [diagrama-secuencia-inventario.md](diagrama-secuencia-inventario.md) y el contrato con el grupo de Inventario en [contrato-inventario.md](contrato-inventario.md).
