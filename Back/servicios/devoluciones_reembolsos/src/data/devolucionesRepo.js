@@ -124,10 +124,16 @@ async function listar({ codigo = null, estado = null, desde = null, hasta = null
  * El trigger trg_devoluciones_historial escribe el historial; aqui se le pasa el usuario y el
  * comentario con set_config(..., true), que dura solo esta transaccion. "extra" son otras
  * columnas a cambiar junto con el estado (p. ej. motivo_rechazo). Devuelve la fila o null.
+ * TDSI-78/233: la fila se bloquea (FOR UPDATE) y "validar(fila, cliente)" decide, dentro de la
+ * misma transaccion, si el cambio se puede hacer (lanza el error si no). Asi dos acciones a la
+ * vez sobre la misma devolucion no se pisan.
  */
 const COLUMNAS_ESTADO = ["motivo_rechazo", "autorizado_por", "autorizado_en", "requiere_autorizacion"];
-async function cambiarEstado(codigo, estado, { usuario, comentario = null, extra = {} } = {}) {
+async function cambiarEstado(codigo, estado, { usuario, comentario = null, extra = {}, validar = null } = {}) {
   return enTransaccion(async (cliente) => {
+    const actual = await cliente.query("SELECT * FROM devoluciones.devoluciones WHERE codigo = $1 FOR UPDATE", [codigo]);
+    if (!actual.rows[0]) return null;
+    if (validar) await validar(actual.rows[0], cliente);
     await cliente.query(
       "SELECT set_config('devoluciones.usuario', $1, true), set_config('devoluciones.comentario', $2, true)",
       [usuario || "", comentario || ""]

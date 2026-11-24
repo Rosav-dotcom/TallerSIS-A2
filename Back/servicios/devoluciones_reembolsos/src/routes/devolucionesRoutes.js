@@ -1,6 +1,7 @@
 const { Router } = require("express");
 const { listarDevoluciones, obtenerDevolucion, obtenerHistorial } = require("../services/devolucionesService");
 const { registrarDevolucion } = require("../services/registroService");
+const { rechazarDevolucion } = require("../services/rechazoService");
 
 const router = Router();
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
@@ -17,6 +18,12 @@ router.get("/", wrap(async (req, res) => {
 router.post("/", wrap(async (req, res) => {
   const devolucion = await registrarDevolucion(req.body);
   res.status(201).json({ ok: true, mensaje: `Devolución ${devolucion.codigo} registrada.`, data: devolucion });
+}));
+
+// TDSI-78/233: rechazar una solicitud no procedente. Cuerpo: { motivo, usuario }.
+router.post("/:codigo/rechazo", wrap(async (req, res) => {
+  const devolucion = await rechazarDevolucion(req.params.codigo, req.body);
+  res.json({ ok: true, mensaje: `Devolución ${devolucion.codigo} rechazada.`, data: devolucion });
 }));
 
 // TDSI-81/1057: linea de tiempo (historial de estados con usuario y hora). Solo lectura.
