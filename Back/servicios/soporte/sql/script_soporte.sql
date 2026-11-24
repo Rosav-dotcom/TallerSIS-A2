@@ -112,3 +112,8 @@ ALTER TABLE soporte.incidentes
 
 CREATE INDEX IF NOT EXISTS idx_incidentes_escalados
     ON soporte.incidentes (escalado_en) WHERE estado = 'Escalado';
+
+-- TDSI-1092 (TDSI-65): el historial guarda también el motivo del cambio
+-- (por ejemplo, por qué se escaló el incidente).
+ALTER TABLE soporte.incidentes_historial
+    ADD COLUMN IF NOT EXISTS detalle TEXT;

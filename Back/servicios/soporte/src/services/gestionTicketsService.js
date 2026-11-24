@@ -142,6 +142,7 @@ function crearGestionTicketsService({ repo }) {
         estado_anterior: f.campo === "estado" ? f.valor_anterior : undefined,
         estado_nuevo: f.campo === "estado" ? f.valor_nuevo : undefined,
         usuario: f.usuario,
+        motivo: f.detalle ?? null, // TDSI-1092: por qué se hizo el cambio (p. ej. el motivo del escalamiento)
         cambiado_en: f.cambiado_en,
       }));
     },

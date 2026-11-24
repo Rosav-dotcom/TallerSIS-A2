@@ -11,9 +11,14 @@ function repoFalso(inicial = {}) {
   const ticket = { id: 1, numero: "INC-000001", estado: "En proceso", ...inicial };
   return {
     ticket,
+    historialFilas: [],
+    async historial(numero) {
+      return numero === ticket.numero ? this.historialFilas : null;
+    },
     async escalar(numero, { motivo, usuario }, validar) {
       if (numero !== ticket.numero) return null;
       validar({ actual: ticket.estado });
+      this.historialFilas.push({ id: this.historialFilas.length + 1, campo: "estado", valor_anterior: ticket.estado, valor_nuevo: "Escalado", usuario, detalle: motivo, cambiado_en: "ahora" });
       Object.assign(ticket, { estado: "Escalado", motivo_escalamiento: motivo, escalado_por: usuario, escalado_en: "ahora" });
       return { ...ticket };
     },
@@ -35,4 +40,16 @@ test("escalar: se puede desde Abierto, En proceso y Pendiente", async () => {
     const t = await crearGestionTicketsService({ repo: repoFalso({ estado }) }).escalar("INC-000001", { motivo: MOTIVO }, SESION);
     assert.equal(t.estado, "Escalado", estado);
   }
+});
+
+test("historial (TDSI-1092): el escalamiento queda con quién, cuándo y el motivo", async () => {
+  const repo = repoFalso({ estado: "Pendiente" });
+  const s = crearGestionTicketsService({ repo });
+  await s.escalar("INC-000001", { motivo: MOTIVO }, SESION);
+  const [cambio] = await s.historialTicket("INC-000001");
+  assert.equal(cambio.estado_anterior, "Pendiente");
+  assert.equal(cambio.estado_nuevo, "Escalado");
+  assert.equal(cambio.usuario, "soporte@tallersis.bo");
+  assert.equal(cambio.motivo, MOTIVO);
+  assert.ok(cambio.cambiado_en);
 });

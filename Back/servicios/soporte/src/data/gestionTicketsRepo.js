@@ -85,7 +85,7 @@ async function historial(numero, { soloEstado = true } = {}) {
   const { rows: ticket } = await query(`SELECT id FROM soporte.incidentes WHERE numero = $1`, [numero]);
   if (!ticket[0]) return null;
   const { rows } = await query(
-    `SELECT id, campo, valor_anterior, valor_nuevo, usuario, cambiado_en
+    `SELECT id, campo, valor_anterior, valor_nuevo, usuario, detalle, cambiado_en
        FROM soporte.incidentes_historial
       WHERE incidente_id = $1 AND ($2::boolean = false OR campo = 'estado')
       ORDER BY cambiado_en, id`,
@@ -151,7 +151,7 @@ async function agregarComentario(numero, { autor, texto }) {
 
 /**
  * TDSI-207: pasa el ticket a Escalado y guarda el motivo, quién y cuándo, con la fila
- * bloqueada. validar({ actual }) lanza si no se puede escalar. null si el ticket no existe.
+ * bloqueada. TDSI-1092: en la misma transacción lo deja en el historial con el motivo. validar({ actual }) lanza si no se puede escalar. null si el ticket no existe.
  */
 async function escalar(numero, { motivo, usuario }, validar) {
   return withTransaction(async (client) => {
@@ -170,6 +170,12 @@ async function escalar(numero, { motivo, usuario }, validar) {
         WHERE id = $1
         RETURNING ${COLUMNAS_DETALLE}`,
       [fila.id, motivo, usuario]
+    );
+    // TDSI-1092: queda en el historial quién escaló, cuándo y el motivo
+    await client.query(
+      `INSERT INTO soporte.incidentes_historial (incidente_id, campo, valor_anterior, valor_nuevo, usuario, detalle)
+       VALUES ($1, 'estado', $2, 'Escalado', $3, $4)`,
+      [fila.id, fila.estado, usuario, motivo]
     );
     return formatear(actualizado[0]);
   });
