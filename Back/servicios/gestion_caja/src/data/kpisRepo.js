@@ -27,4 +27,27 @@ async function arqueoPorCajero({ inicio, fin, caja_id: cajaId = null, cajero_id:
   return rows;
 }
 
-module.exports = { arqueoPorCajero };
+/**
+ * TDSI-1090 (KPI-4): solicitudes de apertura o cierre (caja.autorizaciones) APROBADAS o
+ * RECHAZADAS en el periodo (por la hora en que se resolvieron), con su tiempo de respuesta
+ * en segundos = resuelto_en - solicitado_en. Agrupadas por mes (hora de Bolivia) y tipo.
+ */
+async function autorizacionesResueltas({ inicio, fin, caja_id: cajaId = null, cajero_id: cajeroId = null }) {
+  const { rows } = await query(
+    `SELECT to_char(a.resuelto_en AT TIME ZONE 'America/La_Paz', 'YYYY-MM') AS mes, a.tipo,
+            COUNT(*)::int AS resueltas,
+            COUNT(*) FILTER (WHERE a.estado = 'APROBADA')::int AS aprobadas,
+            SUM(EXTRACT(EPOCH FROM (a.resuelto_en - a.solicitado_en)))::float AS segundos
+       FROM caja.autorizaciones a
+      WHERE a.estado IN ('APROBADA', 'RECHAZADA') AND a.resuelto_en IS NOT NULL
+        AND a.resuelto_en >= $1 AND a.resuelto_en <= $2
+        AND ($3::TEXT IS NULL OR a.caja_id = $3)
+        AND ($4::TEXT IS NULL OR a.cajero_id = $4)
+      GROUP BY 1, 2
+      ORDER BY 1, 2`,
+    [inicio, fin, cajaId, cajeroId]
+  );
+  return rows;
+}
+
+module.exports = { arqueoPorCajero, autorizacionesResueltas };

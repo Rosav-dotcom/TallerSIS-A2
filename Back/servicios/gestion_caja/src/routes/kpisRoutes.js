@@ -17,4 +17,9 @@ router.get("/caja/exactitud-arqueo", wrap(async (req, res) => {
   res.json({ ok: true, data: await caja.exactitudArqueo(req.query) });
 }));
 
+// TDSI-1090: KPI-4 Tiempo de autorizacion
+router.get("/caja/tiempo-autorizacion", wrap(async (req, res) => {
+  res.json({ ok: true, data: await caja.tiempoAutorizacion(req.query) });
+}));
+
 module.exports = router;
