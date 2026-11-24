@@ -1,6 +1,7 @@
 const { AppError } = require("../utils/AppError");
 const { normalizarCodigo } = require("../utils/codigoDevolucion");
 const devolucionesRepo = require("../data/devolucionesRepo");
+const historialRepo = require("../data/historialRepo");
 const { OPCIONES } = require("./opcionesReembolsoService");
 
 const NO_ENCONTRADA = "Devolución no encontrada";
@@ -114,4 +115,27 @@ async function obtenerDevolucion(codigo) {
   return aDetalle(devolucion);
 }
 
-module.exports = { listarDevoluciones, obtenerDevolucion, aDetalle, ESTADOS, NO_ENCONTRADA };
+/**
+ * GET /api/devoluciones/:codigo/historial -- TDSI-81/1057: linea de tiempo de la devolucion,
+ * cada cambio de estado con usuario y hora (PA TDSI-1058), en orden cronologico (PA TDSI-1060).
+ * Solo lectura: no hay ruta para editar ni borrar el historial (PA TDSI-1059, TDSI-239).
+ */
+async function obtenerHistorial(codigo) {
+  const normalizado = normalizarCodigo(codigo);
+  const devolucion = normalizado ? await devolucionesRepo.buscarPorCodigo(normalizado) : null;
+  if (!devolucion) throw new AppError(NO_ENCONTRADA, 404, { codigo });
+  const filas = await historialRepo.listarPorDevolucion(devolucion.id);
+  return {
+    codigo: devolucion.codigo,
+    estado: devolucion.estado,
+    historial: filas.map((h) => ({
+      estado_anterior: h.estado_anterior,
+      estado_nuevo: h.estado_nuevo,
+      usuario: h.cambiado_por,
+      fecha: h.cambiado_en,
+      comentario: h.comentario,
+    })),
+  };
+}
+
+module.exports = { listarDevoluciones, obtenerDevolucion, obtenerHistorial, aDetalle, ESTADOS, NO_ENCONTRADA };

@@ -395,3 +395,50 @@ DROP TRIGGER IF EXISTS trg_historial_sin_truncate ON devoluciones.historial_esta
 CREATE TRIGGER trg_historial_sin_truncate
   BEFORE TRUNCATE ON devoluciones.historial_estados
   FOR EACH STATEMENT EXECUTE FUNCTION devoluciones.proteger_historial();
+
+-- ==========================================================================
+-- TDSI-81/1057: registrar cada cambio de estado
+-- --------------------------------------------------------------------------
+-- Lo hace la BD (trigger), asi ningun camino puede cambiar el estado sin
+-- dejarlo en el historial:
+-- - al registrar la devolucion: (sin estado anterior) -> PENDIENTE, por
+--   creado_por, "Devolucion registrada".
+-- - en cada UPDATE que cambie devoluciones.estado: anterior -> nuevo.
+--   El usuario y el comentario los pone el microservicio en la misma
+--   transaccion (set_config 'devoluciones.usuario' / 'devoluciones.comentario',
+--   ver devolucionesRepo.cambiarEstado). Si el cambio se hace a mano (p. ej.
+--   desde el editor de Supabase) queda igual, con el usuario de la BD. Un
+--   rechazo sin comentario usa motivo_rechazo.
+-- Las devoluciones que ya existian sin historial reciben su registro inicial.
+-- Idempotente.
+-- ==========================================================================
+CREATE OR REPLACE FUNCTION devoluciones.registrar_cambio_estado()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
+DECLARE
+  usuario    TEXT := NULLIF(current_setting('devoluciones.usuario', true), '');
+  comentario TEXT := NULLIF(current_setting('devoluciones.comentario', true), '');
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    INSERT INTO devoluciones.historial_estados (devolucion_id, estado_anterior, estado_nuevo, cambiado_por, comentario)
+    VALUES (NEW.id, NULL, NEW.estado, COALESCE(NEW.creado_por, usuario, session_user), COALESCE(comentario, 'Devolución registrada'));
+  ELSIF NEW.estado IS DISTINCT FROM OLD.estado THEN
+    INSERT INTO devoluciones.historial_estados (devolucion_id, estado_anterior, estado_nuevo, cambiado_por, comentario)
+    VALUES (NEW.id, OLD.estado, NEW.estado, COALESCE(usuario, session_user),
+            COALESCE(comentario, CASE WHEN NEW.estado = 'RECHAZADA' THEN NEW.motivo_rechazo END));
+  END IF;
+  RETURN NULL;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_devoluciones_historial ON devoluciones.devoluciones;
+CREATE TRIGGER trg_devoluciones_historial
+  AFTER INSERT OR UPDATE OF estado ON devoluciones.devoluciones
+  FOR EACH ROW EXECUTE FUNCTION devoluciones.registrar_cambio_estado();
+
+INSERT INTO devoluciones.historial_estados (devolucion_id, estado_anterior, estado_nuevo, cambiado_por, cambiado_en, comentario)
+SELECT d.id, NULL, d.estado, COALESCE(d.creado_por, 'sistema'), d.fecha_solicitud, 'Devolución registrada'
+  FROM devoluciones.devoluciones d
+ WHERE NOT EXISTS (SELECT 1 FROM devoluciones.historial_estados h WHERE h.devolucion_id = d.id);

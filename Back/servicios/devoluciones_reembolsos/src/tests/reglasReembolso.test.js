@@ -98,7 +98,8 @@ const pedir = async (ruta, cuerpo) => {
 };
 const registrar = (letra, opcion_reembolso) => pedir("", {
   factura_numero: N(letra), items: [{ item_id: Number(FACTURAS[N(letra)].items[0].id), cantidad: 1 }],
-  motivo_id: motivoId, ...(opcion_reembolso === undefined ? {} : { opcion_reembolso }),
+  motivo_id: motivoId, creado_por: "encargado.prueba@test.com",
+  ...(opcion_reembolso === undefined ? {} : { opcion_reembolso }),
 });
 
 test.before(async () => {

@@ -55,6 +55,7 @@ async function registrar(cuerpo) {
   const conMotivo = {
     ...("motivo_id" in cuerpo ? {} : { motivo_id: MOTIVO_POR_DEFECTO }),
     ...("opcion_reembolso" in cuerpo ? {} : { opcion_reembolso: "VALE" }),
+    ...("creado_por" in cuerpo ? {} : { creado_por: "encargado.prueba@test.com" }), // TDSI-1057
     ...cuerpo,
   };
   const r = await fetch(base, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(conMotivo) });

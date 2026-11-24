@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { listarDevoluciones, obtenerDevolucion } = require("../services/devolucionesService");
+const { listarDevoluciones, obtenerDevolucion, obtenerHistorial } = require("../services/devolucionesService");
 const { registrarDevolucion } = require("../services/registroService");
 
 const router = Router();
@@ -17,6 +17,11 @@ router.get("/", wrap(async (req, res) => {
 router.post("/", wrap(async (req, res) => {
   const devolucion = await registrarDevolucion(req.body);
   res.status(201).json({ ok: true, mensaje: `Devolución ${devolucion.codigo} registrada.`, data: devolucion });
+}));
+
+// TDSI-81/1057: linea de tiempo (historial de estados con usuario y hora). Solo lectura.
+router.get("/:codigo/historial", wrap(async (req, res) => {
+  res.json({ ok: true, data: await obtenerHistorial(req.params.codigo) });
 }));
 
 // TDSI-76/1112: detalle de una devolucion por su codigo (ruta /devoluciones/:codigo del Front).

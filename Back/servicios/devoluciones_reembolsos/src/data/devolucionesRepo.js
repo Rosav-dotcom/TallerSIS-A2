@@ -119,4 +119,27 @@ async function listar({ codigo = null, estado = null, desde = null, hasta = null
   return rows;
 }
 
-module.exports = { crear, registrar, buscarPorCodigo, listar };
+/**
+ * TDSI-81/1057: cambia el estado de una devolucion dejando quien y por que en el historial.
+ * El trigger trg_devoluciones_historial escribe el historial; aqui se le pasa el usuario y el
+ * comentario con set_config(..., true), que dura solo esta transaccion. "extra" son otras
+ * columnas a cambiar junto con el estado (p. ej. motivo_rechazo). Devuelve la fila o null.
+ */
+const COLUMNAS_ESTADO = ["motivo_rechazo", "autorizado_por", "autorizado_en", "requiere_autorizacion"];
+async function cambiarEstado(codigo, estado, { usuario, comentario = null, extra = {} } = {}) {
+  return enTransaccion(async (cliente) => {
+    await cliente.query(
+      "SELECT set_config('devoluciones.usuario', $1, true), set_config('devoluciones.comentario', $2, true)",
+      [usuario || "", comentario || ""]
+    );
+    const columnas = COLUMNAS_ESTADO.filter((c) => extra[c] !== undefined);
+    const sets = ["estado = $2", ...columnas.map((c, i) => `${c} = $${i + 3}`)];
+    const { rows } = await cliente.query(
+      `UPDATE devoluciones.devoluciones SET ${sets.join(", ")} WHERE codigo = $1 RETURNING *`,
+      [codigo, estado, ...columnas.map((c) => extra[c])]
+    );
+    return rows[0] || null;
+  });
+}
+
+module.exports = { crear, registrar, buscarPorCodigo, listar, cambiarEstado };

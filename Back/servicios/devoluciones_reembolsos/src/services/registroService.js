@@ -13,6 +13,7 @@ const MAX_ITEMS = 200;
 // TDSI-71/1009: textos de la PA y de la pantalla (paso 3 "Motivo")
 const SIN_MOTIVO = "Seleccione un motivo";
 const MAX_OBSERVACIONES = 300;
+const SIN_USUARIO = "Indique quién registra la devolución (creado_por): el usuario con que inició sesión.";
 const SIN_OPCION = "Elija cómo se devuelve el dinero (Efectivo, Reversión electrónica o Vale).";
 
 // Montos y cantidades en enteros (centavos / centesimas) para no arrastrar errores de coma flotante.
@@ -52,10 +53,10 @@ function validarPedido(body) {
     return { item_id: itemId, cantidad: aCentesimas(cantidad), condicion };
   });
 
-  let creadoPor = null;
-  if (body.creado_por !== undefined && body.creado_por !== null) {
-    creadoPor = String(body.creado_por).trim().slice(0, 60) || null;
-  }
+  // TDSI-81/1057: quien registra queda en el historial (PA TDSI-1058: usuario y hora)
+  const creadoPor = typeof body.creado_por === "string" ? body.creado_por.trim() : "";
+  if (!creadoPor) throw new AppError(SIN_USUARIO, 400);
+  if (creadoPor.length > 60) throw new AppError("El usuario (creado_por) admite hasta 60 caracteres.", 400);
 
   // TDSI-71/1103: motivo (id del catalogo, GET /api/devoluciones/motivos) y observaciones.
   // TDSI-71/1009: el motivo es obligatorio (PA TDSI-1010) y las observaciones, opcionales,
@@ -170,7 +171,7 @@ function construirDevolucion({ factura, pedido, plazo, yaDevuelto }) {
 /**
  * POST /api/devoluciones -- TDSI-70/1001.
  * Cuerpo: { factura_numero, items: [{ item_id, cantidad, condicion? }], motivo_id,
- *          observaciones? (hasta 300), opcion_reembolso, creado_por? }
+ *          observaciones? (hasta 300), opcion_reembolso, creado_por }
  * item_id es el de cada item del comprobante (GET /api/devoluciones/comprobantes/:numero).
  * El motivo (TDSI-71), la opcion de reembolso (TDSI-72) y la autorizacion del supervisor
  * (TDSI-80) se suman en sus historias.
