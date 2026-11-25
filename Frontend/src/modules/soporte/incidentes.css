@@ -1,0 +1,49 @@
+/* Bandeja de Incidentes e Historial por usuario (TDSI-66). Solo variables de index.css. */
+
+/* La tabla de 7 columnas necesita más ancho que el contenedor (960 px) cuando no hay barra lateral. */
+main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
+  max-width: 1280px;
+}
+
+/* Título a la izquierda y acción principal ("Nuevo ticket") a la derecha */
+.sop-bandeja-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.sop-bandeja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+/* Mientras llega la página nueva, la anterior se ve atenuada */
+.sop-bandeja[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.sop-numero {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sop-usuario {
+  overflow-wrap: anywhere;
+}
+.sop-enlace {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sop-paginacion,
+.sop-paginacion-botones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+.sop-paginacion {
+  justify-content: space-between;
+  color: var(--muted);
+}

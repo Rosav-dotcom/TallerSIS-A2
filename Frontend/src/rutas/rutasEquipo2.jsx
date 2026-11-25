@@ -1,6 +1,6 @@
 import { Navigate, Route } from 'react-router-dom'
 import GuardiaRol from './GuardiaRol.jsx'
-import { Soporte, SOPORTE_ACTIVO } from '../modules/soporte'
+import { BandejaIncidentes, Soporte, SOPORTE_ACTIVO } from '../modules/soporte'
 
 // TDSI-666: rutas del Equipo 2. Todo lo que cuelga de /soporte pasa por un solo guardia:
 // sin sesión va al login y con otro rol va al inicio de su perfil (Cajero → /,
@@ -15,6 +15,7 @@ export function rutasEquipo2() {
   return (
     <Route path="/soporte" element={<GuardiaRol roles={ROLES_SOPORTE} />}>
       <Route index element={<Soporte />} />
+      <Route path="incidentes" element={<BandejaIncidentes />} />
       {/* Una dirección de Soporte que no existe vuelve al inicio de Soporte (el guardia ya se aplicó). */}
       <Route path="*" element={<Navigate to="/soporte" replace />} />
     </Route>

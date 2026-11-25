@@ -35,3 +35,17 @@ export function registrarIncidente(incidente, token) {
     SOPORTE_API_BASE_URL,
   )
 }
+
+// ---------- Bandeja de tickets (TDSI-66) ----------
+
+// TDSI-671 y TDSI-674: bandeja paginada y ordenada por prioridad (Crítica primero), con filtros
+// combinables { numero, usuario, desde, hasta, estado, prioridad }. Los filtros vacíos no se envían.
+// Responde { data: [ticket], paginacion: { pagina, limite, total, paginas } }.
+export function listarTickets({ pagina = 1, limite = 20, ...filtros } = {}, token) {
+  const params = new URLSearchParams({ pagina: String(pagina), limite: String(limite) })
+  for (const [clave, valor] of Object.entries(filtros)) {
+    const limpio = typeof valor === 'string' ? valor.trim() : valor
+    if (limpio) params.set(clave, limpio)
+  }
+  return apiFetch(`/api/soporte/tickets?${params.toString()}`, conToken(token), SOPORTE_API_BASE_URL)
+}
