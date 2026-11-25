@@ -49,3 +49,25 @@ export function listarTickets({ pagina = 1, limite = 20, ...filtros } = {}, toke
   }
   return apiFetch(`/api/soporte/tickets?${params.toString()}`, conToken(token), SOPORTE_API_BASE_URL)
 }
+
+// ---------- Historial por usuario (TDSI-66) ----------
+
+// TDSI-209: usuarios que tienen incidentes, del último incidente al más antiguo (hasta 50).
+// q filtra por parte del correo o del nombre. Responde data: [{ usuario, cantidad, ultimo_en }].
+export function buscarUsuariosConIncidentes(q, token) {
+  const params = new URLSearchParams()
+  if (q?.trim()) params.set('q', q.trim())
+  const consulta = params.toString()
+  return apiFetch(
+    `/api/soporte/historial/usuarios${consulta ? `?${consulta}` : ''}`,
+    conToken(token),
+    SOPORTE_API_BASE_URL,
+  )
+}
+
+// TDSI-209: incidentes de un usuario, del más reciente al más antiguo, con fecha, estado y solución.
+// Responde { data: [incidente], resumen: { usuario, total, abiertos, resueltos, mostrados } }.
+export function obtenerHistorialUsuario(usuario, token) {
+  const params = new URLSearchParams({ usuario })
+  return apiFetch(`/api/soporte/historial?${params.toString()}`, conToken(token), SOPORTE_API_BASE_URL)
+}

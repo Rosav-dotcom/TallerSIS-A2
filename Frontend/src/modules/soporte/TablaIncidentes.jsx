@@ -7,7 +7,7 @@ import { fecha, texto } from './formato.js'
 const TEXTO_TIPO = Object.fromEntries(TIPOS.map((t) => [t.valor, t.texto]))
 const TEXTO_PRIORIDAD = Object.fromEntries(PRIORIDADES.map((p) => [p.valor, p.texto]))
 
-// TDSI-672: tabla de la bandeja (Figma p.3). "Ver detalle" abre el detalle del incidente (TDSI-64),
+// TDSI-672: tabla de la bandeja (Figma p.3). El usuario lleva a su historial (TDSI-210). "Ver detalle" abre el detalle del incidente (TDSI-64),
 // que se muestra cuando su interruptor (FEATURES.soporteDetalle) está encendido.
 // resaltado: número del ticket recién registrado (TDSI-669).
 function TablaIncidentes({ tickets, resaltado }) {
@@ -30,7 +30,19 @@ function TablaIncidentes({ tickets, resaltado }) {
           <tr key={t.id ?? t.numero} className={t.numero === resaltado ? 'sop-fila--nueva' : undefined}>
             <td className="sop-numero">{t.numero}</td>
             <td>{TEXTO_TIPO[t.tipo] ?? texto(t.tipo)}</td>
-            <td className="sop-usuario">{texto(t.usuario_afectado)}</td>
+            <td className="sop-usuario">
+              {t.usuario_afectado ? (
+                <Link
+                  className="sop-enlace"
+                  to={`/soporte/historial?usuario=${encodeURIComponent(t.usuario_afectado)}`}
+                  title={`Ver el historial de ${t.usuario_afectado}`}
+                >
+                  {t.usuario_afectado}
+                </Link>
+              ) : (
+                texto(t.usuario_afectado)
+              )}
+            </td>
             <td>{fecha(t.creado_en)}</td>
             <td>
               <ChipPrioridad>{TEXTO_PRIORIDAD[t.prioridad] ?? t.prioridad}</ChipPrioridad>

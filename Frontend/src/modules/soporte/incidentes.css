@@ -94,3 +94,20 @@ main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Historial por usuario (TDSI-210) */
+.sop-resumen {
+  margin: 0;
+  color: var(--muted);
+}
+.sop-fecha {
+  white-space: nowrap;
+}
+.sop-solucion {
+  min-width: 240px;
+  overflow-wrap: anywhere;
+}
+.sop-buscador-usuario > .ui-campo {
+  flex: 1;
+  max-width: 480px;
+}
