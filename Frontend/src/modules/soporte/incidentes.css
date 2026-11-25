@@ -47,3 +47,21 @@ main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
   justify-content: space-between;
   color: var(--muted);
 }
+
+/* Formulario "Nuevo ticket": dos campos por fila; en celular, uno debajo del otro */
+.sop-fila-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--espacio-4);
+}
+@media (max-width: 600px) {
+  .sop-fila-campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ticket recién registrado: se resalta en la bandeja */
+.sop-fila--nueva td {
+  background: var(--success-bg);
+}

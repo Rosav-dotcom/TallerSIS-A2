@@ -8,6 +8,9 @@ export const TICKETS_POR_PAGINA = 20
 // Al cambiar de página, la tabla anterior sigue visible hasta que llega la nueva.
 export function useBandejaIncidentes(token) {
   const [pagina, setPagina] = useState(1)
+  // TDSI-669: último ticket registrado desde la bandeja. Se resalta y, si por su prioridad cae en
+  // otra página, se muestra arriba de la tabla para que siempre se vea con su número y estado.
+  const [nuevo, setNuevo] = useState(null)
 
   const cargar = useCallback(
     () =>
@@ -19,8 +22,19 @@ export function useBandejaIncidentes(token) {
   const { datos, cargando, error, recargar } = useCarga(cargar)
 
   const paginacion = datos?.paginacion
+  const enPagina = datos?.tickets ?? []
+  const tickets = nuevo && !enPagina.some((t) => t.numero === nuevo.numero) ? [nuevo, ...enPagina] : enPagina
+
   return {
-    tickets: datos?.tickets ?? [],
+    tickets,
+    nuevo,
+    // Vuelve a la primera página y recarga, para ver el ticket en su lugar de la bandeja.
+    registrado: (ticket) => {
+      setNuevo(ticket)
+      setPagina(1)
+      recargar()
+    },
+    olvidarNuevo: () => setNuevo(null),
     paginacion,
     cargando,
     error,
@@ -28,7 +42,13 @@ export function useBandejaIncidentes(token) {
     pagina,
     hayAnterior: pagina > 1,
     haySiguiente: Boolean(paginacion) && pagina < paginacion.paginas,
-    anterior: () => setPagina((p) => Math.max(1, p - 1)),
-    siguiente: () => setPagina((p) => p + 1),
+    anterior: () => {
+      setNuevo(null)
+      setPagina((p) => Math.max(1, p - 1))
+    },
+    siguiente: () => {
+      setNuevo(null)
+      setPagina((p) => p + 1)
+    },
   }
 }

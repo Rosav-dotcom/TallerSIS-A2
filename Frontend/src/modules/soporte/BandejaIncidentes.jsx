@@ -1,6 +1,8 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { Boton, EstadoCargando, EstadoError, EstadoVacio, Icono } from '../../components/ui'
+import { useState } from 'react'
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Aviso, Boton, EstadoCargando, EstadoError, EstadoVacio, Icono } from '../../components/ui'
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx'
+import NuevoTicketModal from './NuevoTicketModal.jsx'
 import TablaIncidentes from './TablaIncidentes.jsx'
 import { mensajeDeError } from './consultas.js'
 import { useBandejaIncidentes } from './useBandejaIncidentes.js'
@@ -18,7 +20,9 @@ function rango({ pagina, limite, total }) {
 // ordenados por prioridad (Crítica primero) y, dentro de cada una, del más nuevo al más antiguo.
 function BandejaIncidentes() {
   const { administrador } = useAdminAuth()
-  const b = useBandejaIncidentes(administrador?.access_token)
+  const token = administrador?.access_token
+  const b = useBandejaIncidentes(token)
+  const [creando, setCreando] = useState(false)
   const { tickets, paginacion } = b
   const primeraCarga = b.cargando && !paginacion
 
@@ -29,7 +33,16 @@ function BandejaIncidentes() {
           <h1>Incidentes</h1>
           <p>Tickets de facturación y pagos de todos los usuarios, ordenados por prioridad.</p>
         </div>
+        <Boton icono={Plus} onClick={() => setCreando(true)}>
+          Nuevo ticket
+        </Boton>
       </header>
+
+      {b.nuevo && (
+        <Aviso tono="exito" titulo="Ticket registrado" onCerrar={b.olvidarNuevo}>
+          Se guardó con el número {b.nuevo.numero} en estado {b.nuevo.estado}.
+        </Aviso>
+      )}
 
       {primeraCarga && <EstadoCargando lineas={6} texto="Cargando tickets…" />}
 
@@ -41,7 +54,7 @@ function BandejaIncidentes() {
 
       {!b.error && tickets.length > 0 && (
         <div className="sop-bandeja" aria-busy={b.cargando}>
-          <TablaIncidentes tickets={tickets} />
+          <TablaIncidentes tickets={tickets} resaltado={b.nuevo?.numero} />
           <footer className="sop-paginacion">
             <span>{rango(paginacion)}</span>
             <div className="sop-paginacion-botones">
@@ -63,6 +76,17 @@ function BandejaIncidentes() {
             </div>
           </footer>
         </div>
+      )}
+
+      {creando && (
+        <NuevoTicketModal
+          token={token}
+          onCerrar={() => setCreando(false)}
+          onRegistrado={(ticket) => {
+            setCreando(false)
+            b.registrado(ticket)
+          }}
+        />
       )}
     </section>
   )

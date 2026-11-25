@@ -9,7 +9,8 @@ const TEXTO_PRIORIDAD = Object.fromEntries(PRIORIDADES.map((p) => [p.valor, p.te
 
 // TDSI-672: tabla de la bandeja (Figma p.3). "Ver detalle" abre el detalle del incidente (TDSI-64),
 // que se muestra cuando su interruptor (FEATURES.soporteDetalle) está encendido.
-function TablaIncidentes({ tickets }) {
+// resaltado: número del ticket recién registrado (TDSI-669).
+function TablaIncidentes({ tickets, resaltado }) {
   const conDetalle = Boolean(FEATURES.soporteDetalle)
   return (
     <Tabla etiqueta="Tickets de soporte">
@@ -26,7 +27,7 @@ function TablaIncidentes({ tickets }) {
       </thead>
       <tbody>
         {tickets.map((t) => (
-          <tr key={t.id ?? t.numero}>
+          <tr key={t.id ?? t.numero} className={t.numero === resaltado ? 'sop-fila--nueva' : undefined}>
             <td className="sop-numero">{t.numero}</td>
             <td>{TEXTO_TIPO[t.tipo] ?? texto(t.tipo)}</td>
             <td className="sop-usuario">{texto(t.usuario_afectado)}</td>
