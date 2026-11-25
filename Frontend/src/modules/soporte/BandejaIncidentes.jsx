@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Aviso, Boton, EstadoCargando, EstadoError, EstadoVacio, Icono } from '../../components/ui'
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx'
+import FiltrosIncidentes from './FiltrosIncidentes.jsx'
 import NuevoTicketModal from './NuevoTicketModal.jsx'
 import TablaIncidentes from './TablaIncidentes.jsx'
 import { mensajeDeError } from './consultas.js'
@@ -44,37 +45,59 @@ function BandejaIncidentes() {
         </Aviso>
       )}
 
+      <FiltrosIncidentes
+        filtros={b.filtros}
+        onCambiar={b.cambiarFiltro}
+        onLimpiar={b.limpiarFiltros}
+        hayFiltros={b.hayFiltros}
+        errorFechas={b.errorFechas}
+      />
+
       {primeraCarga && <EstadoCargando lineas={6} texto="Cargando tickets…" />}
 
       {!b.cargando && b.error && <EstadoError texto={mensajeDeError(b.error)} onReintentar={b.recargar} />}
 
-      {!b.cargando && !b.error && paginacion && tickets.length === 0 && (
+      {!b.cargando && !b.error && paginacion && tickets.length === 0 && b.hayFiltros && (
+        <EstadoVacio
+          titulo="No hay tickets con estos filtros"
+          texto="Prueba con otros filtros o límpialos para ver todos los tickets."
+          accion={
+            <Boton variante="contorno" onClick={b.limpiarFiltros}>
+              Limpiar filtros
+            </Boton>
+          }
+        />
+      )}
+
+      {!b.cargando && !b.error && paginacion && tickets.length === 0 && !b.hayFiltros && (
         <EstadoVacio titulo="Todavía no hay tickets" texto="Los tickets registrados aparecerán aquí." />
       )}
 
       {!b.error && tickets.length > 0 && (
         <div className="sop-bandeja" aria-busy={b.cargando}>
           <TablaIncidentes tickets={tickets} resaltado={b.nuevo?.numero} />
-          <footer className="sop-paginacion">
-            <span>{rango(paginacion)}</span>
-            <div className="sop-paginacion-botones">
-              <Boton
-                variante="contorno"
-                icono={ChevronLeft}
-                onClick={b.anterior}
-                disabled={!b.hayAnterior || b.cargando}
-              >
-                Anterior
-              </Boton>
-              <span>
-                Página {paginacion.pagina} de {paginacion.paginas}
-              </span>
-              <Boton variante="contorno" onClick={b.siguiente} disabled={!b.haySiguiente || b.cargando}>
-                Siguiente
-                <Icono icono={ChevronRight} />
-              </Boton>
-            </div>
-          </footer>
+          {paginacion && (
+            <footer className="sop-paginacion">
+              <span>{rango(paginacion)}</span>
+              <div className="sop-paginacion-botones">
+                <Boton
+                  variante="contorno"
+                  icono={ChevronLeft}
+                  onClick={b.anterior}
+                  disabled={!b.hayAnterior || b.cargando}
+                >
+                  Anterior
+                </Boton>
+                <span>
+                  Página {paginacion.pagina} de {paginacion.paginas}
+                </span>
+                <Boton variante="contorno" onClick={b.siguiente} disabled={!b.haySiguiente || b.cargando}>
+                  Siguiente
+                  <Icono icono={ChevronRight} />
+                </Boton>
+              </div>
+            </footer>
+          )}
         </div>
       )}
 
