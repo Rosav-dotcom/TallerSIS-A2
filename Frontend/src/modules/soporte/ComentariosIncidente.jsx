@@ -3,9 +3,11 @@ import { mensajeDeError } from './consultas.js'
 import { fecha } from './formato.js'
 import { useComentarios } from './useComentarios.js'
 
+const LARGO_MAXIMO = 1000 // el del backend (TDSI-968)
+
 // TDSI-969: comentarios del ticket con autor y fecha. No se pueden borrar.
-function ComentariosIncidente({ numero, autor }) {
-  const c = useComentarios(numero, autor)
+function ComentariosIncidente({ numero, token }) {
+  const c = useComentarios(numero, token)
   const { datos, cargando, error, recargar } = c.lista
   return (
     <Tarjeta titulo="Comentarios">
@@ -36,6 +38,7 @@ function ComentariosIncidente({ numero, autor }) {
           <form className="sop-formulario" onSubmit={c.comentar}>
             <AreaTexto
               etiqueta="Comentario"
+              maxLength={LARGO_MAXIMO}
               value={c.texto}
               disabled={c.enviando}
               onChange={(e) => c.setTexto(e.target.value)}

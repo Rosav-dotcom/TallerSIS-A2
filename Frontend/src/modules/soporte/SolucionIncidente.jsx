@@ -3,7 +3,8 @@ import { AreaTexto, Boton, Tarjeta } from '../../components/ui'
 import { fecha, texto } from './formato.js'
 
 const LARGO_MAXIMO = 300
-const TERMINADO = ['Resuelto', 'Cerrado']
+// Estados en los que el backend no acepta una solución (TDSI-205)
+const SIN_FORMULARIO = ['Resuelto', 'Cerrado', 'Escalado']
 
 // TDSI-206: solución aplicada. Sin solución no se puede marcar como Resuelto.
 function SolucionIncidente({ ticket, guardando, onResolver }) {
@@ -22,11 +23,12 @@ function SolucionIncidente({ ticket, guardando, onResolver }) {
           <div>
             <p className="sop-texto">{ticket.solucion}</p>
             <p className="sop-nota">
-              Registrada por {texto(ticket.solucion_registrada_por)} · {fecha(ticket.resuelto_en)}
+              Registrada por {texto(ticket.solucion_registrada_por)}
+              {ticket.resuelto_en && ` · ${fecha(ticket.resuelto_en)}`}
             </p>
           </div>
         )}
-        {!TERMINADO.includes(ticket.estado) && (
+        {!SIN_FORMULARIO.includes(ticket.estado) && (
           <form className="sop-formulario" onSubmit={enviar}>
             <AreaTexto
               etiqueta={ticket.solucion ? 'Nueva solución' : 'Solución'}
@@ -42,7 +44,7 @@ function SolucionIncidente({ ticket, guardando, onResolver }) {
             </div>
           </form>
         )}
-        {TERMINADO.includes(ticket.estado) && !ticket.solucion && (
+        {SIN_FORMULARIO.includes(ticket.estado) && !ticket.solucion && (
           <p className="sop-nota">El incidente no tiene una solución registrada.</p>
         )}
       </div>

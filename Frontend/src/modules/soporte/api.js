@@ -29,54 +29,58 @@ export function registrarIncidente(incidente) {
 }
 
 // ---------- Detalle del incidente (TDSI-64) ----------
-// Estos endpoints todavía no existen: se usan solo con FEATURES.soporteDetalle encendido. Las rutas siguen
-// la guía (/api/soporte/tickets) y los campos, la tabla soporte.incidentes. Si el backend los define
-// distintos, se ajusta aquí.
+// Piden el access_token del login de administración (administrador.access_token). Quien hace cada cambio
+// sale de esa sesión en el backend (TDSI-665), por eso no se envía.
 
-const rutaTicket = (numero) => `/api/soporte/tickets/${encodeURIComponent(numero)}`
-
-function enviar(ruta, method, cuerpo) {
-  return apiFetch(ruta, { method, body: JSON.stringify(cuerpo) }, SOPORTE_API_BASE_URL)
+function pedirTicket(numero, subruta, token, options = {}) {
+  return apiFetch(
+    `/api/soporte/tickets/${encodeURIComponent(numero)}${subruta}`,
+    { ...options, headers: { Authorization: `Bearer ${token}` } },
+    SOPORTE_API_BASE_URL,
+  )
 }
 
-// data: { numero, tipo, prioridad, estado, descripcion, referencia, usuario_afectado, registrado_por, creado_en,
-//         solucion, solucion_registrada_por, resuelto_en }
-export function obtenerTicket(numero) {
-  return apiFetch(rutaTicket(numero), {}, SOPORTE_API_BASE_URL)
+function enviar(numero, subruta, method, cuerpo, token) {
+  return pedirTicket(numero, subruta, token, { method, body: JSON.stringify(cuerpo) })
 }
 
-// TDSI-693: cambios de estado. data: [{ id, estado_nuevo, usuario, cambiado_en }]
-export function obtenerHistorialTicket(numero) {
-  return apiFetch(`${rutaTicket(numero)}/historial`, {}, SOPORTE_API_BASE_URL)
+// TDSI-677: data: { numero, tipo, prioridad, estado, descripcion, referencia, usuario_afectado, registrado_por,
+// creado_en, solucion, solucion_registrada_por, resuelto_en }. Los cambios responden el ticket actualizado.
+export function obtenerTicket(numero, token) {
+  return pedirTicket(numero, '', token)
 }
 
-// Los cambios responden data con los campos actualizados del ticket.
+// TDSI-693: cambios de estado, del más antiguo al más nuevo: [{ id, estado_anterior, estado_nuevo, usuario, cambiado_en }]
+export function obtenerHistorialTicket(numero, token) {
+  return pedirTicket(numero, '/historial', token)
+}
+
 // TDSI-677
-export function cambiarTipoTicket(numero, { tipo, usuario }) {
-  return enviar(`${rutaTicket(numero)}/tipo`, 'PATCH', { tipo, usuario })
+export function cambiarTipoTicket(numero, tipo, token) {
+  return enviar(numero, '/tipo', 'PATCH', { tipo }, token)
 }
 
 // TDSI-680
-export function cambiarPrioridadTicket(numero, { prioridad, usuario }) {
-  return enviar(`${rutaTicket(numero)}/prioridad`, 'PATCH', { prioridad, usuario })
+export function cambiarPrioridadTicket(numero, prioridad, token) {
+  return enviar(numero, '/prioridad', 'PATCH', { prioridad }, token)
 }
 
-// TDSI-693
-export function cambiarEstadoTicket(numero, { estado, usuario }) {
-  return enviar(`${rutaTicket(numero)}/estado`, 'PATCH', { estado, usuario })
+// TDSI-693: 409 con el motivo si la transición no se permite.
+export function cambiarEstadoTicket(numero, estado, token) {
+  return enviar(numero, '/estado', 'PATCH', { estado }, token)
 }
 
-// TDSI-205: registra la solución y deja el incidente como Resuelto.
-export function resolverTicket(numero, { solucion, usuario }) {
-  return enviar(`${rutaTicket(numero)}/solucion`, 'POST', { solucion, usuario })
+// TDSI-205: registra la solución y deja el ticket en Resuelto.
+export function resolverTicket(numero, solucion, token) {
+  return enviar(numero, '/solucion', 'POST', { solucion }, token)
 }
 
-// TDSI-968: data: [{ id, autor, texto, creado_en }], del más antiguo al más nuevo.
-export function listarComentariosTicket(numero) {
-  return apiFetch(`${rutaTicket(numero)}/comentarios`, {}, SOPORTE_API_BASE_URL)
+// TDSI-968: del más antiguo al más nuevo: [{ id, autor, texto, creado_en }]
+export function listarComentariosTicket(numero, token) {
+  return pedirTicket(numero, '/comentarios', token)
 }
 
 // TDSI-968: responde data con el comentario guardado.
-export function comentarTicket(numero, { texto, autor }) {
-  return enviar(`${rutaTicket(numero)}/comentarios`, 'POST', { texto, autor })
+export function comentarTicket(numero, texto, token) {
+  return enviar(numero, '/comentarios', 'POST', { texto }, token)
 }

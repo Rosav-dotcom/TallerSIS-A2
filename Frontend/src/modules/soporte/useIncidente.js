@@ -12,19 +12,19 @@ import { useCarga } from './useCarga.js'
 
 // Lógica del detalle de un incidente: sus datos, los cambios de tipo, prioridad y estado,
 // la solución y el historial.
-export function useIncidente(numero, usuario) {
-  const ticket = useCarga(useCallback(() => obtenerTicket(numero), [numero]))
-  const historial = useCarga(useCallback(() => obtenerHistorialTicket(numero), [numero]))
+export function useIncidente(numero, token) {
+  const ticket = useCarga(useCallback(() => obtenerTicket(numero, token), [numero, token]))
+  const historial = useCarga(useCallback(() => obtenerHistorialTicket(numero, token), [numero, token]))
   const [guardando, setGuardando] = useState(false)
   const [errorCambio, setErrorCambio] = useState(null)
 
-  // Guarda un cambio y deja en pantalla lo que devolvió el backend. Si falla, queda el valor anterior.
-  async function guardar(pedido, cambio) {
+  // Guarda un cambio y deja en pantalla el ticket que devolvió el backend. Si falla, queda el valor anterior.
+  async function guardar(pedido) {
     setGuardando(true)
     setErrorCambio(null)
     try {
       const { data } = await pedido
-      ticket.setDatos((actual) => ({ ...actual, ...cambio, ...data }))
+      ticket.setDatos(data)
       historial.recargar()
       return true
     } catch (err) {
@@ -40,9 +40,9 @@ export function useIncidente(numero, usuario) {
     historial,
     guardando,
     errorCambio,
-    cambiarTipo: (tipo) => guardar(cambiarTipoTicket(numero, { tipo, usuario }), { tipo }),
-    cambiarPrioridad: (prioridad) => guardar(cambiarPrioridadTicket(numero, { prioridad, usuario }), { prioridad }),
-    cambiarEstado: (estado) => guardar(cambiarEstadoTicket(numero, { estado, usuario }), { estado }),
-    resolver: (solucion) => guardar(resolverTicket(numero, { solucion, usuario }), { solucion, estado: 'Resuelto' }),
+    cambiarTipo: (tipo) => guardar(cambiarTipoTicket(numero, tipo, token)),
+    cambiarPrioridad: (prioridad) => guardar(cambiarPrioridadTicket(numero, prioridad, token)),
+    cambiarEstado: (estado) => guardar(cambiarEstadoTicket(numero, estado, token)),
+    resolver: (solucion) => guardar(resolverTicket(numero, solucion, token)),
   }
 }

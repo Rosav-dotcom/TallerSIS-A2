@@ -3,6 +3,7 @@ import { compararFacturaYTransaccion, obtenerFactura, obtenerTransaccion } from 
 // Texto para mostrar de un error de la API. El detalle solo se agrega en los 400, donde explica el formato.
 export function mensajeDeError(err) {
   if (err instanceof TypeError) return 'No se pudo conectar con el servicio de Soporte.'
+  if (err.status === 401) return 'Tu sesión venció. Cierra sesión e ingresa de nuevo.'
   if (err.status === 400 && typeof err.detalle === 'string') return `${err.message}. ${err.detalle}`
   return err.message
 }
