@@ -32,7 +32,7 @@ function descripcionInicial({ factura, transaccion, comparacion }) {
 }
 
 // Formulario para guardar el hallazgo como incidente.
-export function useRegistrarIncidente({ resultado, registradoPor, onRegistrado }) {
+export function useRegistrarIncidente({ resultado, token, onRegistrado }) {
   const [tipo, setTipo] = useState(resultado.factura ? 'Facturacion' : 'Pagos')
   const [prioridad, setPrioridad] = useState('Media')
   const [descripcion, setDescripcion] = useState(() => descripcionInicial(resultado))
@@ -51,13 +51,10 @@ export function useRegistrarIncidente({ resultado, registradoPor, onRegistrado }
     setEnviando(true)
     setError(null)
     try {
-      const { data } = await registrarIncidente({
-        tipo,
-        prioridad,
-        descripcion: descripcion.trim(),
-        ...referencia,
-        registrado_por: registradoPor,
-      })
+      const { data } = await registrarIncidente(
+        { tipo, prioridad, descripcion: descripcion.trim(), ...referencia },
+        token,
+      )
       onRegistrado(data)
     } catch (err) {
       setError(mensajeDeError(err))
