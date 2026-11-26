@@ -48,6 +48,34 @@ function tiempoPromedioAtencion(filas = []) {
   };
 }
 
+// TDSI-1095: categorías = tipos del incidente (Facturacion, Pagos, Acceso, Error del sistema, Otro)
+const TOP_PROBLEMAS = 5;
+
+/**
+ * Los tipos de problema más frecuentes del rango, de mayor a menor (como máximo 5 y sin los
+ * que no tuvieron incidentes). En empate va primero el que tiene más sin resolver, y luego
+ * por nombre, para que el orden no cambie entre una consulta y otra.
+ */
+function problemasFrecuentes(filas = [], top = TOP_PROBLEMAS) {
+  const porTipo = new Map();
+  for (const f of filas) {
+    if (!f.tipo) continue;
+    const g = porTipo.get(f.tipo) || { tipo: f.tipo, cantidad: 0, sin_resolver: 0 };
+    g.cantidad += 1;
+    if (!ESTADOS_RESUELTOS.includes(f.estado)) g.sin_resolver += 1;
+    porTipo.set(f.tipo, g);
+  }
+  const total = filas.length;
+  return [...porTipo.values()]
+    .sort((a, b) => b.cantidad - a.cantidad || b.sin_resolver - a.sin_resolver || a.tipo.localeCompare(b.tipo, "es"))
+    .slice(0, top)
+    .map((g, i) => ({
+      posicion: i + 1,
+      ...g,
+      porcentaje: total ? Math.round((g.cantidad / total) * 1000) / 10 : 0,
+    }));
+}
+
 /** TDSI-211: total de incidentes del rango y cuántos hay en cada estado y en cada prioridad. */
 function calcularReporte(filas = []) {
   return {
@@ -55,7 +83,16 @@ function calcularReporte(filas = []) {
     por_estado: contarPor(filas, "estado", ESTADOS),
     por_prioridad: contarPor(filas, "prioridad", PRIORIDADES),
     tiempo_promedio_atencion: tiempoPromedioAtencion(filas), // TDSI-1074
+    problemas_frecuentes: problemasFrecuentes(filas), // TDSI-1095
   };
 }
 
-module.exports = { calcularReporte, contarPor, tiempoPromedioAtencion, duracionTexto, ESTADOS_RESUELTOS };
+module.exports = {
+  calcularReporte,
+  contarPor,
+  tiempoPromedioAtencion,
+  duracionTexto,
+  problemasFrecuentes,
+  ESTADOS_RESUELTOS,
+  TOP_PROBLEMAS,
+};
