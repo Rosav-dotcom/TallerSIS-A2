@@ -193,3 +193,17 @@ main.container:not(.con-barra-lateral):has(.sop-pagina) {
 .sop-cabecera-acciones > .ui-boton {
   margin-top: var(--espacio-5);
 }
+
+/* TDSI-1094: aviso de éxito al escalar, fijo arriba a la derecha (debajo de la barra superior) */
+.sop-aviso-flotante {
+  position: fixed;
+  top: calc(72px + var(--espacio-4));
+  right: var(--espacio-5);
+  z-index: 60;
+  width: min(420px, calc(100vw - 2 * var(--espacio-4)));
+}
+@media (max-width: 600px) {
+  .sop-aviso-flotante {
+    right: var(--espacio-4);
+  }
+}

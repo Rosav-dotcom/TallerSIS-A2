@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { ArrowUpRight } from 'lucide-react'
 import { Alerta, Boton, Chip, EstadoCargando, EstadoError, EstadoVacio, Tarjeta } from '../../components/ui'
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx'
 import { useRolActual } from '../../hooks/useRolActual.js'
 import ComentariosIncidente from './ComentariosIncidente.jsx'
+import AvisoEscalado from './AvisoEscalado.jsx'
 import DatosOperacion from './DatosOperacion.jsx'
 import EscalarIncidenteModal from './EscalarIncidenteModal.jsx'
 import HistorialIncidente from './HistorialIncidente.jsx'
@@ -26,6 +27,8 @@ function DetalleIncidente({ numero }) {
   // TDSI-208: escala el Usuario de Soporte; el Administrador es quien lo recibe.
   const puedeEscalar = useRolActual() === 'USUARIO_SOPORTE'
   const [escalando, setEscalando] = useState(false)
+  const [escalado, setEscalado] = useState(false)
+  const cerrarAviso = useCallback(() => setEscalado(false), [])
 
   if (error?.status === 404) {
     return <EstadoVacio titulo="Incidente no encontrado" texto={`No hay ningún incidente con el número ${numero}.`} />
@@ -87,9 +90,12 @@ function DetalleIncidente({ numero }) {
           onEscalar={async (motivo) => {
             await i.escalar(motivo)
             setEscalando(false)
+            setEscalado(true)
           }}
         />
       )}
+
+      {escalado && <AvisoEscalado numero={ticket.numero} onCerrar={cerrarAviso} />}
     </section>
   )
 }
