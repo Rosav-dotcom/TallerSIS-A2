@@ -678,3 +678,16 @@ Tabla `pagos.vales_compra` (TDSI-227): código único `VAL-XXXX-XXXX`, monto, sa
 Contrato completo para el Equipo 1 y la pantalla: [`docs/contrato-vales.md`](docs/contrato-vales.md).
 
 **Vencimiento (TDSI-1109):** al consultar un vale (o la lista), los vales `Activo` cuyo `expira_en` ya pasó (día de Bolivia) se guardan como `Expirado` y se devuelven así. Un vale vence al terminar su último día: el día de `expira_en` todavía se puede usar.
+
+# Comprobante de la devolución por correo (TDSI-79)
+
+Al terminar una devolución, el cliente recibe por correo el comprobante del reembolso y la nota de crédito en PDF. Usa el mismo envío que las facturas (TDSI-14, `emailService.js`): sin credenciales SMTP el correo se **simula** y se guarda como `Enviado` con `simulado: true`.
+
+| Método | Ruta | Token | Qué hace | Subtarea |
+|---|---|---|---|---|
+| POST | `/api/pagos/comprobantes/reembolso` | Sí (Devoluciones) | `{ email, devolucion_id, cliente?, nota_credito?, reembolso? }`. El monto se lee de su dueño: `reembolso.reversion_id` (tarjeta, TDSI-74, debe estar CONFIRMADA), `reembolso.vale_codigo` (vale, TDSI-75) o `reembolso: { metodo: "Efectivo"\|"QR", monto }`. Adjunta el PDF de `nota_credito` que genera Facturación (TDSI-73). 201 con el envío, también si el correo falló (queda en `Error`). | TDSI-235, TDSI-1083 |
+| GET | `/api/pagos/comprobantes/envios?devolucion_id=&estado=` | No | Envíos de una devolución (más nuevos primero). | TDSI-1121 |
+| GET | `/api/pagos/comprobantes/envios/:id` | No | Un envío: `estado` (`Pendiente`, `Enviado`, `Error`), `ultimo_error`, `intentos`, `puede_reenviar`. | TDSI-1121 |
+| POST | `/api/pagos/comprobantes/envios/:id/reenviar` | No | Vuelve a mandarlo, opcionalmente a otro correo: `{ email? }`. 409 si ya se está enviando. | TDSI-1121 |
+
+Tabla `pagos.comprobantes_envios`. Contrato completo: [`docs/contrato-comprobantes.md`](docs/contrato-comprobantes.md).

@@ -691,3 +691,30 @@ CREATE INDEX IF NOT EXISTS idx_reversiones_estado ON pagos.reversiones (estado);
 CREATE INDEX IF NOT EXISTS idx_reversiones_devolucion ON pagos.reversiones (devolucion_id);
 
 ALTER TABLE pagos.reversiones ENABLE ROW LEVEL SECURITY;
+
+-- ==========================================================================
+-- TDSI-79/1121: estado de cada correo con el comprobante de una devolucion
+-- (nota de credito, reembolso o vale). Devoluciones no guarda una copia:
+-- solo la referencia al envio (TDSI-217). "datos" guarda el comprobante que
+-- se mando, para poder reenviarlo igual aunque se corrija el correo.
+-- ==========================================================================
+CREATE TABLE IF NOT EXISTS pagos.comprobantes_envios (
+    id              BIGSERIAL PRIMARY KEY,
+    tipo            VARCHAR(20)  NOT NULL CHECK (tipo IN ('NOTA_CREDITO','REEMBOLSO','VALE')),
+    devolucion_id   VARCHAR(60)  NOT NULL,
+    email           VARCHAR(150) NOT NULL,
+    nota_credito    VARCHAR(20),
+    estado          VARCHAR(20)  NOT NULL DEFAULT 'Pendiente' CHECK (estado IN ('Pendiente','Enviado','Error')),
+    simulado        BOOLEAN      NOT NULL DEFAULT false,  -- sin credenciales SMTP (ver emailService.js)
+    intentos        INT          NOT NULL DEFAULT 0 CHECK (intentos >= 0),
+    ultimo_error    VARCHAR(300),
+    datos           JSONB        NOT NULL,
+    creado_en       TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    actualizado_en  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    enviado_en      TIMESTAMPTZ,
+    CONSTRAINT comprobante_enviado_con_fecha CHECK (estado <> 'Enviado' OR enviado_en IS NOT NULL)
+);
+CREATE INDEX IF NOT EXISTS idx_comprobantes_envios_devolucion ON pagos.comprobantes_envios (devolucion_id);
+CREATE INDEX IF NOT EXISTS idx_comprobantes_envios_estado ON pagos.comprobantes_envios (estado);
+
+ALTER TABLE pagos.comprobantes_envios ENABLE ROW LEVEL SECURITY;
