@@ -9,31 +9,31 @@ export function mensajeDeError(err) {
 }
 
 // Compara las dos referencias. Se usa también para completar el lado que faltaba.
-export async function comparar(numeroFactura, idTransaccion) {
-  const { data } = await compararFacturaYTransaccion({ factura: numeroFactura, transaccion: idTransaccion })
+export async function comparar(numeroFactura, idTransaccion, token) {
+  const { data } = await compararFacturaYTransaccion({ factura: numeroFactura, transaccion: idTransaccion }, token)
   const { factura, transaccion, coincide, diferencias, avisos } = data
   return { factura, transaccion, comparacion: { coincide, diferencias, avisos }, errorPago: null }
 }
 
 // Busca por factura. Si la comparación no se puede hacer (la factura no indica su transacción o
 // Gestión de pagos no responde), igual se muestra la factura sola.
-async function buscarPorFactura(numero) {
+async function buscarPorFactura(numero, token) {
   try {
-    return await comparar(numero)
+    return await comparar(numero, null, token)
   } catch (err) {
     if (err.status === 404) throw err
-    const { data: factura } = await obtenerFactura(numero)
+    const { data: factura } = await obtenerFactura(numero, token)
     return { factura, transaccion: null, comparacion: null, errorPago: factura.venta_id ? err : null }
   }
 }
 
 // Busca por transacción. El backend no puede ir de la transacción a su factura: se muestra el pago
 // y la factura se indica después.
-async function buscarPorTransaccion(id) {
-  const { data: transaccion } = await obtenerTransaccion(id)
+async function buscarPorTransaccion(id, token) {
+  const { data: transaccion } = await obtenerTransaccion(id, token)
   return { factura: null, transaccion, comparacion: null, errorPago: null }
 }
 
-export function buscar({ tipo, valor }) {
-  return tipo === 'factura' ? buscarPorFactura(valor) : buscarPorTransaccion(valor)
+export function buscar({ tipo, valor }, token) {
+  return tipo === 'factura' ? buscarPorFactura(valor, token) : buscarPorTransaccion(valor, token)
 }

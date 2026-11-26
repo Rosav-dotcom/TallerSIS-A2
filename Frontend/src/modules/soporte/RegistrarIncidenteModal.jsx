@@ -6,8 +6,8 @@ import { useRegistrarIncidente } from './useRegistrarIncidente.js'
 const ID_FORMULARIO = 'sop-incidente'
 
 // Guarda el hallazgo como incidente, con la referencia a la factura o al pago que se está revisando.
-function RegistrarIncidenteModal({ resultado, registradoPor, onCerrar, onRegistrado }) {
-  const f = useRegistrarIncidente({ resultado, registradoPor, onRegistrado })
+function RegistrarIncidenteModal({ resultado, token, onCerrar, onRegistrado }) {
+  const f = useRegistrarIncidente({ resultado, token, onRegistrado })
   return (
     <Modal
       abierto

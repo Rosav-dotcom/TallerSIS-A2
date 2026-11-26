@@ -7,7 +7,7 @@ const SIN_VALOR = {
 }
 
 // Lógica de la pantalla "Soporte": buscar por factura o transacción y comparar los dos lados.
-export function useBusquedaSoporte() {
+export function useBusquedaSoporte(token) {
   const [tipo, setTipo] = useState('factura')
   const [valor, setValor] = useState('')
   const [errorCampo, setErrorCampo] = useState(null)
@@ -35,7 +35,7 @@ export function useBusquedaSoporte() {
     setComparando(false)
     setCargando(true)
     try {
-      const encontrado = await buscar(busqueda)
+      const encontrado = await buscar(busqueda, token)
       if (actual === turno.current) setResultado(encontrado)
     } catch (err) {
       if (actual !== turno.current) return
@@ -71,8 +71,8 @@ export function useBusquedaSoporte() {
     setErrorVinculo(null)
     try {
       const completo = faltaFactura
-        ? await comparar(limpio, resultado.transaccion.id_transaccion)
-        : await comparar(resultado.factura.numero, limpio)
+        ? await comparar(limpio, resultado.transaccion.id_transaccion, token)
+        : await comparar(resultado.factura.numero, limpio, token)
       if (actual === turno.current) setResultado(completo)
     } catch (err) {
       if (actual === turno.current) setErrorVinculo(mensajeDeError(err))
