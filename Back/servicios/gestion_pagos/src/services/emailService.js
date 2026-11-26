@@ -107,4 +107,89 @@ async function enviarFacturaPorCorreo({ email, factura, pdfBuffer }) {
   }
 }
 
-module.exports = { enviarFacturaPorCorreo, renderizarHtmlFactura, usarTransportadorDePrueba };
+// ---------------------------------------------------------------------------
+// TDSI-79/235: comprobante del reembolso de una devolución. Reutiliza el mismo
+// transportador SMTP (y el modo simulado) que el envío de facturas de arriba.
+// ---------------------------------------------------------------------------
+
+// Estos datos llegan de Devoluciones (otro equipo): se escapan antes de ponerlos en el HTML.
+const escapar = (v) =>
+  String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+const ETIQUETA_METODO = {
+  Tarjeta: "Reversión a la tarjeta",
+  Efectivo: "Devolución en efectivo",
+  QR: "Devolución por QR",
+  Vale: "Vale de compra",
+};
+
+function renderizarHtmlReembolso(c) {
+  const r = c.reembolso;
+  const filasReembolso = r
+    ? `
+      <table style="width:100%; border-collapse:collapse; margin-top:1rem;">
+        <tr><td style="padding:4px 0;">Forma de reembolso</td><td style="padding:4px 0; text-align:right;">${escapar(ETIQUETA_METODO[r.metodo] || r.metodo)}</td></tr>
+        ${r.referencia ? `<tr><td style="padding:4px 0;">${r.metodo === "Vale" ? "Código del vale" : "Referencia"}</td><td style="padding:4px 0; text-align:right;">${escapar(r.referencia)}</td></tr>` : ""}
+        ${r.id_transaccion ? `<tr><td style="padding:4px 0;">Venta original</td><td style="padding:4px 0; text-align:right;">${escapar(r.id_transaccion)}</td></tr>` : ""}
+        ${r.expira_en ? `<tr><td style="padding:4px 0;">Válido hasta</td><td style="padding:4px 0; text-align:right;">${escapar(r.expira_en)}</td></tr>` : ""}
+      </table>
+      <p style="text-align:right; font-size:1.2rem; font-weight:bold; margin-top:1rem;">
+        Monto devuelto: Bs. ${Number(r.monto).toFixed(2)}
+      </p>`
+    : "";
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; color:#1f2933;">
+      <h2 style="color:#345c32; margin-bottom:0;">${escapar(c.empresa.nombre)}</h2>
+      <p style="color:#616e7c; margin-top:0.25rem;">${escapar(c.empresa.direccion)}</p>
+      <hr style="border:none; border-top:1px solid #e4e7eb;" />
+      <h3 style="margin-bottom:0.25rem;">Comprobante de reembolso</h3>
+      <p>
+        <strong>Devolución:</strong> ${escapar(c.devolucion_id)}<br/>
+        <strong>Fecha:</strong> ${new Date(c.fecha).toLocaleString("es-BO")}
+        ${c.nota_credito ? `<br/><strong>Nota de crédito:</strong> ${escapar(c.nota_credito)}` : ""}
+      </p>
+      ${c.cliente ? `<p><strong>Cliente:</strong> ${escapar(c.cliente)}</p>` : ""}
+      ${filasReembolso}
+      ${c.nota_credito ? `<p style="color:#616e7c; font-size:0.9rem;">Adjuntamos la nota de crédito ${escapar(c.nota_credito)} en PDF.</p>` : ""}
+      <hr style="border:none; border-top:1px solid #e4e7eb;" />
+      <p style="color:#616e7c; font-size:0.85rem;">Guarde este correo como respaldo de su devolución.</p>
+    </div>
+  `;
+}
+
+/**
+ * Envía el comprobante del reembolso. adjuntos: [{ filename, content, contentType }].
+ * Devuelve { estado: "SIMULADO" | "ENVIADO" | "ERROR", html, error? } (nunca lanza).
+ */
+async function enviarComprobanteReembolso({ email, comprobante, adjuntos = [] }) {
+  const html = renderizarHtmlReembolso(comprobante);
+  const transportador = transportadorConfigurado();
+
+  if (!transportador) {
+    console.log(`[email simulado] Comprobante de la devolución ${comprobante.devolucion_id} para ${email}`);
+    return { estado: "SIMULADO", html };
+  }
+
+  try {
+    await transportador.sendMail({
+      from: process.env.SMTP_FROM || '"TallerSis" <no-responder@tallersis.local>',
+      to: email,
+      subject: `Comprobante de su devolución - ${comprobante.devolucion_id}`,
+      html,
+      attachments: adjuntos,
+    });
+    return { estado: "ENVIADO", html };
+  } catch (e) {
+    console.error("Error enviando el comprobante de reembolso:", e.message);
+    return { estado: "ERROR", html, error: e.message };
+  }
+}
+
+module.exports = {
+  enviarFacturaPorCorreo,
+  renderizarHtmlFactura,
+  usarTransportadorDePrueba,
+  enviarComprobanteReembolso,
+  renderizarHtmlReembolso,
+};
