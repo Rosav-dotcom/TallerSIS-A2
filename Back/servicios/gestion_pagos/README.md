@@ -691,3 +691,16 @@ Al terminar una devolución, el cliente recibe por correo el comprobante del ree
 | POST | `/api/pagos/comprobantes/envios/:id/reenviar` | No | Vuelve a mandarlo, opcionalmente a otro correo: `{ email? }`. 409 si ya se está enviando. | TDSI-1121 |
 
 Tabla `pagos.comprobantes_envios`. Contrato completo: [`docs/contrato-comprobantes.md`](docs/contrato-comprobantes.md).
+# Tablero de KPIs · pestaña "Ventas" (TDSI-640)
+
+`GET /api/kpis/ventas?desde=YYYY-MM-DD&hasta=YYYY-MM-DD&caja_id=&cajero_id=`. Sin fechas usa el mes en curso hasta hoy; el periodo máximo es de 366 días. Devuelve las 5 tarjetas de la pestaña con su `valor`, `semaforo` (`En meta`, `Atención`, `Fuera de meta`, `Referencia` o `Sin datos`), `detalle`, `formula` y `meta` exactas, y los datos de cada gráfico:
+
+| Tarjeta (`data.kpis.*`) | KPI | Gráfico | De dónde sale |
+|---|---|---|---|
+| `ticket_promedio` | KPI-1 Ticket promedio (Bs), comparado con el mes anterior | `por_dia` (línea) | Ventas APROBADAS en caja, con la misma definición del historial de cajeros (TDSI-19/33) |
+| `tasa_anulacion` | KPI-2 Tasa de anulación por cajero (% y Bs) | `por_cajero` (barras) | El mismo conteo de anuladas del historial de cajeros (TDSI-19) |
+| `mix_metodos` | KPI-5 Mix de métodos de pago (tarjeta "Pago en efectivo") | `metodos` (dona, suma 100 %) | El mismo cálculo de `GET /api/pagos/metodos` (TDSI-34) |
+| `cumplimiento_meta` | KPI-6 Cumplimiento de meta de ventas, del último día del periodo | `por_caja` | `GET /api/metas?fecha=` de Gestión de caja (TDSI-58, `GESTION_CAJA_URL`) |
+| `tasa_canceladas` | KPI-8 Tasa de ventas canceladas antes del cobro, con el motivo más frecuente | `por_motivo` | `pagos.ventas_canceladas` (TDSI-45) |
+
+Si Gestión de caja no responde, solo la tarjeta KPI-6 queda en `Sin datos` y las otras 4 se responden igual. Fórmulas, reglas y consultas para comprobarlas a mano: [`docs/kpis-ventas.md`](docs/kpis-ventas.md).

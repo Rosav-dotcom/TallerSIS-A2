@@ -51,6 +51,7 @@ app.use("/api/pagos/resumen-turno", resumenVentasRoutes); // TDSI-101
 app.use("/auth", authRoutes);
 app.use("/transacciones", require("./routes/transaccionesEstadoRoutes")); // TDSI-14
 app.use("/api/tablero", tableroRoutes); // TDSI-16
+app.use("/api/kpis", require("./routes/kpisVentasRoutes").crearKpisVentasRoutes()); // TDSI-640/650: Tablero de KPIs, pestaña "Ventas"
 app.use("/api/facturas", facturaDocumentoRoutes); // TDSI-108
 app.use("/api/cobros", cobrosRoutes); // TDSI-29/549
 app.use("/api/cobros", cobroQrRoutes); // TDSI-39/531
