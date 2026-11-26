@@ -3,6 +3,7 @@ import {
   cambiarEstadoTicket,
   cambiarPrioridadTicket,
   cambiarTipoTicket,
+  escalarTicket,
   obtenerHistorialTicket,
   obtenerTicket,
   resolverTicket,
@@ -44,5 +45,12 @@ export function useIncidente(numero, token) {
     cambiarPrioridad: (prioridad) => guardar(cambiarPrioridadTicket(numero, prioridad, token)),
     cambiarEstado: (estado) => guardar(cambiarEstadoTicket(numero, estado, token)),
     resolver: (solucion) => guardar(resolverTicket(numero, solucion, token)),
+    // TDSI-208: el error no se muestra en la página sino en el modal, por eso se relanza.
+    escalar: async (motivo) => {
+      const { data } = await escalarTicket(numero, motivo, token)
+      ticket.setDatos(data)
+      historial.recargar()
+      return data
+    },
   }
 }

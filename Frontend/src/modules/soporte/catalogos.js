@@ -18,3 +18,6 @@ export const ESTADOS = ['Abierto', 'En proceso', 'Pendiente', 'Resuelto', 'Cerra
 
 // Tono de los estados que el componente Chip no tiene en su lista.
 export const TONO_ESTADO = { Abierto: 'info', 'En proceso': 'info', Cerrado: 'neutro' }
+
+// TDSI-208: estados desde los que se puede escalar al Administrador (las mismas reglas del backend, TDSI-207).
+export const ESCALABLES = ['Abierto', 'En proceso', 'Pendiente']

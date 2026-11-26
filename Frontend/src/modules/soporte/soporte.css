@@ -177,3 +177,19 @@ main.container:not(.con-barra-lateral):has(.sop-pagina) {
     grid-template-columns: 1fr;
   }
 }
+
+/* TDSI-208: selector de estado y "Escalar a administrador" juntos, a la derecha del título */
+.sop-cabecera-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+.sop-cabecera-acciones > .ui-campo {
+  width: 320px;
+  max-width: 100%;
+}
+/* Alto de la etiqueta del campo (16 px) más su separación (8 px) */
+.sop-cabecera-acciones > .ui-boton {
+  margin-top: var(--espacio-5);
+}

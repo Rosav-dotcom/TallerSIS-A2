@@ -128,3 +128,11 @@ export function listarComentariosTicket(numero, token) {
 export function comentarTicket(numero, texto, token) {
   return enviar(numero, '/comentarios', 'POST', { texto }, token)
 }
+
+// ---------- Escalamiento (TDSI-65) ----------
+
+// TDSI-207: escala el ticket al Administrador con un motivo (10 a 500 caracteres). Responde el
+// ticket en Escalado; 409 si ya estaba escalado o si está Resuelto o Cerrado.
+export function escalarTicket(numero, motivo, token) {
+  return enviar(numero, '/escalar', 'POST', { motivo }, token)
+}
