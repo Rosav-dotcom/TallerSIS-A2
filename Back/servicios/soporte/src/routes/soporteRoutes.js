@@ -3,7 +3,7 @@ const express = require("express");
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res)).catch(next);
 
 // Rutas del Usuario de Soporte. Todas son de solo lectura sobre otros servicios.
-function crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService, gestionTicketsService }) {
+function crearSoporteRoutes({ facturasService, transaccionesService, comparacionService, ticketsService, gestionTicketsService, reportesService }) {
   const router = express.Router();
 
   // TDSI-1064: consultar una factura (solo lectura, vía facturación)
@@ -157,6 +157,12 @@ function crearSoporteRoutes({ facturasService, transaccionesService, comparacion
       const data = await gestionTicketsService.listarEscalados(req.usuario);
       res.json({ ok: true, total: data.length, data });
     })
+  );
+
+  // TDSI-211 (TDSI-67): reporte de incidencias ?desde=AAAA-MM-DD&hasta=AAAA-MM-DD (sin fechas: últimos 30 días)
+  router.get(
+    "/reportes/incidentes",
+    wrap(async (req, res) => res.json({ ok: true, data: await reportesService.reporteIncidentes(req.query) }))
   );
 
   return router;
