@@ -23,4 +23,30 @@ async function emitirFactura({ nit, razon_social, items }) {
   return datos.data;
 }
 
-module.exports = { emitirFactura };
+/**
+ * TDSI-79/1083: el PDF de una nota de crédito lo genera Facturación (TDSI-73,
+ * GET /api/notas-credito/:numero/pdf). Devuelve un Buffer; lanza un Error claro si falla.
+ * La URL se lee en cada llamada para que los tests puedan apuntar a un Facturación falso.
+ */
+async function obtenerPdfNotaCredito(numero) {
+  const base = process.env.FACTURACION_URL || FACTURACION_URL;
+  let respuesta;
+  try {
+    respuesta = await fetch(`${base}/api/notas-credito/${encodeURIComponent(numero)}/pdf`, {
+      signal: AbortSignal.timeout(Number(process.env.FACTURACION_TIMEOUT_MS || 10000)),
+    });
+  } catch (e) {
+    throw new Error("No se pudo contactar a facturacion para obtener el PDF de la nota de crédito.");
+  }
+  if (respuesta.status === 404) throw new Error(`Facturación no encuentra la nota de crédito ${numero}.`);
+  if (!respuesta.ok) throw new Error(`Facturación no pudo generar el PDF de la nota de crédito ${numero} (HTTP ${respuesta.status}).`);
+
+  const tipo = respuesta.headers.get("content-type") || "";
+  const pdf = Buffer.from(await respuesta.arrayBuffer());
+  if (!tipo.includes("application/pdf") || pdf.subarray(0, 5).toString() !== "%PDF-") {
+    throw new Error(`Facturación no devolvió un PDF válido para la nota de crédito ${numero}.`);
+  }
+  return pdf;
+}
+
+module.exports = { emitirFactura, obtenerPdfNotaCredito };
