@@ -111,3 +111,20 @@ main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
   flex: 1;
   max-width: 480px;
 }
+
+/* Incidentes escalados del Administrador (TDSI-1073) */
+.sop-motivo {
+  min-width: 220px;
+  overflow-wrap: anywhere;
+}
+.sop-quien,
+.sop-cuando {
+  display: block;
+  white-space: nowrap;
+}
+.sop-cuando {
+  color: var(--muted);
+}
+.sop-accion {
+  white-space: nowrap;
+}

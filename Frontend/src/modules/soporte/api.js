@@ -136,3 +136,10 @@ export function comentarTicket(numero, texto, token) {
 export function escalarTicket(numero, motivo, token) {
   return enviar(numero, '/escalar', 'POST', { motivo }, token)
 }
+
+// TDSI-1072: bandeja "Incidentes escalados" (solo el Administrador). Primero la mayor prioridad y,
+// dentro de cada una, el que lleva más tiempo esperando. Responde { total, data: [ticket] } con
+// motivo_escalamiento, escalado_por y escalado_en.
+export function listarEscalados(token) {
+  return apiFetch('/api/soporte/escalados', conToken(token), SOPORTE_API_BASE_URL)
+}

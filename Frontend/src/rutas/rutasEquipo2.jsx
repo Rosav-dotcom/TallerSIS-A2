@@ -3,7 +3,9 @@ import GuardiaRol from './GuardiaRol.jsx'
 import {
   BandejaIncidentes,
   DETALLE_ACTIVO,
+  DetalleIncidenteAdmin,
   HistorialUsuario,
+  IncidentesEscalados,
   Soporte,
   SOPORTE_ACTIVO,
   SoporteIncidente,
@@ -14,19 +16,28 @@ import {
 // Administrador → /admin/tablero). Las pantallas nuevas de Soporte se agregan como hijas
 // de este grupo y quedan protegidas sin repetir RutaPorRol en cada una.
 const ROLES_SOPORTE = ['USUARIO_SOPORTE']
+// TDSI-1073: la bandeja de incidentes escalados es solo del Administrador.
+const ROLES_ADMIN = ['ADMINISTRADOR']
 
 // Se llama como función dentro de <Routes> ({rutasEquipo2()}), porque <Routes> solo acepta <Route>.
 // Con el interruptor "soporte" apagado no se registra ninguna ruta de Soporte.
 export function rutasEquipo2() {
   if (!SOPORTE_ACTIVO) return null
   return (
-    <Route path="/soporte" element={<GuardiaRol roles={ROLES_SOPORTE} />}>
-      <Route index element={<Soporte />} />
-      <Route path="incidentes" element={<BandejaIncidentes />} />
-      {DETALLE_ACTIVO && <Route path="incidentes/:numero" element={<SoporteIncidente />} />}
-      <Route path="historial" element={<HistorialUsuario />} />
-      {/* Una dirección de Soporte que no existe vuelve al inicio de Soporte (el guardia ya se aplicó). */}
-      <Route path="*" element={<Navigate to="/soporte" replace />} />
-    </Route>
+    <>
+      <Route path="/soporte" element={<GuardiaRol roles={ROLES_SOPORTE} />}>
+        <Route index element={<Soporte />} />
+        <Route path="incidentes" element={<BandejaIncidentes />} />
+        {DETALLE_ACTIVO && <Route path="incidentes/:numero" element={<SoporteIncidente />} />}
+        <Route path="historial" element={<HistorialUsuario />} />
+        {/* Una dirección de Soporte que no existe vuelve al inicio de Soporte (el guardia ya se aplicó). */}
+        <Route path="*" element={<Navigate to="/soporte" replace />} />
+      </Route>
+
+      <Route path="/admin/soporte" element={<GuardiaRol roles={ROLES_ADMIN} />}>
+        <Route path="escalados" element={<IncidentesEscalados />} />
+        {DETALLE_ACTIVO && <Route path="incidentes/:numero" element={<DetalleIncidenteAdmin />} />}
+      </Route>
+    </>
   )
 }
