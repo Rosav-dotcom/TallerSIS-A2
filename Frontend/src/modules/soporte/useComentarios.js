@@ -4,8 +4,8 @@ import { mensajeDeError } from './consultas.js'
 import { useCarga } from './useCarga.js'
 
 // Comentarios de un incidente: listar y agregar. No se editan ni se borran.
-export function useComentarios(numero, autor) {
-  const lista = useCarga(useCallback(() => listarComentariosTicket(numero), [numero]))
+export function useComentarios(numero, token) {
+  const lista = useCarga(useCallback(() => listarComentariosTicket(numero, token), [numero, token]))
   const [texto, setTexto] = useState('')
   const [enviando, setEnviando] = useState(false)
   const [errorEnvio, setErrorEnvio] = useState(null)
@@ -17,7 +17,7 @@ export function useComentarios(numero, autor) {
     setEnviando(true)
     setErrorEnvio(null)
     try {
-      const { data } = await comentarTicket(numero, { texto: limpio, autor })
+      const { data } = await comentarTicket(numero, limpio, token)
       lista.setDatos((actuales) => [...(actuales ?? []), data])
       setTexto('')
     } catch (err) {

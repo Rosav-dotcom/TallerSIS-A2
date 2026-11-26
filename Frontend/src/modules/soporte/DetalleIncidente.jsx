@@ -16,8 +16,8 @@ import './soporte.css'
 // TDSI-64: detalle de un incidente (tipo, prioridad, estado, solución, comentarios e historial).
 function DetalleIncidente({ numero }) {
   const { administrador } = useAdminAuth()
-  const usuario = administrador?.email
-  const i = useIncidente(numero, usuario)
+  const token = administrador?.access_token
+  const i = useIncidente(numero, token)
   const { datos: ticket, error, recargar } = i.ticket
 
   if (error?.status === 404) {
@@ -61,7 +61,7 @@ function DetalleIncidente({ numero }) {
             </div>
           </Tarjeta>
           <SolucionIncidente ticket={ticket} guardando={i.guardando} onResolver={i.resolver} />
-          <ComentariosIncidente numero={numero} autor={usuario} />
+          <ComentariosIncidente numero={numero} token={token} />
         </div>
         <HistorialIncidente historial={i.historial} />
       </div>
