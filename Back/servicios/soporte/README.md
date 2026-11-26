@@ -38,6 +38,7 @@ Comprobar: `GET http://localhost:4007/health` → `{ "ok": true, "servicio": "so
 ## Documentación
 
 - Diagrama de clases (TDSI-974): [`docs/diagrama-clases.md`](docs/diagrama-clases.md)
+- Diagrama de secuencia "Generar reporte de incidencias" (TDSI-987): [`docs/diagrama-secuencia-reporte.md`](docs/diagrama-secuencia-reporte.md)
 
 ## Tests
 
@@ -95,6 +96,7 @@ Solo pasan las cuentas con rol **`USUARIO_SOPORTE`** o **`ADMINISTRADOR`** (`caj
 | POST | `/api/soporte/tickets/:numero/comentarios` | Cuerpo `{ texto }` (máx. 1000). El autor es el usuario de la sesión. 201 con el comentario. No se pueden editar ni borrar (no hay ruta y un trigger lo impide en la base). | TDSI-968 |
 | POST | `/api/soporte/tickets/:numero/escalar` | Cuerpo `{ motivo }` (10 a 500 caracteres). Pasa el ticket a **Escalado** y guarda `motivo_escalamiento`, `escalado_por` (usuario de la sesión) y `escalado_en`. 409 si ya está Escalado, Resuelto o Cerrado. | TDSI-207 |
 | GET | `/api/soporte/escalados` | Bandeja "Incidentes escalados": **solo el Administrador** (403 para el Usuario de Soporte). Tickets en Escalado con `motivo_escalamiento`, `escalado_por` y `escalado_en`; primero Crítica y, dentro de cada prioridad, el que espera hace más tiempo. "Tomar y resolver": `PATCH /tickets/:numero/estado` con `En proceso` y luego `POST /tickets/:numero/solucion`. | TDSI-1072 |
+| GET | `/api/soporte/reportes/incidentes?desde=AAAA-MM-DD&hasta=AAAA-MM-DD` | Reporte de incidencias del rango (por fecha de creación, días de Bolivia, `hasta` incluido; sin fechas, los últimos 30 días; máx. 366): `total`, `por_estado`, `por_prioridad` (todos los valores, también en 0), `tiempo_promedio_atencion` (solo resueltos: `incidentes_resueltos`, `promedio_minutos`, `promedio_horas`, `texto`) y `problemas_frecuentes` (hasta 5 tipos con `cantidad`, `porcentaje` y `sin_resolver`). 400 si una fecha no es válida. | TDSI-211, TDSI-1074, TDSI-1095 |
 
 ### Qué compara (TDSI-972)
 
