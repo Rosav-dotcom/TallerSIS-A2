@@ -703,4 +703,4 @@ Tabla `pagos.comprobantes_envios`. Contrato completo: [`docs/contrato-comprobant
 | `cumplimiento_meta` | KPI-6 Cumplimiento de meta de ventas, del último día del periodo | `por_caja` | `GET /api/metas?fecha=` de Gestión de caja (TDSI-58, `GESTION_CAJA_URL`) |
 | `tasa_canceladas` | KPI-8 Tasa de ventas canceladas antes del cobro, con el motivo más frecuente | `por_motivo` | `pagos.ventas_canceladas` (TDSI-45) |
 
-Si Gestión de caja no responde, solo la tarjeta KPI-6 queda en `Sin datos` y las otras 4 se responden igual. Fórmulas, reglas y consultas para comprobarlas a mano: [`docs/kpis-ventas.md`](docs/kpis-ventas.md).
+Si Gestión de caja no responde, solo la tarjeta KPI-6 queda en `Sin datos` y las otras 4 se responden igual. Fórmulas, reglas y consultas para comprobarlas a mano: [`docs/kpis-ventas.md`](docs/kpis-ventas.md). Diagrama de secuencia del cálculo y despliegue (TDSI-652): [`docs/diagrama-secuencia-kpis.md`](docs/diagrama-secuencia-kpis.md).
