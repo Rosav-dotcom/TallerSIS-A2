@@ -165,3 +165,30 @@ main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
     flex: 1;
   }
 }
+
+/* TDSI-1075: gráfico por estado y problemas frecuentes, lado a lado; en pantallas medianas, uno debajo del otro */
+.sop-reporte-detalle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--espacio-5);
+}
+[aria-busy='true'] > .sop-reporte-detalle {
+  opacity: 0.6;
+}
+@media (max-width: 1000px) {
+  .sop-reporte-detalle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+/* En celular, el gráfico (componente compartido, con columnas fijas de 140 y 120 px) se ajusta al ancho
+   solo dentro del reporte: la tarjeta ya da el fondo y el margen */
+.sop-reporte-detalle .grafico-barras {
+  padding: 0;
+}
+@media (max-width: 520px) {
+  .sop-reporte-detalle .grafico-barra-fila {
+    grid-template-columns: 96px minmax(0, 1fr) auto;
+    gap: var(--espacio-2);
+  }
+}

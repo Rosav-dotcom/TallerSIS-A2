@@ -1,5 +1,7 @@
 import { CampoTexto, EstadoCargando, EstadoError, EstadoVacio, TarjetaKpi } from '../../components/ui'
 import { useAdminAuth } from '../../context/AdminAuthContext.jsx'
+import GraficoPorEstado from './GraficoPorEstado.jsx'
+import TablaProblemasFrecuentes from './TablaProblemasFrecuentes.jsx'
 import { mensajeDeError } from './consultas.js'
 import { useReporteIncidentes } from './useReporteIncidentes.js'
 import './soporte.css'
@@ -45,7 +47,7 @@ function TotalesReporte({ reporte }) {
 }
 
 // TDSI-212: "Reportes de incidencias" (/soporte/reportes). Figma p.8 (menú), p.2 (rango de fechas)
-// y p.3 (tarjetas de indicador).
+// p.3 (tarjetas de indicador) y p.5 (gráfico de barras, TDSI-1075).
 function ReportesIncidencias() {
   const { administrador } = useAdminAuth()
   const r = useReporteIncidentes(administrador?.access_token)
@@ -86,6 +88,12 @@ function ReportesIncidencias() {
       {!error && !r.errorRango && datos && (
         <div className="sop-pagina" aria-busy={cargando}>
           <TotalesReporte reporte={datos} />
+          {datos.total > 0 && (
+            <div className="sop-reporte-detalle">
+              <GraficoPorEstado porEstado={datos.por_estado} total={datos.total} />
+              <TablaProblemasFrecuentes problemas={datos.problemas_frecuentes} />
+            </div>
+          )}
           {datos.total === 0 && (
             <EstadoVacio
               titulo="No hay incidentes en este rango"
