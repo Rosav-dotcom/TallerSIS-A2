@@ -128,3 +128,40 @@ main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
 .sop-accion {
   white-space: nowrap;
 }
+
+/* Reportes de incidencias (TDSI-212) */
+.sop-rango {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+.sop-rango > .ui-campo {
+  width: 170px;
+}
+.sop-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--espacio-4);
+}
+.sop-kpi-detalle {
+  color: var(--muted);
+  font: var(--texto-etiqueta);
+}
+[aria-busy='true'] > .sop-kpis {
+  opacity: 0.6;
+}
+@media (max-width: 1000px) {
+  .sop-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .sop-kpis {
+    grid-template-columns: 1fr;
+  }
+  .sop-rango > .ui-campo {
+    width: auto;
+    flex: 1;
+  }
+}

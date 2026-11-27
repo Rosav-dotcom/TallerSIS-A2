@@ -6,6 +6,7 @@ import {
   DetalleIncidenteAdmin,
   HistorialUsuario,
   IncidentesEscalados,
+  ReportesIncidencias,
   Soporte,
   SOPORTE_ACTIVO,
   SoporteIncidente,
@@ -30,6 +31,7 @@ export function rutasEquipo2() {
         <Route path="incidentes" element={<BandejaIncidentes />} />
         {DETALLE_ACTIVO && <Route path="incidentes/:numero" element={<SoporteIncidente />} />}
         <Route path="historial" element={<HistorialUsuario />} />
+        <Route path="reportes" element={<ReportesIncidencias />} />
         {/* Una dirección de Soporte que no existe vuelve al inicio de Soporte (el guardia ya se aplicó). */}
         <Route path="*" element={<Navigate to="/soporte" replace />} />
       </Route>

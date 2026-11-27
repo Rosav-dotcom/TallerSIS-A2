@@ -143,3 +143,15 @@ export function escalarTicket(numero, motivo, token) {
 export function listarEscalados(token) {
   return apiFetch('/api/soporte/escalados', conToken(token), SOPORTE_API_BASE_URL)
 }
+
+// ---------- Reporte de incidencias (TDSI-67) ----------
+
+// TDSI-211, 1074 y 1095: reporte del rango (fecha de creación, días de Bolivia, los dos incluidos;
+// hasta 366 días). Responde data: { rango: { desde, hasta, dias }, total, por_estado, por_prioridad,
+// tiempo_promedio_atencion: { incidentes_resueltos, promedio_minutos, texto }, problemas_frecuentes }.
+export function obtenerReporteIncidentes({ desde, hasta }, token) {
+  const params = new URLSearchParams()
+  if (desde) params.set('desde', desde)
+  if (hasta) params.set('hasta', hasta)
+  return apiFetch(`/api/soporte/reportes/incidentes?${params.toString()}`, conToken(token), SOPORTE_API_BASE_URL)
+}
