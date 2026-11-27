@@ -17,4 +17,8 @@ export const PRIORIDADES = [
 export const ESTADOS = ['Abierto', 'En proceso', 'Pendiente', 'Resuelto', 'Cerrado']
 
 // Tono de los estados que el componente Chip no tiene en su lista.
-export const TONO_ESTADO = { Abierto: 'info', 'En proceso': 'info', Cerrado: 'neutro' }
+// TDSI-1094: Escalado en ámbar (advertencia), igual en la bandeja, el detalle y el historial.
+export const TONO_ESTADO = { Abierto: 'info', 'En proceso': 'info', Cerrado: 'neutro', Escalado: 'advertencia' }
+
+// TDSI-208: estados desde los que se puede escalar al Administrador (las mismas reglas del backend, TDSI-207).
+export const ESCALABLES = ['Abierto', 'En proceso', 'Pendiente']

@@ -1,0 +1,130 @@
+/* Bandeja de Incidentes e Historial por usuario (TDSI-66). Solo variables de index.css. */
+
+/* La tabla de 7 columnas necesita más ancho que el contenedor (960 px) cuando no hay barra lateral. */
+main.container:not(.con-barra-lateral):has(.sop-bandeja-encabezado) {
+  max-width: 1280px;
+}
+
+/* Título a la izquierda y acción principal ("Nuevo ticket") a la derecha */
+.sop-bandeja-encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.sop-bandeja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+/* Mientras llega la página nueva, la anterior se ve atenuada */
+.sop-bandeja[aria-busy='true'] {
+  opacity: 0.6;
+}
+
+.sop-numero {
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sop-usuario {
+  overflow-wrap: anywhere;
+}
+.sop-enlace {
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.sop-paginacion,
+.sop-paginacion-botones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+.sop-paginacion {
+  justify-content: space-between;
+  color: var(--muted);
+}
+
+/* Formulario "Nuevo ticket": dos campos por fila; en celular, uno debajo del otro */
+.sop-fila-campos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--espacio-4);
+}
+@media (max-width: 600px) {
+  .sop-fila-campos {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ticket recién registrado: se resalta en la bandeja */
+.sop-fila--nueva td {
+  background: var(--success-bg);
+}
+
+/* Barra de filtros (TDSI-675): los 6 filtros en una fila; 3 por fila en pantallas medianas y 2 en celular */
+.sop-filtros {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-tarjeta);
+  background: var(--surface);
+}
+/* "Limpiar filtros" ocupa su propia fila, alineado a la derecha y sin espacio de más */
+.sop-filtros-pie {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: calc(-1 * var(--espacio-2));
+}
+@media (max-width: 1100px) {
+  .sop-filtros {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .sop-filtros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Historial por usuario (TDSI-210) */
+.sop-resumen {
+  margin: 0;
+  color: var(--muted);
+}
+.sop-fecha {
+  white-space: nowrap;
+}
+.sop-solucion {
+  min-width: 240px;
+  overflow-wrap: anywhere;
+}
+.sop-buscador-usuario > .ui-campo {
+  flex: 1;
+  max-width: 480px;
+}
+
+/* Incidentes escalados del Administrador (TDSI-1073) */
+.sop-motivo {
+  min-width: 220px;
+  overflow-wrap: anywhere;
+}
+.sop-quien,
+.sop-cuando {
+  display: block;
+  white-space: nowrap;
+}
+.sop-cuando {
+  color: var(--muted);
+}
+.sop-accion {
+  white-space: nowrap;
+}

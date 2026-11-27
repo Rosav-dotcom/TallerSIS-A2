@@ -12,7 +12,7 @@ import CierreCaja from './pages/CierreCaja.jsx'
 import VerificarFactura from './pages/VerificarFactura.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useAdminAuth } from './context/AdminAuthContext.jsx'
-import { DETALLE_ACTIVO, Soporte, SOPORTE_ACTIVO, SoporteIncidente } from './modules/soporte'
+import { rutasEquipo2 } from './rutas/rutasEquipo2.jsx'
 import CierreDiario from './pages/CierreDiario.jsx'
 import HistorialOperaciones from './pages/HistorialOperaciones.jsx'
 import MetasVenta from './pages/MetasVenta.jsx'
@@ -48,8 +48,6 @@ function App() {
       {!esPantallaLogin && !esPaginaPublica && (esSeccionAdmin ? <AdminNavbar /> : <Navbar />)}
       <main className={esPantallaLogin || esPaginaPublica ? undefined : esSeccionAdmin ? 'container container-ancho con-barra-lateral' : 'container'}>
         <Routes>
-          {SOPORTE_ACTIVO && <Route path="/soporte" element={<Soporte />} />}
-          {DETALLE_ACTIVO && <Route path="/soporte/incidentes/:numero" element={<SoporteIncidente />} />}
           <Route path="/login" element={<Login />} />
           <Route path="/facturas/verificar/:token" element={<VerificarFactura />} />
 
@@ -74,6 +72,9 @@ function App() {
           <Route path="/admin/ventas-online" element={<RutaProtegidaAdmin><VentasOnline /></RutaProtegidaAdmin>} />
           <Route path="/admin/libro-ventas" element={<RutaProtegidaAdmin><LibroVentas /></RutaProtegidaAdmin>} />
           <Route path="/admin/usuarios" element={<RutaProtegidaAdmin><Usuarios /></RutaProtegidaAdmin>} />
+
+          {/* Equipo 2: Soporte (TDSI-666) */}
+          {rutasEquipo2()}
         </Routes>
       </main>
     </>

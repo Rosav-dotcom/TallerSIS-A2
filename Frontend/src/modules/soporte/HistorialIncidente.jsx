@@ -19,7 +19,8 @@ function HistorialIncidente({ historial }) {
           eventos={[...datos].sort(enOrden).map((h, i) => ({
             id: h.id ?? i,
             titulo: `${fecha(h.cambiado_en)} · ${h.estado_nuevo}`,
-            detalle: h.usuario,
+            // TDSI-1092: el escalamiento guarda su motivo junto a quién lo hizo.
+            detalle: h.motivo ? `${h.usuario} · Motivo: ${h.motivo}` : h.usuario,
             hecho: true,
           }))}
         />

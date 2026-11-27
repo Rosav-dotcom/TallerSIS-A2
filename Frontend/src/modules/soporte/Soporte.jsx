@@ -1,13 +1,8 @@
-import RutaPorRol from '../../components/RutaPorRol.jsx'
 import BuscarFacturaOPago from './BuscarFacturaOPago.jsx'
 
-// Inicio del Usuario de Soporte (/soporte).
+// Inicio del Usuario de Soporte (/soporte). La protección por rol está en src/rutas/rutasEquipo2.jsx (TDSI-666).
 function Soporte() {
-  return (
-    <RutaPorRol roles={['USUARIO_SOPORTE']}>
-      <BuscarFacturaOPago />
-    </RutaPorRol>
-  )
+  return <BuscarFacturaOPago />
 }
 
 export default Soporte

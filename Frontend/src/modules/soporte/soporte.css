@@ -177,3 +177,33 @@ main.container:not(.con-barra-lateral):has(.sop-pagina) {
     grid-template-columns: 1fr;
   }
 }
+
+/* TDSI-208: selector de estado y "Escalar a administrador" juntos, a la derecha del título */
+.sop-cabecera-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+.sop-cabecera-acciones > .ui-campo {
+  width: 320px;
+  max-width: 100%;
+}
+/* Alto de la etiqueta del campo (16 px) más su separación (8 px) */
+.sop-cabecera-acciones > .ui-boton {
+  margin-top: var(--espacio-5);
+}
+
+/* TDSI-1094: aviso de éxito al escalar, fijo arriba a la derecha (debajo de la barra superior) */
+.sop-aviso-flotante {
+  position: fixed;
+  top: calc(72px + var(--espacio-4));
+  right: var(--espacio-5);
+  z-index: 60;
+  width: min(420px, calc(100vw - 2 * var(--espacio-4)));
+}
+@media (max-width: 600px) {
+  .sop-aviso-flotante {
+    right: var(--espacio-4);
+  }
+}

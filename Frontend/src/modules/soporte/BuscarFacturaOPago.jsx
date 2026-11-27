@@ -31,7 +31,8 @@ const BUSQUEDA = {
 // y marca lo que no coincide.
 function BuscarFacturaOPago() {
   const { administrador } = useAdminAuth()
-  const b = useBusquedaSoporte()
+  const token = administrador?.access_token
+  const b = useBusquedaSoporte(token)
   const [registrando, setRegistrando] = useState(false)
   const [registrado, setRegistrado] = useState(null)
 
@@ -171,7 +172,7 @@ function BuscarFacturaOPago() {
       {registrando && resultado && (
         <RegistrarIncidenteModal
           resultado={resultado}
-          registradoPor={administrador?.email}
+          token={token}
           onCerrar={() => setRegistrando(false)}
           onRegistrado={(incidente) => {
             setRegistrando(false)
