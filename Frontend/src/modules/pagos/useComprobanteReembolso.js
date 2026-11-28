@@ -26,6 +26,7 @@ export function useComprobanteReembolso(devolucionId) {
   const recargar = useCallback(() => setIntento((n) => n + 1), [])
 
   // TDSI-1084: reenvío. El estado que devuelve el backend (Enviado o Error) reemplaza al anterior.
+  // TDSI-1123: con email, se reenvía al correo corregido.
   const [reenviando, setReenviando] = useState(false)
   const [resultado, setResultado] = useState(null)
   const [errorReenvio, setErrorReenvio] = useState(null)
@@ -40,8 +41,9 @@ export function useComprobanteReembolso(devolucionId) {
       if (data.estado === 'Enviado') setResultado(mensaje)
       return data
     } catch (err) {
-      setErrorReenvio(mensajeDeError(err))
-      throw err
+      const mensaje = mensajeDeError(err)
+      setErrorReenvio(mensaje)
+      throw new Error(mensaje, { cause: err })
     } finally {
       setReenviando(false)
     }

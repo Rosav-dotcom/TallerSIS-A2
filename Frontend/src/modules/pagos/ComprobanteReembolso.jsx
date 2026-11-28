@@ -1,7 +1,9 @@
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { EstadoCargando, EstadoError, EstadoVacio } from '../../components/ui'
 import CorreoCliente from './CorreoCliente.jsx'
 import DatosComprobante from './DatosComprobante.jsx'
+import ReenviarCorreoModal from './ReenviarCorreoModal.jsx'
 import { mensajeDeError } from './formato.js'
 import { useComprobanteReembolso } from './useComprobanteReembolso.js'
 import './pagos.css'
@@ -11,6 +13,7 @@ import './pagos.css'
 function ComprobanteReembolso() {
   const { codigo } = useParams()
   const c = useComprobanteReembolso(codigo)
+  const [corrigiendo, setCorrigiendo] = useState(false)
 
   return (
     <section className="pag-pagina">
@@ -35,12 +38,24 @@ function ComprobanteReembolso() {
               envio={c.envio}
               reenviando={c.reenviando}
               resultado={c.resultado}
-              errorReenvio={c.errorReenvio}
-              onReenviar={() => c.reenviar().catch(() => {})}
+              // TDSI-1123: el error del reenvío se muestra dentro del modal
+              errorReenvio={corrigiendo ? null : c.errorReenvio}
+              onReenviar={() => setCorrigiendo(true)}
               onCerrarResultado={c.cerrarResultado}
             />
           </div>
         </div>
+      )}
+
+      {corrigiendo && c.envio && (
+        <ReenviarCorreoModal
+          emailActual={c.envio.email}
+          onCerrar={() => setCorrigiendo(false)}
+          onReenviar={async (email) => {
+            await c.reenviar(email)
+            setCorrigiendo(false)
+          }}
+        />
       )}
     </section>
   )
