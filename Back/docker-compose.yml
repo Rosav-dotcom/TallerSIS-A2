@@ -62,3 +62,19 @@ services:
       - ./servicios/pagos_proveedores/.env
     networks:
       - app-network
+
+  # TDSI-203: Soporte (Sprint 4). Solo lee facturas y pagos por sus APIs.
+  soporte:
+    build: ./servicios/soporte
+    ports:
+      - "4007:4007"
+    environment:
+      - NODE_ENV=development
+      - PORT=4007
+      - FACTURACION_URL=http://facturacion:4002
+      - GESTION_PAGOS_URL=http://gestion_pagos:4005
+      - GESTION_CAJA_URL=http://gestion_caja:4004
+    env_file:
+      - ./servicios/soporte/.env
+    networks:
+      - app-network
