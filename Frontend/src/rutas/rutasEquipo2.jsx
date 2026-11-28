@@ -12,6 +12,7 @@ import {
   SoporteIncidente,
 } from '../modules/soporte'
 import { COMPROBANTE_ACTIVO, ComprobanteReembolso } from '../modules/pagos'
+import { KPIS_ACTIVO, TableroKpis } from '../modules/kpis'
 
 // TDSI-666: rutas del Equipo 2. Todo lo que cuelga de /soporte pasa por un solo guardia:
 // sin sesión va al login y con otro rol va al inicio de su perfil (Cajero → /,
@@ -32,6 +33,12 @@ export function rutasEquipo2() {
       {COMPROBANTE_ACTIVO && (
         <Route path="/devoluciones/:codigo/comprobante" element={<GuardiaRol roles={ROLES_DEVOLUCIONES} />}>
           <Route index element={<ComprobanteReembolso />} />
+        </Route>
+      )}
+      {/* TDSI-640: Tablero de KPIs del Administrador (Inicio > "Tablero de KPIs") */}
+      {KPIS_ACTIVO && (
+        <Route path="/admin/kpis" element={<GuardiaRol roles={ROLES_ADMIN} />}>
+          <Route index element={<TableroKpis />} />
         </Route>
       )}
     </>
