@@ -11,6 +11,7 @@ import {
   SOPORTE_ACTIVO,
   SoporteIncidente,
 } from '../modules/soporte'
+import { COMPROBANTE_ACTIVO, ComprobanteReembolso } from '../modules/pagos'
 
 // TDSI-666: rutas del Equipo 2. Todo lo que cuelga de /soporte pasa por un solo guardia:
 // sin sesión va al login y con otro rol va al inicio de su perfil (Cajero → /,
@@ -19,10 +20,26 @@ import {
 const ROLES_SOPORTE = ['USUARIO_SOPORTE']
 // TDSI-1073: la bandeja de incidentes escalados es solo del Administrador.
 const ROLES_ADMIN = ['ADMINISTRADOR']
+// TDSI-236: el comprobante de reembolso lo abre el Encargado de Devoluciones.
+const ROLES_DEVOLUCIONES = ['ENCARGADO_DEVOLUCIONES']
 
 // Se llama como función dentro de <Routes> ({rutasEquipo2()}), porque <Routes> solo acepta <Route>.
-// Con el interruptor "soporte" apagado no se registra ninguna ruta de Soporte.
+// Cada grupo se registra solo con su interruptor encendido.
 export function rutasEquipo2() {
+  return (
+    <>
+      {rutasSoporte()}
+      {COMPROBANTE_ACTIVO && (
+        <Route path="/devoluciones/:codigo/comprobante" element={<GuardiaRol roles={ROLES_DEVOLUCIONES} />}>
+          <Route index element={<ComprobanteReembolso />} />
+        </Route>
+      )}
+    </>
+  )
+}
+
+// Con el interruptor "soporte" apagado no se registra ninguna ruta de Soporte.
+function rutasSoporte() {
   if (!SOPORTE_ACTIVO) return null
   return (
     <>

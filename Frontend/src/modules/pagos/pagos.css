@@ -1,0 +1,66 @@
+/* Módulo Pagos del Sprint 4 (Equipo 2). Solo variables de index.css. */
+.pag-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.pag-encabezado h1 {
+  margin: 0;
+  font: var(--texto-titulo-1);
+}
+.pag-encabezado p,
+.pag-nota {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Comprobante a la izquierda; correo (y reversión) a la derecha */
+.pag-columnas {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  align-items: start;
+  gap: var(--espacio-5);
+}
+.pag-lateral {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+
+.pag-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.pag-dato {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding: var(--espacio-2);
+  border-bottom: 1px solid var(--border);
+}
+.pag-dato dt {
+  color: var(--muted);
+}
+.pag-dato dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.pag-importe {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--espacio-4);
+  margin-top: var(--espacio-4);
+  padding: var(--espacio-2);
+}
+.pag-importe strong {
+  font: var(--texto-titulo-2);
+}
+
+@media (max-width: 900px) {
+  .pag-columnas {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
