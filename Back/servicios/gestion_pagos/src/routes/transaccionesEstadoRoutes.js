@@ -1,5 +1,5 @@
 const { Router } = require("express");
-const { consultarEstado, actualizarEstado, consultarHistorial } = require("../services/transaccionesEstadoService");
+const { consultarEstado, actualizarEstado, consultarHistorial, consultarDetalle } = require("../services/transaccionesEstadoService");
 const { verificarToken } = require("../middlewares/verificarToken");
 
 const router = Router();
@@ -15,6 +15,11 @@ router.get("/:id/historial", verificarToken, wrap(async (req, res) => {
   const historial = await consultarHistorial(req.params.id);
   res.json({ ok: true, total: historial.length, data: historial });
 }));
+
+// TDSI-1066: detalle de solo lectura (metodos y montos), lo usa el microservicio Soporte (requiere token)
+router.get("/:id", verificarToken, wrap(async (req, res) =>
+  res.json({ ok: true, data: await consultarDetalle(req.params.id) })
+));
 
 // TDSI-360: actualizar el estado (uso INTERNO, no requiere token del Cliente)
 router.patch("/:id/estado", wrap(async (req, res) =>

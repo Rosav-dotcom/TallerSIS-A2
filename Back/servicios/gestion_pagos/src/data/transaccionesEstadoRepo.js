@@ -61,4 +61,20 @@ async function obtenerHistorial(idTransaccion) {
   return rows;
 }
 
-module.exports = { obtenerEstado, cambiarEstado, obtenerHistorial };
+/**
+ * TDSI-1066: detalle de una transaccion (una fila por metodo en el pago mixto).
+ * Solo lectura: lo consulta Soporte para comparar con la factura.
+ */
+async function obtenerDetalle(idTransaccion) {
+  const { rows } = await query(
+    `SELECT id, id_transaccion, metodo, monto, tipo_pago, nit, razon_social, tipo_documento,
+            estado, estado_pago, caja_id, cajero, fecha, actualizado_en
+       FROM pagos.transacciones
+      WHERE id_transaccion = $1
+      ORDER BY id`,
+    [idTransaccion]
+  );
+  return rows;
+}
+
+module.exports = { obtenerEstado, cambiarEstado, obtenerHistorial, obtenerDetalle };

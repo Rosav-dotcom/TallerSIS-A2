@@ -58,6 +58,11 @@ export default defineConfig({
         target: 'http://localhost:4006',
         changeOrigin: true,
       },
+      // TDSI-203: microservicio Soporte (Sprint 4)
+      '/api/soporte': {
+        target: 'http://localhost:4007',
+        changeOrigin: true,
+      },
     },
   },
 })

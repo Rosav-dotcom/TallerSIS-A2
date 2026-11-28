@@ -1,0 +1,19 @@
+{
+  "name": "soporte",
+  "version": "1.0.0",
+  "description": "Microservicio de Soporte: incidentes y consulta de facturas y pagos reclamados (Sprint 4)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^18.0.0",
+    "express": "^5.2.1",
+    "pg": "^8.12.0"
+  }
+}

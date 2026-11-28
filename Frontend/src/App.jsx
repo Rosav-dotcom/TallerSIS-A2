@@ -12,6 +12,7 @@ import CierreCaja from './pages/CierreCaja.jsx'
 import VerificarFactura from './pages/VerificarFactura.jsx'
 import { useAuth } from './context/AuthContext.jsx'
 import { useAdminAuth } from './context/AdminAuthContext.jsx'
+import { rutasEquipo2 } from './rutas/rutasEquipo2.jsx'
 import CierreDiario from './pages/CierreDiario.jsx'
 import HistorialOperaciones from './pages/HistorialOperaciones.jsx'
 import MetasVenta from './pages/MetasVenta.jsx'
@@ -71,6 +72,9 @@ function App() {
           <Route path="/admin/ventas-online" element={<RutaProtegidaAdmin><VentasOnline /></RutaProtegidaAdmin>} />
           <Route path="/admin/libro-ventas" element={<RutaProtegidaAdmin><LibroVentas /></RutaProtegidaAdmin>} />
           <Route path="/admin/usuarios" element={<RutaProtegidaAdmin><Usuarios /></RutaProtegidaAdmin>} />
+
+          {/* Equipo 2: Soporte (TDSI-666) */}
+          {rutasEquipo2()}
         </Routes>
       </main>
     </>

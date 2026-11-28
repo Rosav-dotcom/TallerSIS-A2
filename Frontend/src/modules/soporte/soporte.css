@@ -1,0 +1,209 @@
+/* Módulo Soporte. Solo variables de index.css. */
+
+/* Las dos tarjetas en columnas necesitan más ancho que el contenedor (960 px) cuando no hay barra lateral. */
+main.container:not(.con-barra-lateral):has(.sop-pagina) {
+  max-width: 1280px;
+}
+
+.sop-pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+.sop-encabezado h1 {
+  margin: 0;
+  font: var(--texto-titulo-1);
+}
+.sop-encabezado p {
+  margin: 0;
+  color: var(--muted);
+}
+
+/* Los controles se alinean arriba para que el mensaje de error de un campo no mueva al resto. */
+.sop-buscador,
+.sop-comparar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+.sop-buscador > .ui-campo:nth-child(2),
+.sop-comparar > .ui-campo {
+  flex: 1;
+  min-width: 240px;
+}
+/* Alto de la etiqueta del campo (16 px) más su separación (8 px) */
+.sop-buscador > .ui-boton,
+.sop-comparar > .ui-boton {
+  margin-top: var(--espacio-5);
+}
+
+.sop-columnas {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--espacio-5);
+}
+.sop-vista,
+.sop-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.sop-subtitulo {
+  margin: 0;
+  font: var(--texto-subtitulo);
+}
+.sop-nota {
+  margin: 0;
+  color: var(--muted);
+}
+
+.sop-datos {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.sop-dato {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding: var(--espacio-2);
+  border-bottom: 1px solid var(--border);
+}
+.sop-dato dt {
+  color: var(--muted);
+}
+.sop-dato dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.sop-dato--difiere {
+  background: var(--warning-bg);
+}
+.sop-marca {
+  margin-left: var(--espacio-2);
+  font: var(--texto-etiqueta);
+  color: var(--warning);
+}
+
+.sop-acciones {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .sop-columnas {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Detalle del incidente (TDSI-64) */
+.sop-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+.sop-cabecera-titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+.sop-cabecera-titulo h1 {
+  margin: 0;
+  font: var(--texto-titulo-1);
+}
+.sop-cabecera > .ui-campo {
+  width: 320px;
+  max-width: 100%;
+}
+.sop-detalle {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  align-items: start;
+  gap: var(--espacio-5);
+}
+.sop-texto {
+  margin: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+/* Prioridad: la elegida lleva borde, no solo el color de su chip */
+.sop-prioridades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+.sop-prioridad {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--alto-tactil);
+  padding: 0 var(--espacio-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radio-control);
+  background: transparent;
+  cursor: pointer;
+}
+.sop-prioridad:hover:not(:disabled) {
+  background: var(--bone);
+}
+.sop-prioridad[aria-pressed='true'] {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 1px var(--navy);
+}
+.sop-prioridad:disabled {
+  cursor: not-allowed;
+}
+
+.sop-comentarios {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.sop-comentario {
+  padding-bottom: var(--espacio-3);
+  border-bottom: 1px solid var(--border);
+}
+
+@media (max-width: 900px) {
+  .sop-detalle {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* TDSI-208: selector de estado y "Escalar a administrador" juntos, a la derecha del título */
+.sop-cabecera-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4);
+}
+.sop-cabecera-acciones > .ui-campo {
+  width: 320px;
+  max-width: 100%;
+}
+/* Alto de la etiqueta del campo (16 px) más su separación (8 px) */
+.sop-cabecera-acciones > .ui-boton {
+  margin-top: var(--espacio-5);
+}
+
+/* TDSI-1094: aviso de éxito al escalar, fijo arriba a la derecha (debajo de la barra superior) */
+.sop-aviso-flotante {
+  position: fixed;
+  top: calc(72px + var(--espacio-4));
+  right: var(--espacio-5);
+  z-index: 60;
+  width: min(420px, calc(100vw - 2 * var(--espacio-4)));
+}
+@media (max-width: 600px) {
+  .sop-aviso-flotante {
+    right: var(--espacio-4);
+  }
+}
