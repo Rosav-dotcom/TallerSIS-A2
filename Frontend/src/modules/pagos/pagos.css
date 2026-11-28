@@ -64,3 +64,15 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* TDSI-1084: correo del cliente */
+.pag-vista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+.pag-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espacio-3);
+}

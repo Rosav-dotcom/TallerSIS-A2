@@ -13,3 +13,13 @@ export function listarEnviosComprobante(devolucionId) {
   const params = new URLSearchParams({ devolucion_id: devolucionId })
   return apiFetch(`/api/pagos/comprobantes/envios?${params.toString()}`, {}, GESTION_PAGOS_API_BASE_URL)
 }
+
+// TDSI-1121: reenvía el comprobante. Con email, lo manda a ese correo corregido (TDSI-1123).
+// Responde { mensaje, data: envío } con intentos + 1; 409 si ya se está enviando (dos clics).
+export function reenviarComprobante(idEnvio, email) {
+  return apiFetch(
+    `/api/pagos/comprobantes/envios/${encodeURIComponent(idEnvio)}/reenviar`,
+    { method: 'POST', body: JSON.stringify(email ? { email } : {}) },
+    GESTION_PAGOS_API_BASE_URL,
+  )
+}

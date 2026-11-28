@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { listarEnviosComprobante } from './api.js'
+import { listarEnviosComprobante, reenviarComprobante } from './api.js'
+import { mensajeDeError } from './formato.js'
 
 // TDSI-236: lógica de la página "Comprobante de reembolso". El comprobante es el que se mandó al
 // cliente (lo guarda gestion_pagos con cada envío): se toma el envío más nuevo de la devolución.
@@ -23,5 +24,38 @@ export function useComprobanteReembolso(devolucionId) {
   }, [devolucionId, intento])
 
   const recargar = useCallback(() => setIntento((n) => n + 1), [])
-  return { envio, setEnvio, cargando, error, recargar }
+
+  // TDSI-1084: reenvío. El estado que devuelve el backend (Enviado o Error) reemplaza al anterior.
+  const [reenviando, setReenviando] = useState(false)
+  const [resultado, setResultado] = useState(null)
+  const [errorReenvio, setErrorReenvio] = useState(null)
+
+  async function reenviar(email) {
+    setReenviando(true)
+    setResultado(null)
+    setErrorReenvio(null)
+    try {
+      const { data, mensaje } = await reenviarComprobante(envio.id, email)
+      setEnvio(data)
+      if (data.estado === 'Enviado') setResultado(mensaje)
+      return data
+    } catch (err) {
+      setErrorReenvio(mensajeDeError(err))
+      throw err
+    } finally {
+      setReenviando(false)
+    }
+  }
+
+  return {
+    envio,
+    cargando,
+    error,
+    recargar,
+    reenviando,
+    resultado,
+    errorReenvio,
+    reenviar,
+    cerrarResultado: () => setResultado(null),
+  }
 }

@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom'
 import { EstadoCargando, EstadoError, EstadoVacio } from '../../components/ui'
+import CorreoCliente from './CorreoCliente.jsx'
 import DatosComprobante from './DatosComprobante.jsx'
 import { mensajeDeError } from './formato.js'
 import { useComprobanteReembolso } from './useComprobanteReembolso.js'
@@ -29,6 +30,16 @@ function ComprobanteReembolso() {
       {!c.error && c.envio && (
         <div className="pag-columnas">
           <DatosComprobante comprobante={c.envio.comprobante} />
+          <div className="pag-lateral">
+            <CorreoCliente
+              envio={c.envio}
+              reenviando={c.reenviando}
+              resultado={c.resultado}
+              errorReenvio={c.errorReenvio}
+              onReenviar={() => c.reenviar().catch(() => {})}
+              onCerrarResultado={c.cerrarResultado}
+            />
+          </div>
         </div>
       )}
     </section>
